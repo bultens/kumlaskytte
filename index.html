@@ -82,7 +82,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.7</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.8</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -236,7 +236,6 @@
 
         // VÄNLIGEN FYLL I DIN UNIKA FIREBASE-KONFIGURATION HÄR.
         // Du hittar denna information i ditt Firebase-projekt under Project settings > General.
-        // Ersätt de tomma strängarna med dina faktiska värden från din app.
         const firebaseConfig = {
             apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
             authDomain: "kumlaskytte.firebaseapp.com",
@@ -317,9 +316,6 @@
                     </div>
                 `;
             });
-            if (isAdminLoggedIn) {
-                attachDeleteListeners();
-            }
         }
         
         function renderEvents() {
@@ -351,9 +347,6 @@
                     </div>
                 `;
             });
-            if (isAdminLoggedIn) {
-                attachDeleteListeners();
-            }
         }
 
         function renderAdmins() {
@@ -371,9 +364,6 @@
                 `;
                 adminListEl.appendChild(adminEl);
             });
-            if (isAdminLoggedIn) {
-                attachAdminDeleteListeners();
-            }
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
@@ -455,21 +445,6 @@
                 }
             }
             
-            // Lägg till event-lyssnare för "Ta bort"-knapparna
-            function attachDeleteListeners() {
-                document.querySelectorAll('.delete-btn').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const docId = button.getAttribute('data-id');
-                        const docType = button.getAttribute('data-type');
-                        //window.confirm används normalt, men vi ersätter det med en modal
-                        //istället för att undvika iframe-problem.
-                        if (confirm(`Är du säker på att du vill ta bort denna ${docType == 'news' ? 'nyhet' : 'händelse'}?`)) {
-                            deleteDocument(docId, docType);
-                        }
-                    });
-                });
-            }
-
             // Funktion för att hantera radering av admins
             async function deleteAdmin(adminId) {
                 if (!db || !isAdminLoggedIn) {
@@ -496,17 +471,26 @@
                 }
             }
 
-            // Lägg till event-lyssnare för "Ta bort Admin"-knapparna
-            function attachAdminDeleteListeners() {
-                document.querySelectorAll('.delete-admin-btn').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const adminId = button.getAttribute('data-id');
-                        if (confirm(`Är du säker på att du vill ta bort denna administratör?`)) {
-                            deleteAdmin(adminId);
-                        }
-                    });
-                });
-            }
+            // Händelsedelegation för "Ta bort"-knappar (nyheter och kalender)
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const docId = e.target.getAttribute('data-id');
+                    const docType = e.target.getAttribute('data-type');
+                    if (confirm(`Är du säker på att du vill ta bort denna ${docType === 'news' ? 'nyhet' : 'händelse'}?`)) {
+                        deleteDocument(docId, docType);
+                    }
+                }
+            });
+
+            // Händelsedelegation för "Ta bort Admin"-knappar
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-admin-btn')) {
+                    const adminId = e.target.getAttribute('data-id');
+                    if (confirm(`Är du säker på att du vill ta bort denna administratör?`)) {
+                        deleteAdmin(adminId);
+                    }
+                }
+            });
 
             // Funktion för att navigera och uppdatera admin-status
             function navigate(hash) {
@@ -584,6 +568,7 @@
                 // Hantera den hårdkodade admin-användaren
                 if (username === 'admin' && password === 'admin') {
                     foundAdmin = true;
+                    loggedInAdminUsername = 'admin';
                     // Lägg till den hårdkodade admin i databasen om den inte redan finns
                     try {
                         const adminsRef = collection(db, 'admins');
