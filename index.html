@@ -78,6 +78,13 @@
             display: flex;
             gap: 0.5rem;
             margin-bottom: 0.5rem;
+            flex-wrap: wrap; /* Gör att knapparna kan radbrytas på små skärmar */
+        }
+        .editor-toolbar button {
+            transition: background-color 0.2s;
+        }
+        .editor-toolbar .active {
+            background-color: #cbd5e1; /* Tailwind 'slate-300' för aktiv knapp */
         }
         .editor-content {
             min-height: 150px;
@@ -119,7 +126,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.11</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.12</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -217,6 +224,7 @@
                             <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
                             <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
                             <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                            <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
                         </div>
                         <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
                         <input type="hidden" id="news-content-hidden">
@@ -239,6 +247,7 @@
                             <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
                             <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
                             <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                            <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
                         </div>
                         <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
                         <input type="hidden" id="event-description-hidden">
@@ -378,7 +387,6 @@
                 const day = eventDate.getDate();
                 const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
                 
-                // Använd en regex för att fånga upp den första meningen eller raden av text, oavsett taggar
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = item.description;
                 const shortText = tempDiv.textContent.split('\n')[0] || tempDiv.textContent;
@@ -440,7 +448,8 @@
         }
 
         // --- EDITOR-FUNKTIONER ---
-        function applyEditorCommand(command, value = null) {
+        function applyEditorCommand(editor, command, value = null) {
+            editor.focus();
             document.execCommand(command, false, value);
         }
 
@@ -571,17 +580,27 @@
                 }
             });
             
-            // Hantera klick på editor-knapparna
+            // Hantera klick på editor-knapparna och fokus
             document.querySelectorAll('.editor-toolbar button').forEach(button => {
                 button.addEventListener('click', () => {
                     const command = button.dataset.command;
+                    const editor = button.parentElement.nextElementSibling;
                     if (command === 'createLink') {
                         const url = prompt("Ange URL för länken:");
                         if (url) {
-                            applyEditorCommand(command, url);
+                            applyEditorCommand(editor, command, url);
+                        }
+                    } else if (command === 'insertImage') {
+                        const imageUrl = prompt("Ange URL för bilden:");
+                        if (imageUrl) {
+                            applyEditorCommand(editor, command, imageUrl);
                         }
                     } else {
-                        applyEditorCommand(command);
+                        applyEditorCommand(editor, command);
+                        // Växla aktiv klass för fet och kursiv
+                        if (command === 'bold' || command === 'italic') {
+                            button.classList.toggle('active');
+                        }
                     }
                 });
             });
