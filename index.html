@@ -195,22 +195,22 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // VÄNLIGEN FYLL I DIN UNIKA FIREBASE-KONFIGURATION HÄR.
         // Du hittar denna information i ditt Firebase-projekt under Project settings > General.
-        // Ersätt de tomma strängarna med dina faktiska värden.
+        // Ersätt de tomma strängarna med dina faktiska värden från din app.
         const firebaseConfig = {
-            apiKey: "",
-            authDomain: "",
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: "",
-            measurementId: ""
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+            authDomain: "kumlaskytte.firebaseapp.com",
+            projectId: "kumlaskytte",
+            storageBucket: "kumlaskytte.firebasestorage.app",
+            messagingSenderId: "571676149705",
+            appId: "1:571676149705:web:a0ace868f4680298a78a18",
+            measurementId: "G-KSJ9NLNDBX"
         };
 
-        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey !== "";
+        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey !== "DIN_API_KEY_HÄR";
         let db;
         let auth;
 
@@ -319,7 +319,7 @@
 
                     await signInAnonymously(auth);
 
-                    onAuthStateChanged(auth, (user) => {
+                    auth.onAuthStateChanged((user) => {
                         if (user) {
                             console.log("Authenticated with Firebase:", user.uid);
                             document.getElementById('add-news-btn').disabled = false;
