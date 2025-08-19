@@ -27,7 +27,7 @@
         .card {
             background-color: #ffffff;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             padding: 2rem;
             margin-bottom: 1.5rem;
         }
@@ -41,9 +41,16 @@
             height: 100%;
             overflow: auto;
             background-color: rgba(0,0,0,0.4);
-            display: none;
+            display: flex;
             justify-content: center;
             align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
         }
         .modal-content {
             background-color: #fefefe;
@@ -58,6 +65,7 @@
             float: right;
             font-size: 28px;
             font-weight: bold;
+            cursor: pointer;
         }
         .modal-close-btn:hover,
         .modal-close-btn:focus {
@@ -137,7 +145,6 @@
                 
                 <div class="card">
                     <h2 class="text-2xl font-bold mb-4">Lägg till Nyhet</h2>
-                    <div id="news-confirmation-message" class="text-center p-3 font-semibold rounded-lg hidden"></div>
                     <form id="add-news-form">
                         <label for="news-title" class="block mb-2 font-semibold">Titel</label>
                         <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
@@ -151,7 +158,6 @@
 
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Lägg till Kalenderhändelse</h2>
-                    <div id="event-confirmation-message" class="text-center p-3 font-semibold rounded-lg hidden"></div>
                     <form id="add-event-form">
                         <label for="event-title" class="block mb-2 font-semibold">Titel</label>
                         <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
@@ -171,8 +177,10 @@
         <!-- Modal för felmeddelanden -->
         <div id="errorModal" class="modal">
             <div class="modal-content">
-                <span class="modal-close-btn">&times;</span>
-                <p id="modal-message" class="text-lg font-semibold text-red-600"></p>
+                <p id="error-message" class="text-lg font-semibold text-red-600"></p>
+                <div class="mt-4 text-right">
+                  <button class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300" onclick="hideModal('errorModal')">Stäng</button>
+                </div>
             </div>
         </div>
 
@@ -185,11 +193,11 @@
 
     </main>
     
-    <!-- Firebase SDK skript -->
+    <!-- Firebase SDK-skript -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // De globala variablerna som tillhandahålls av miljön för Firebase
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -205,16 +213,33 @@
         let db;
         let auth;
         
+        // --- MODAL-FUNKTIONER ---
+        // Funktion för att visa en specifik modal
+        function showModal(modalId, message) {
+            const modal = document.getElementById(modalId);
+            const messageEl = modal.querySelector('p');
+            messageEl.textContent = message;
+            modal.classList.add('active');
+        }
+
+        // Funktion för att dölja en specifik modal
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+        }
+
         // --- RENDERING AV INNEHÅLL ---
         // Funktion för att visa nyheter
         function renderNews(news) {
             const homeNewsContainer = document.getElementById('home-news-container');
             homeNewsContainer.innerHTML = '';
             news.slice(0, 2).forEach(item => {
+                const date = item.createdAt?.toDate() || new Date(item.date);
+                const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 homeNewsContainer.innerHTML += `
                     <div class="card">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${item.date}</p>
+                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
                         <p class="text-gray-700">${item.content}</p>
                     </div>
                 `;
@@ -223,10 +248,12 @@
             const allNewsContainer = document.getElementById('all-news-container');
             allNewsContainer.innerHTML = '';
             news.forEach(item => {
+                const date = item.createdAt?.toDate() || new Date(item.date);
+                const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 allNewsContainer.innerHTML += `
                     <div class="card">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${item.date}</p>
+                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
                         <p class="text-gray-700">${item.content}</p>
                     </div>
                 `;
@@ -237,12 +264,17 @@
         function renderEvents(events) {
             const calendarContainer = document.getElementById('calendar-container');
             calendarContainer.innerHTML = '';
+            events.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sortera händelser efter datum
             events.forEach(item => {
+                const eventDate = new Date(item.date);
+                const day = eventDate.getDate();
+                const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
+
                 calendarContainer.innerHTML += `
                     <div class="card flex items-start">
                         <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                            <p class="text-xl leading-none">${new Date(item.date).getDate()}</p>
-                            <p class="text-xs uppercase">${new Date(item.date).toLocaleString('sv-SE', { month: 'short' })}</p>
+                            <p class="text-xl leading-none">${day}</p>
+                            <p class="text-xs uppercase">${month}</p>
                         </div>
                         <div>
                             <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
@@ -254,29 +286,6 @@
             });
         }
         
-        // Funktion för att visa bekräftelse-meddelande
-        function showConfirmation(message, elementId) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.classList.remove('hidden');
-            el.classList.add('bg-green-100', 'text-green-800');
-            setTimeout(() => {
-                el.classList.add('hidden');
-            }, 3000); // Dölj meddelandet efter 3 sekunder
-        }
-
-        // Funktion för att visa fel-meddelande
-        function showError(message, elementId) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.classList.remove('hidden');
-            el.classList.add('bg-red-100', 'text-red-800');
-            setTimeout(() => {
-                el.classList.add('hidden');
-            }, 3000); // Dölj meddelandet efter 3 sekunder
-        }
-
-
         document.addEventListener('DOMContentLoaded', async () => {
 
             // --- FIREBASE-INITIALISERING ---
@@ -288,10 +297,10 @@
                     
                     console.log("Firebase App initialized successfully.");
 
-                    // Försöker logga in anonymt för att ansluta till databasen
                     try {
                         await signInAnonymously(auth);
                         console.log("Signed in anonymously.");
+                        // Sätt igång formulärknapparna efter lyckad inloggning
                         document.getElementById('add-news-btn').disabled = false;
                         document.getElementById('add-news-btn').classList.remove('bg-gray-400');
                         document.getElementById('add-news-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -300,34 +309,12 @@
                         document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
                     } catch (anonError) {
                         console.error("Error signing in anonymously:", anonError);
-                        // Använd den inbyggda felvisningen
-                        const adminPanel = document.getElementById('admin-panel');
-                        if (adminPanel) {
-                            const errorEl = document.createElement('div');
-                            errorEl.textContent = "Ett fel uppstod vid inloggning. Vänligen kontakta support.";
-                            errorEl.className = "text-red-500 p-2 mb-2";
-                            adminPanel.prepend(errorEl);
-                        }
                     }
                 } catch (initError) {
                     console.error("Error initializing Firebase App:", initError);
-                    const adminPanel = document.getElementById('admin-panel');
-                    if (adminPanel) {
-                        const errorEl = document.createElement('div');
-                        errorEl.textContent = "Ett fel uppstod vid initialisering av Firebase. Kontrollera din konfiguration.";
-                        errorEl.className = "text-red-500 p-2 mb-2";
-                        adminPanel.prepend(errorEl);
-                    }
                 }
             } else {
                 console.error("Firebase config is missing. The app will not function correctly.");
-                const adminPanel = document.getElementById('admin-panel');
-                if (adminPanel) {
-                    const errorEl = document.createElement('div');
-                    errorEl.textContent = "Fel: Firebase-konfiguration saknas. Appen kommer inte att fungera korrekt.";
-                    errorEl.className = "text-red-500 p-2 mb-2";
-                    adminPanel.prepend(errorEl);
-                }
             }
 
             // --- ENKEL ROUTER FÖR SIDVÄXLING ---
@@ -375,10 +362,8 @@
                         adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid})`;
                     }
                 } else {
-                    const errorEl = document.createElement('div');
-                    errorEl.textContent = "Felaktigt lösenord!";
-                    errorEl.className = "text-red-500 p-2 mb-2";
-                    adminLoginPanel.prepend(errorEl);
+                    // Använd den nya modal-funktionen för felmeddelande
+                    showModal('errorModal', 'Felaktigt lösenord!');
                 }
             });
 
@@ -417,7 +402,7 @@
             addNewsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showError("Databasen är inte ansluten. Vänligen ladda om sidan.", 'news-confirmation-message');
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
                     return;
                 }
                 const newNews = {
@@ -431,10 +416,11 @@
                     await addDoc(collection(db, `artifacts/${appId}/public/data/news`), newNews);
                     console.log("Nyhet tillagd!");
                     addNewsForm.reset();
-                    showConfirmation("Nyhet har lagts till!", 'news-confirmation-message');
+                    showModal('confirmationModal', "Nyhet har lagts till!");
+                    setTimeout(() => hideModal('confirmationModal'), 2000); // Dölj modalen automatiskt
                 } catch (error) {
                     console.error("Fel vid tillägg av nyhet:", error);
-                    showError("Ett fel uppstod när nyheten skulle läggas till.", 'news-confirmation-message');
+                    showModal('errorModal', "Ett fel uppstod när nyheten skulle läggas till.");
                 }
             });
 
@@ -442,7 +428,7 @@
             addEventForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showError("Databasen är inte ansluten. Vänligen ladda om sidan.", 'event-confirmation-message');
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
                     return;
                 }
                 const newEvent = {
@@ -456,10 +442,11 @@
                     await addDoc(collection(db, `artifacts/${appId}/public/data/events`), newEvent);
                     console.log("Händelse tillagd!");
                     addEventForm.reset();
-                    showConfirmation("Händelse har lagts till!", 'event-confirmation-message');
+                    showModal('confirmationModal', "Händelse har lagts till!");
+                    setTimeout(() => hideModal('confirmationModal'), 2000); // Dölj modalen automatiskt
                 } catch (error) {
                     console.error("Fel vid tillägg av händelse:", error);
-                    showError("Ett fel uppstod när händelsen skulle läggas till.", 'event-confirmation-message');
+                    showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till.");
                 }
             });
         });
