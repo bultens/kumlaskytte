@@ -177,10 +177,8 @@
         <!-- Modal för felmeddelanden -->
         <div id="errorModal" class="modal">
             <div class="modal-content">
+                <span id="close-error-modal" class="modal-close-btn">&times;</span>
                 <p id="error-message" class="text-lg font-semibold text-red-600"></p>
-                <div class="mt-4 text-right">
-                  <button class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300" onclick="hideModal('errorModal')">Stäng</button>
-                </div>
             </div>
         </div>
 
@@ -196,18 +194,13 @@
     <!-- Firebase SDK-skript -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // De globala variablerna som tillhandahålls av miljön för Firebase
+        // VIKTIGT: Använd dessa för att säkerställa att appen fungerar för alla användare
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = {
-            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
-            authDomain: "kumlaskytte.firebaseapp.com",
-            projectId: "kumlaskytte",
-            storageBucket: "kumlaskytte.firebasestorage.app",
-            appId: "1:571676149705:web:a0ace868f4680298a78a18"
-        };
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         let db;
@@ -217,14 +210,18 @@
         // Funktion för att visa en specifik modal
         function showModal(modalId, message) {
             const modal = document.getElementById(modalId);
+            if (!modal) return;
             const messageEl = modal.querySelector('p');
-            messageEl.textContent = message;
+            if (messageEl) {
+                messageEl.textContent = message;
+            }
             modal.classList.add('active');
         }
 
         // Funktion för att dölja en specifik modal
         function hideModal(modalId) {
             const modal = document.getElementById(modalId);
+            if (!modal) return;
             modal.classList.remove('active');
         }
 
@@ -232,7 +229,21 @@
         // Funktion för att visa nyheter
         function renderNews(news) {
             const homeNewsContainer = document.getElementById('home-news-container');
+            const allNewsContainer = document.getElementById('all-news-container');
+
+            if (!homeNewsContainer || !allNewsContainer) return;
+
             homeNewsContainer.innerHTML = '';
+            allNewsContainer.innerHTML = '';
+
+            // Sortera nyheter baserat på createdAt (om det finns), annars date
+            news.sort((a, b) => {
+                const dateA = a.createdAt?.toDate() || new Date(a.date);
+                const dateB = b.createdAt?.toDate() || new Date(b.date);
+                return dateB - dateA;
+            });
+            
+            // Visa de 2 senaste nyheterna på startsidan
             news.slice(0, 2).forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -245,8 +256,7 @@
                 `;
             });
 
-            const allNewsContainer = document.getElementById('all-news-container');
-            allNewsContainer.innerHTML = '';
+            // Visa alla nyheter på nyhetssidan
             news.forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -263,8 +273,13 @@
         // Funktion för att visa kalenderhändelser
         function renderEvents(events) {
             const calendarContainer = document.getElementById('calendar-container');
+            if (!calendarContainer) return;
+
             calendarContainer.innerHTML = '';
-            events.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sortera händelser efter datum
+            
+            // Sortera händelser efter datum
+            events.sort((a, b) => new Date(a.date) - new Date(b.date)); 
+
             events.forEach(item => {
                 const eventDate = new Date(item.date);
                 const day = eventDate.getDate();
@@ -297,25 +312,64 @@
                     
                     console.log("Firebase App initialized successfully.");
 
-                    try {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously.");
-                        // Sätt igång formulärknapparna efter lyckad inloggning
-                        document.getElementById('add-news-btn').disabled = false;
-                        document.getElementById('add-news-btn').classList.remove('bg-gray-400');
-                        document.getElementById('add-news-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        document.getElementById('add-event-btn').disabled = false;
-                        document.getElementById('add-event-btn').classList.remove('bg-gray-400');
-                        document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                    }
+                    // Lyssna på autentiseringsstatus för att veta när databasen kan användas
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            console.log("Authenticated with Firebase:", user.uid);
+                            // Sätt igång formulärknapparna efter lyckad inloggning
+                            document.getElementById('add-news-btn').disabled = false;
+                            document.getElementById('add-news-btn').classList.remove('bg-gray-400');
+                            document.getElementById('add-news-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
+                            document.getElementById('add-event-btn').disabled = false;
+                            document.getElementById('add-event-btn').classList.remove('bg-gray-400');
+                            document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
+
+                            // Starta realtidslyssnare när användaren är inloggad
+                            const newsRef = collection(db, `artifacts/${appId}/public/data/news`);
+                            onSnapshot(newsRef, (snapshot) => {
+                                const news = [];
+                                snapshot.forEach(doc => {
+                                    news.push({ id: doc.id, ...doc.data() });
+                                });
+                                renderNews(news);
+                            });
+
+                            const eventsRef = collection(db, `artifacts/${appId}/public/data/events`);
+                            onSnapshot(eventsRef, (snapshot) => {
+                                const events = [];
+                                snapshot.forEach(doc => {
+                                    events.push({ id: doc.id, ...doc.data() });
+                                });
+                                renderEvents(events);
+                            });
+                        } else {
+                            console.log("Not authenticated with Firebase.");
+                            // Försök att logga in med den anpassade token eller anonymt
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        }
+                    });
                 } catch (initError) {
                     console.error("Error initializing Firebase App:", initError);
+                    showModal('errorModal', "Ett fel uppstod vid initialisering av Firebase. Kontrollera din konfiguration.");
                 }
             } else {
                 console.error("Firebase config is missing. The app will not function correctly.");
+                showModal('errorModal', "Fel: Firebase-konfiguration saknas. Appen kommer inte att fungera korrekt.");
             }
+
+            // --- MODAL EVENT LYSSNARE ---
+            document.getElementById('close-error-modal').addEventListener('click', () => {
+                hideModal('errorModal');
+            });
+            window.addEventListener('click', (event) => {
+                if (event.target.classList.contains('modal')) {
+                    event.target.classList.remove('active');
+                }
+            });
 
             // --- ENKEL ROUTER FÖR SIDVÄXLING ---
             function navigate(hash) {
@@ -362,40 +416,9 @@
                         adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid})`;
                     }
                 } else {
-                    // Använd den nya modal-funktionen för felmeddelande
                     showModal('errorModal', 'Felaktigt lösenord!');
                 }
             });
-
-            // --- FIREBASE DATAHANTERING ---
-            // onSnapshot lyssnar på ändringar i realtid och uppdaterar UI
-            if (db) {
-                // Lyssnar på nyheter
-                const newsRef = collection(db, `artifacts/${appId}/public/data/news`);
-                onSnapshot(newsRef, (snapshot) => {
-                    const news = [];
-                    snapshot.forEach(doc => {
-                        news.push({ id: doc.id, ...doc.data() });
-                    });
-                    news.sort((a, b) => {
-                        const dateA = a.createdAt?.toDate() || new Date(a.date);
-                        const dateB = b.createdAt?.toDate() || new Date(b.date);
-                        return dateB - dateA;
-                    });
-                    renderNews(news);
-                });
-
-                // Lyssnar på kalenderhändelser
-                const eventsRef = collection(db, `artifacts/${appId}/public/data/events`);
-                onSnapshot(eventsRef, (snapshot) => {
-                    const events = [];
-                    snapshot.forEach(doc => {
-                        events.push({ id: doc.id, ...doc.data() });
-                    });
-                    events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                    renderEvents(events);
-                });
-            }
 
             // --- FORMULÄR FÖR ATT LÄGGA TILL DATA TILL FIREBASE ---
             const addNewsForm = document.getElementById('add-news-form');
