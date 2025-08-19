@@ -200,34 +200,9 @@
         // De globala variablerna som tillhandahålls av miljön för Firebase
         // VIKTIGT: Använd dessa för att säkerställa att appen fungerar för alla användare
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
-        // Dynamisk Firebase-konfiguration från miljön, med en fallback om den saknas
-        let firebaseConfig;
-        try {
-            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-            if (Object.keys(firebaseConfig).length === 0) {
-                // Fallback till din ursprungliga konfiguration om miljön inte tillhandahåller den
-                console.warn("Miljön tillhandahåller ingen Firebase-konfiguration. Använder hårdkodade värden som fallback.");
-                firebaseConfig = {
-                    apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
-                    authDomain: "kumlaskytte.firebaseapp.com",
-                    projectId: "kumlaskytte",
-                    storageBucket: "kumlaskytte.firebasestorage.app",
-                    appId: "1:571676149705:web:a0ace868f4680298a78a18"
-                };
-            }
-        } catch (e) {
-            console.error("Kunde inte tolka Firebase-konfiguration från miljön. Använder fallback.", e);
-            firebaseConfig = {
-                apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
-                authDomain: "kumlaskytte.firebaseapp.com",
-                projectId: "kumlaskytte",
-                storageBucket: "kumlaskytte.firebasestorage.app",
-                appId: "1:571676149705:web:a0ace868f4680298a78a18"
-            };
-        }
-
         let db;
         let auth;
         
