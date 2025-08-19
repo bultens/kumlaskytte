@@ -205,7 +205,10 @@
         
         let db;
         let auth;
-        
+
+        // Kontrollerar om Firebase-konfigurationen finns
+        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0;
+
         // --- MODAL-FUNKTIONER ---
         // Funktion för att visa en specifik modal
         function showModal(modalId, message) {
@@ -308,7 +311,7 @@
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
             document.getElementById('admin-panel').prepend(statusIndicator);
 
-            if (Object.keys(firebaseConfig).length > 0) {
+            if (firebaseConfigExists) {
                 try {
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
