@@ -82,7 +82,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.6</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.7</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -145,7 +145,10 @@
             </div>
 
             <div id="admin-panel" class="hidden">
-                <h1 class="text-4xl font-bold mb-6">Administrationspanel</h1>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-4xl font-bold">Administrationspanel</h1>
+                    <button id="logout-btn" class="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
+                </div>
                 <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
                 
                 <!-- Adminhantering -->
@@ -561,6 +564,7 @@
 
             // --- ADMINPANELENS LOGIK ---
             const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
             const adminUsernameInput = document.getElementById('admin-username');
             const adminPasswordInput = document.getElementById('admin-password');
             const adminLoginPanel = document.getElementById('admin-login-panel');
@@ -630,6 +634,26 @@
                     showModal('errorModal', 'Felaktigt användarnamn eller lösenord!');
                 }
             });
+
+            logoutBtn.addEventListener('click', () => {
+                isAdminLoggedIn = false;
+                loggedInAdminUsername = '';
+                adminLoginPanel.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+                adminUsernameInput.value = '';
+                adminPasswordInput.value = '';
+                newsAddBtn.disabled = true;
+                newsAddBtn.classList.add('bg-gray-400');
+                newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                eventAddBtn.disabled = true;
+                eventAddBtn.classList.add('bg-gray-400');
+                eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                renderNews();
+                renderEvents();
+                renderAdmins();
+                navigate('#hem');
+            });
+
 
             addAdminForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
