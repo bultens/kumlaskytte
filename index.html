@@ -126,7 +126,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.15</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.16</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -435,7 +435,7 @@
                 
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = item.description;
-                const shortText = tempDiv.textContent.split('\n')[0] || tempDiv.textContent;
+                const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
                 
                 calendarContainer.innerHTML += `
                     <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}">
@@ -540,18 +540,18 @@
 
         // --- EVENT-LYSSNARE ---
         document.addEventListener('DOMContentLoaded', async () => {
-            const statusIndicator = document.createElement('div');
-            statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
-            document.getElementById('admin-panel').prepend(statusIndicator);
-
+            const statusIndicator = document.getElementById('admin-status-indicator');
+            
             if (firebaseConfigExists) {
                 try {
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
                     
-                    statusIndicator.textContent = "Firebase är ansluten.";
-                    statusIndicator.classList.add('bg-green-500');
+                    if (statusIndicator) {
+                        statusIndicator.textContent = "Firebase är ansluten.";
+                        statusIndicator.classList.add('bg-green-500');
+                    }
 
                     await signInAnonymously(auth);
 
@@ -591,14 +591,18 @@
                     });
                 } catch (initError) {
                     console.error("Error initializing Firebase App:", initError);
-                    statusIndicator.textContent = "Fel: Kunde inte ansluta till Firebase.";
+                    if (statusIndicator) {
+                        statusIndicator.textContent = "Fel: Kunde inte ansluta till Firebase.";
+                        statusIndicator.classList.remove('bg-green-500');
+                        statusIndicator.classList.add('bg-red-500');
+                    }
+                }
+            } else {
+                if (statusIndicator) {
+                    statusIndicator.textContent = "Fel: Firebase-konfiguration saknas.";
                     statusIndicator.classList.remove('bg-green-500');
                     statusIndicator.classList.add('bg-red-500');
                 }
-            } else {
-                statusIndicator.textContent = "Fel: Firebase-konfiguration saknas.";
-                statusIndicator.classList.remove('bg-green-500');
-                statusIndicator.classList.add('bg-red-500');
             }
 
             // Funktion för att hantera radering av nyheter/events
@@ -703,12 +707,8 @@
                             let linkText = prompt("Ange länktext (lämna tomt för att visa URL):");
                             if (!linkText) linkText = url;
                             
-                            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
-                                const fullUrl = 'https://' + url;
-                                document.execCommand('insertHTML', false, `<a href="${fullUrl}" target="_blank">${linkText}</a>`);
-                            } else {
-                                document.execCommand('insertHTML', false, `<a href="${url}" target="_blank">${linkText}</a>`);
-                            }
+                            const protocol = url.startsWith('http') ? '' : 'https://';
+                            document.execCommand('insertHTML', false, `<a href="${protocol}${url}" target="_blank">${linkText}</a>`);
                         } else if (command === 'insertImage') {
                             const imageUrl = prompt("Ange URL för bilden:");
                             if (imageUrl) {
