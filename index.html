@@ -194,23 +194,27 @@
     <!-- Firebase SDK-skript -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // De globala variablerna som tillhandahålls av miljön för Firebase
-        // VIKTIGT: Använd dessa för att säkerställa att appen fungerar för alla användare
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
+        // VÄNLIGEN FYLL I DIN UNIKA FIREBASE-KONFIGURATION HÄR.
+        // Du hittar denna information i ditt Firebase-projekt under Project settings > General.
+        // Ersätt de tomma strängarna med dina faktiska värden.
+        const firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: "",
+            measurementId: ""
+        };
+
+        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey !== "";
         let db;
         let auth;
 
-        // Kontrollerar om Firebase-konfigurationen finns
-        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0;
-
         // --- MODAL-FUNKTIONER ---
-        // Funktion för att visa en specifik modal
         function showModal(modalId, message) {
             const modal = document.getElementById(modalId);
             if (!modal) return;
@@ -221,7 +225,6 @@
             modal.classList.add('active');
         }
 
-        // Funktion för att dölja en specifik modal
         function hideModal(modalId) {
             const modal = document.getElementById(modalId);
             if (!modal) return;
@@ -229,7 +232,6 @@
         }
 
         // --- RENDERING AV INNEHÅLL ---
-        // Funktion för att visa nyheter
         function renderNews(news) {
             const homeNewsContainer = document.getElementById('home-news-container');
             const allNewsContainer = document.getElementById('all-news-container');
@@ -239,7 +241,6 @@
             homeNewsContainer.innerHTML = '';
             allNewsContainer.innerHTML = '';
 
-            // Sortera nyheter baserat på createdAt (om det finns), annars date
             news.sort((a, b) => {
                 const dateA = a.createdAt?.toDate() || new Date(a.date);
                 const dateB = b.createdAt?.toDate() || new Date(b.date);
@@ -273,14 +274,12 @@
             });
         }
         
-        // Funktion för att visa kalenderhändelser
         function renderEvents(events) {
             const calendarContainer = document.getElementById('calendar-container');
             if (!calendarContainer) return;
 
             calendarContainer.innerHTML = '';
             
-            // Sortera händelser efter datum
             events.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
             events.forEach(item => {
@@ -305,8 +304,6 @@
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
-
-            // --- FIREBASE-INITIALISERING ---
             const statusIndicator = document.createElement('div');
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
             document.getElementById('admin-panel').prepend(statusIndicator);
@@ -320,11 +317,11 @@
                     statusIndicator.textContent = "Firebase är ansluten.";
                     statusIndicator.classList.add('bg-green-500');
 
-                    // Lyssna på autentiseringsstatus för att veta när databasen kan användas
-                    onAuthStateChanged(auth, async (user) => {
+                    await signInAnonymously(auth);
+
+                    onAuthStateChanged(auth, (user) => {
                         if (user) {
                             console.log("Authenticated with Firebase:", user.uid);
-                            // Sätt igång formulärknapparna efter lyckad inloggning
                             document.getElementById('add-news-btn').disabled = false;
                             document.getElementById('add-news-btn').classList.remove('bg-gray-400');
                             document.getElementById('add-news-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -332,8 +329,7 @@
                             document.getElementById('add-event-btn').classList.remove('bg-gray-400');
                             document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
 
-                            // Starta realtidslyssnare när användaren är inloggad
-                            const newsRef = collection(db, `artifacts/${appId}/public/data/news`);
+                            const newsRef = collection(db, `public/news`);
                             onSnapshot(newsRef, (snapshot) => {
                                 const news = [];
                                 snapshot.forEach(doc => {
@@ -342,7 +338,7 @@
                                 renderNews(news);
                             });
 
-                            const eventsRef = collection(db, `artifacts/${appId}/public/data/events`);
+                            const eventsRef = collection(db, `public/events`);
                             onSnapshot(eventsRef, (snapshot) => {
                                 const events = [];
                                 snapshot.forEach(doc => {
@@ -352,12 +348,6 @@
                             });
                         } else {
                             console.log("Not authenticated with Firebase.");
-                            // Försök att logga in med den anpassade token eller anonymt
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                            } else {
-                                await signInAnonymously(auth);
-                            }
                         }
                     });
                 } catch (initError) {
@@ -457,12 +447,11 @@
                 const newNews = {
                     title: document.getElementById('news-title').value,
                     content: document.getElementById('news-content').value,
-                    date: new Date().toISOString().slice(0, 10),
                     createdAt: serverTimestamp()
                 };
                 
                 try {
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/news`), newNews);
+                    await addDoc(collection(db, `public/news`), newNews);
                     console.log("Nyhet tillagd!");
                     addNewsForm.reset();
                     showModal('confirmationModal', "Nyhet har lagts till!");
@@ -488,7 +477,7 @@
                 };
                 
                 try {
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/events`), newEvent);
+                    await addDoc(collection(db, `public/events`), newEvent);
                     console.log("Händelse tillagd!");
                     addEventForm.reset();
                     showModal('confirmationModal', "Händelse har lagts till!");
