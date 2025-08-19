@@ -200,9 +200,34 @@
         // De globala variablerna som tillhandahålls av miljön för Firebase
         // VIKTIGT: Använd dessa för att säkerställa att appen fungerar för alla användare
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
+        // Dynamisk Firebase-konfiguration från miljön, med en fallback om den saknas
+        let firebaseConfig;
+        try {
+            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            if (Object.keys(firebaseConfig).length === 0) {
+                // Fallback till din ursprungliga konfiguration om miljön inte tillhandahåller den
+                console.warn("Miljön tillhandahåller ingen Firebase-konfiguration. Använder hårdkodade värden som fallback.");
+                firebaseConfig = {
+                    apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+                    authDomain: "kumlaskytte.firebaseapp.com",
+                    projectId: "kumlaskytte",
+                    storageBucket: "kumlaskytte.firebasestorage.app",
+                    appId: "1:571676149705:web:a0ace868f4680298a78a18"
+                };
+            }
+        } catch (e) {
+            console.error("Kunde inte tolka Firebase-konfiguration från miljön. Använder fallback.", e);
+            firebaseConfig = {
+                apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+                authDomain: "kumlaskytte.firebaseapp.com",
+                projectId: "kumlaskytte",
+                storageBucket: "kumlaskytte.firebasestorage.app",
+                appId: "1:571676149705:web:a0ace868f4680298a78a18"
+            };
+        }
+
         let db;
         let auth;
         
@@ -304,13 +329,18 @@
         document.addEventListener('DOMContentLoaded', async () => {
 
             // --- FIREBASE-INITIALISERING ---
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
+            document.getElementById('admin-panel').prepend(statusIndicator);
+
             if (Object.keys(firebaseConfig).length > 0) {
                 try {
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
                     
-                    console.log("Firebase App initialized successfully.");
+                    statusIndicator.textContent = "Firebase är ansluten.";
+                    statusIndicator.classList.add('bg-green-500');
 
                     // Lyssna på autentiseringsstatus för att veta när databasen kan användas
                     onAuthStateChanged(auth, async (user) => {
@@ -354,22 +384,40 @@
                     });
                 } catch (initError) {
                     console.error("Error initializing Firebase App:", initError);
-                    showModal('errorModal', "Ett fel uppstod vid initialisering av Firebase. Kontrollera din konfiguration.");
+                    statusIndicator.textContent = "Fel: Kunde inte ansluta till Firebase.";
+                    statusIndicator.classList.remove('bg-green-500');
+                    statusIndicator.classList.add('bg-red-500');
                 }
             } else {
-                console.error("Firebase config is missing. The app will not function correctly.");
-                showModal('errorModal', "Fel: Firebase-konfiguration saknas. Appen kommer inte att fungera korrekt.");
+                statusIndicator.textContent = "Fel: Firebase-konfiguration saknas.";
+                statusIndicator.classList.remove('bg-green-500');
+                statusIndicator.classList.add('bg-red-500');
             }
 
             // --- MODAL EVENT LYSSNARE ---
-            document.getElementById('close-error-modal').addEventListener('click', () => {
-                hideModal('errorModal');
-            });
-            window.addEventListener('click', (event) => {
-                if (event.target.classList.contains('modal')) {
-                    event.target.classList.remove('active');
-                }
-            });
+            const errorModal = document.getElementById('errorModal');
+            const closeErrorModalBtn = document.getElementById('close-error-modal');
+            if (closeErrorModalBtn) {
+                closeErrorModalBtn.addEventListener('click', () => {
+                    hideModal('errorModal');
+                });
+            }
+            if (errorModal) {
+                errorModal.addEventListener('click', (event) => {
+                    if (event.target === errorModal) {
+                        hideModal('errorModal');
+                    }
+                });
+            }
+
+            const confirmationModal = document.getElementById('confirmationModal');
+            if (confirmationModal) {
+                confirmationModal.addEventListener('click', (event) => {
+                    if (event.target === confirmationModal) {
+                        hideModal('confirmationModal');
+                    }
+                });
+            }
 
             // --- ENKEL ROUTER FÖR SIDVÄXLING ---
             function navigate(hash) {
