@@ -73,6 +73,21 @@
             text-decoration: none;
             cursor: pointer;
         }
+        /* Style för Markdown */
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+        .markdown-content a {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+        /* Kalenderpost-styling för klickbarhet */
+        .calendar-post {
+            cursor: pointer;
+        }
+        .calendar-post-expanded {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -82,7 +97,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.8</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.9</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -138,7 +153,6 @@
         <section id="admin" class="page">
             <div id="admin-login-panel" class="card max-w-md mx-auto">
                 <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
-                <p class="text-sm text-gray-500 mb-4">Användare: admin, Lösenord: admin för första inloggning.</p>
                 <input type="text" id="admin-username" placeholder="Användarnamn" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                 <input type="password" id="admin-password" placeholder="Lösenord" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                 <button id="login-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Logga in</button>
@@ -176,7 +190,7 @@
                         <label for="news-title" class="block mb-2 font-semibold">Titel</label>
                         <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         
-                        <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
+                        <label for="news-content" class="block mb-2 font-semibold">Innehåll (Markdown)</label>
                         <textarea id="news-content" rows="6" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
                         
                         <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
@@ -192,7 +206,7 @@
                         <label for="event-date" class="block mb-2 font-semibold">Datum</label>
                         <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         
-                        <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
+                        <label for="event-description" class="block mb-2 font-semibold">Beskrivning (Markdown)</label>
                         <textarea id="event-description" rows="4" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
                         
                         <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
@@ -233,6 +247,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
         // VÄNLIGEN FYLL I DIN UNIKA FIREBASE-KONFIGURATION HÄR.
         // Du hittar denna information i ditt Firebase-projekt under Project settings > General.
@@ -293,11 +308,12 @@
             news.slice(0, 2).forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+                const markdownContent = marked.parse(item.content || '');
                 homeNewsContainer.innerHTML += `
                     <div class="card">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                        <p class="text-gray-700">${item.content}</p>
+                        <div class="markdown-content text-gray-700">${markdownContent}</div>
                         ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>` : ''}
                     </div>
                 `;
@@ -307,11 +323,12 @@
             news.forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+                const markdownContent = marked.parse(item.content || '');
                 allNewsContainer.innerHTML += `
                     <div class="card">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                        <p class="text-gray-700">${item.content}</p>
+                        <div class="markdown-content text-gray-700">${markdownContent}</div>
                         ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>` : ''}
                     </div>
                 `;
@@ -331,21 +348,46 @@
                 const eventDate = new Date(item.date);
                 const day = eventDate.getDate();
                 const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
+                
+                const shortDescription = (item.description || '').split('\n')[0];
+                const fullDescription = marked.parse(item.description || '');
 
                 calendarContainer.innerHTML += `
-                    <div class="card flex items-start">
+                    <div class="card flex items-start calendar-post" data-expanded="false">
                         <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
                             <p class="text-xl leading-none">${day}</p>
                             <p class="text-xs uppercase">${month}</p>
                         </div>
-                        <div>
+                        <div class="flex-grow">
                             <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
                             <p class="text-sm text-gray-500 mb-2">${item.date}</p>
-                            <p class="text-gray-700">${item.description}</p>
+                            <p class="text-gray-700 calendar-post-short">${shortDescription}</p>
+                            <div class="markdown-content text-gray-700 hidden calendar-post-expanded mt-2">${fullDescription}</div>
                             ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events">Ta bort</button>` : ''}
                         </div>
                     </div>
                 `;
+            });
+
+            // Fäster event-lyssnare för kalenderposterna
+            document.querySelectorAll('.calendar-post').forEach(post => {
+                post.addEventListener('click', (e) => {
+                    // Förhindra att klick på "Ta bort"-knappen utlöser expansionen
+                    if (e.target.classList.contains('delete-btn')) {
+                        return;
+                    }
+                    const isExpanded = post.getAttribute('data-expanded') === 'true';
+                    post.setAttribute('data-expanded', !isExpanded);
+                    const shortText = post.querySelector('.calendar-post-short');
+                    const expandedText = post.querySelector('.calendar-post-expanded');
+                    if (isExpanded) {
+                        shortText.classList.remove('hidden');
+                        expandedText.classList.add('hidden');
+                    } else {
+                        shortText.classList.add('hidden');
+                        expandedText.classList.remove('hidden');
+                    }
+                });
             });
         }
 
