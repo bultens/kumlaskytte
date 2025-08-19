@@ -82,7 +82,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Klubbnamn</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.0</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.1</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -462,7 +462,7 @@
                     setTimeout(() => hideModal('confirmationModal'), 2000); // Dölj modalen automatiskt
                 } catch (error) {
                     console.error("Fel vid tillägg av nyhet:", error);
-                    showModal('errorModal', "Ett fel uppstod när nyheten skulle läggas till.");
+                    showModal('errorModal', "Ett fel uppstod när nyheten skulle läggas till. Kontrollera dina Firebase Security Rules.");
                 }
             });
 
@@ -488,7 +488,7 @@
                     setTimeout(() => hideModal('confirmationModal'), 2000); // Dölj modalen automatiskt
                 } catch (error) {
                     console.error("Fel vid tillägg av händelse:", error);
-                    showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till.");
+                    showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.");
                 }
             });
         });
