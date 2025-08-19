@@ -73,13 +73,35 @@
             text-decoration: none;
             cursor: pointer;
         }
-        /* Style för Markdown */
+        /* Style för den enkla redigeraren */
+        .editor-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .editor-content {
+            min-height: 150px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            background-color: #f9fafb;
+            outline: none;
+        }
+        /* Stilar för Markdown-innehåll */
         .markdown-content p {
             margin-bottom: 1rem;
         }
         .markdown-content a {
             color: #2563eb;
             text-decoration: underline;
+        }
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-top: 1rem;
+            margin-bottom: 1rem;
         }
         /* Kalenderpost-styling för klickbarhet */
         .calendar-post {
@@ -97,7 +119,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.9</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.11</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -190,8 +212,14 @@
                         <label for="news-title" class="block mb-2 font-semibold">Titel</label>
                         <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         
-                        <label for="news-content" class="block mb-2 font-semibold">Innehåll (Markdown)</label>
-                        <textarea id="news-content" rows="6" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
+                        <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
+                        <div class="editor-toolbar">
+                            <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                            <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                            <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        </div>
+                        <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                        <input type="hidden" id="news-content-hidden">
                         
                         <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
                     </form>
@@ -206,9 +234,15 @@
                         <label for="event-date" class="block mb-2 font-semibold">Datum</label>
                         <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         
-                        <label for="event-description" class="block mb-2 font-semibold">Beskrivning (Markdown)</label>
-                        <textarea id="event-description" rows="4" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
-                        
+                        <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
+                        <div class="editor-toolbar">
+                            <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                            <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                            <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        </div>
+                        <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                        <input type="hidden" id="event-description-hidden">
+
                         <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
                     </form>
                 </div>
@@ -247,10 +281,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
-        // VÄNLIGEN FYLL I DIN UNIKA FIREBASE-KONFIGURATION HÄR.
-        // Du hittar denna information i ditt Firebase-projekt under Project settings > General.
         const firebaseConfig = {
             apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
             authDomain: "kumlaskytte.firebaseapp.com",
@@ -308,12 +339,11 @@
             news.slice(0, 2).forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-                const markdownContent = marked.parse(item.content || '');
                 homeNewsContainer.innerHTML += `
                     <div class="card">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                        <div class="markdown-content text-gray-700">${markdownContent}</div>
+                        <div class="text-gray-700 markdown-content">${item.content}</div>
                         ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>` : ''}
                     </div>
                 `;
@@ -323,12 +353,11 @@
             news.forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-                const markdownContent = marked.parse(item.content || '');
                 allNewsContainer.innerHTML += `
                     <div class="card">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                        <div class="markdown-content text-gray-700">${markdownContent}</div>
+                        <div class="text-gray-700 markdown-content">${item.content}</div>
                         ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>` : ''}
                     </div>
                 `;
@@ -349,11 +378,13 @@
                 const day = eventDate.getDate();
                 const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
                 
-                const shortDescription = (item.description || '').split('\n')[0];
-                const fullDescription = marked.parse(item.description || '');
-
+                // Använd en regex för att fånga upp den första meningen eller raden av text, oavsett taggar
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = item.description;
+                const shortText = tempDiv.textContent.split('\n')[0] || tempDiv.textContent;
+                
                 calendarContainer.innerHTML += `
-                    <div class="card flex items-start calendar-post" data-expanded="false">
+                    <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}">
                         <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
                             <p class="text-xl leading-none">${day}</p>
                             <p class="text-xs uppercase">${month}</p>
@@ -361,8 +392,8 @@
                         <div class="flex-grow">
                             <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
                             <p class="text-sm text-gray-500 mb-2">${item.date}</p>
-                            <p class="text-gray-700 calendar-post-short">${shortDescription}</p>
-                            <div class="markdown-content text-gray-700 hidden calendar-post-expanded mt-2">${fullDescription}</div>
+                            <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
+                            <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
                             ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events">Ta bort</button>` : ''}
                         </div>
                     </div>
@@ -407,7 +438,13 @@
                 adminListEl.appendChild(adminEl);
             });
         }
-        
+
+        // --- EDITOR-FUNKTIONER ---
+        function applyEditorCommand(command, value = null) {
+            document.execCommand(command, false, value);
+        }
+
+        // --- EVENT-LYSSNARE ---
         document.addEventListener('DOMContentLoaded', async () => {
             const statusIndicator = document.createElement('div');
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
@@ -533,6 +570,21 @@
                     }
                 }
             });
+            
+            // Hantera klick på editor-knapparna
+            document.querySelectorAll('.editor-toolbar button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const command = button.dataset.command;
+                    if (command === 'createLink') {
+                        const url = prompt("Ange URL för länken:");
+                        if (url) {
+                            applyEditorCommand(command, url);
+                        }
+                    } else {
+                        applyEditorCommand(command);
+                    }
+                });
+            });
 
             // Funktion för att navigera och uppdatera admin-status
             function navigate(hash) {
@@ -606,11 +658,12 @@
                 const username = adminUsernameInput.value;
                 const password = adminPasswordInput.value;
                 let foundAdmin = false;
+                let adminToLog = {};
 
                 // Hantera den hårdkodade admin-användaren
                 if (username === 'admin' && password === 'admin') {
                     foundAdmin = true;
-                    loggedInAdminUsername = 'admin';
+                    adminToLog = { username: 'admin' };
                     // Lägg till den hårdkodade admin i databasen om den inte redan finns
                     try {
                         const adminsRef = collection(db, 'admins');
@@ -631,8 +684,9 @@
                         const querySnapshot = await getDocs(q);
                         if (!querySnapshot.empty) {
                             foundAdmin = true;
-                            // Spara den inloggade administratörens användarnamn
-                            loggedInAdminUsername = username;
+                            querySnapshot.forEach(doc => {
+                                adminToLog = { ...doc.data() };
+                            });
                         }
                     } catch (error) {
                         console.error('Fel vid sökning efter admin:', error);
@@ -641,10 +695,11 @@
 
                 if (foundAdmin) {
                     isAdminLoggedIn = true;
+                    loggedInAdminUsername = adminToLog.username;
                     adminLoginPanel.classList.add('hidden');
                     adminPanel.classList.remove('hidden');
                     if (auth && auth.currentUser) {
-                        adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid})`;
+                        adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid}, Admin: ${loggedInAdminUsername})`;
                     }
                     newsAddBtn.disabled = false;
                     newsAddBtn.classList.remove('bg-gray-400');
@@ -707,6 +762,7 @@
 
             // --- FORMULÄR FÖR ATT LÄGGA TILL DATA TILL FIREBASE ---
             const addNewsForm = document.getElementById('add-news-form');
+            const newsContentEditor = document.getElementById('news-content-editor');
             addNewsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
@@ -715,7 +771,7 @@
                 }
                 const newNews = {
                     title: document.getElementById('news-title').value,
-                    content: document.getElementById('news-content').value,
+                    content: newsContentEditor.innerHTML,
                     createdAt: serverTimestamp()
                 };
                 
@@ -723,6 +779,7 @@
                     await addDoc(collection(db, `news`), newNews);
                     console.log("Nyhet tillagd!");
                     addNewsForm.reset();
+                    newsContentEditor.innerHTML = '';
                     showModal('confirmationModal', "Nyhet har lagts till!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
@@ -732,6 +789,7 @@
             });
 
             const addEventForm = document.getElementById('add-event-form');
+            const eventDescriptionEditor = document.getElementById('event-description-editor');
             addEventForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
@@ -741,7 +799,7 @@
                 const newEvent = {
                     title: document.getElementById('event-title').value,
                     date: document.getElementById('event-date').value,
-                    description: document.getElementById('event-description').value,
+                    description: eventDescriptionEditor.innerHTML,
                     createdAt: serverTimestamp()
                 };
                 
@@ -749,6 +807,7 @@
                     await addDoc(collection(db, `events`), newEvent);
                     console.log("Händelse tillagd!");
                     addEventForm.reset();
+                    eventDescriptionEditor.innerHTML = '';
                     showModal('confirmationModal', "Händelse har lagts till!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
