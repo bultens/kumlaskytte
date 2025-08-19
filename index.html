@@ -126,7 +126,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.14</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.15</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -497,17 +497,21 @@
         function applyEditorCommand(editor, command, value = null) {
             editor.focus();
             if (command === 'createLink') {
-                if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
-                    value = 'https://' + value;
+                const url = prompt("Ange URL för länken:");
+                if (!url) return;
+                let linkText = prompt("Ange länktext (lämna tomt för att visa URL):");
+                if (!linkText) linkText = url;
+                
+                if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+                    const fullUrl = 'https://' + url;
+                    document.execCommand('insertHTML', false, `<a href="${fullUrl}" target="_blank">${linkText}</a>`);
+                } else {
+                    document.execCommand('insertHTML', false, `<a href="${url}" target="_blank">${linkText}</a>`);
                 }
             } else if (command === 'insertImage') {
-                // Skapa en <img>-tagg med URL:en
-                const selection = window.getSelection();
-                if (selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0);
-                    const img = document.createElement('img');
-                    img.src = value;
-                    range.insertNode(img);
+                const imageUrl = prompt("Ange URL för bilden:");
+                if (imageUrl) {
+                    document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Bild" style="max-width: 100%; height: auto;">`);
                 }
             } else {
                 document.execCommand(command, false, value);
@@ -693,18 +697,55 @@
                     const command = button.dataset.command;
                     const editor = document.getElementById(button.parentElement.dataset.editorTarget);
                     if (editor) {
-                        if (command === 'createLink' || command === 'insertImage') {
-                             const value = prompt(command === 'createLink' ? "Ange URL för länken:" : "Ange URL för bilden:");
-                             if (value) {
-                                applyEditorCommand(editor, command, value);
+                        if (command === 'createLink') {
+                            const url = prompt("Ange URL för länken:");
+                            if (!url) return;
+                            let linkText = prompt("Ange länktext (lämna tomt för att visa URL):");
+                            if (!linkText) linkText = url;
+                            
+                            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+                                const fullUrl = 'https://' + url;
+                                document.execCommand('insertHTML', false, `<a href="${fullUrl}" target="_blank">${linkText}</a>`);
+                            } else {
+                                document.execCommand('insertHTML', false, `<a href="${url}" target="_blank">${linkText}</a>`);
+                            }
+                        } else if (command === 'insertImage') {
+                            const imageUrl = prompt("Ange URL för bilden:");
+                            if (imageUrl) {
+                                document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Bild" style="max-width: 100%; height: auto;">`);
                             }
                         } else {
-                            applyEditorCommand(editor, command);
+                            document.execCommand(command, false);
                         }
                         editor.focus();
                     }
                 });
             });
+
+            // Hantera att knappar blir aktiva/inaktiva baserat på markören
+            document.querySelectorAll('.editor-content').forEach(editor => {
+                editor.addEventListener('mouseup', () => updateToolbarButtons(editor));
+                editor.addEventListener('keyup', () => updateToolbarButtons(editor));
+            });
+
+            function updateToolbarButtons(editor) {
+                const toolbar = editor.previousElementSibling;
+                if (!toolbar) return;
+                const boldButton = toolbar.querySelector('[data-command="bold"]');
+                const italicButton = toolbar.querySelector('[data-command="italic"]');
+                
+                if (document.queryCommandState('bold')) {
+                    boldButton.classList.add('active');
+                } else {
+                    boldButton.classList.remove('active');
+                }
+                
+                if (document.queryCommandState('italic')) {
+                    italicButton.classList.add('active');
+                } else {
+                    italicButton.classList.remove('active');
+                }
+            }
 
             // Funktion för att navigera och uppdatera admin-status
             function navigate(hash) {
