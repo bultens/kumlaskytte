@@ -82,7 +82,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Klubbnamn</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.4</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.5</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -187,7 +187,10 @@
                         <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
 
                         <label for="event-date" class="block mb-2 font-semibold">Datum</label>
-                        <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus-ring-blue-500 mb-4"></textarea>
+                        <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
+                        <textarea id="event-description" rows="4" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></textarea>
                         
                         <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
                     </form>
@@ -235,6 +238,9 @@
         let db;
         let auth;
         let isAdminLoggedIn = false;
+        let newsData = [];
+        let eventsData = [];
+        let adminsData = [];
 
         // --- MODAL-FUNKTIONER ---
         function showModal(modalId, message) {
@@ -254,7 +260,8 @@
         }
 
         // --- RENDERING AV INNEHÅLL ---
-        function renderNews(news) {
+        function renderNews() {
+            const news = newsData;
             const homeNewsContainer = document.getElementById('home-news-container');
             const allNewsContainer = document.getElementById('all-news-container');
 
@@ -296,9 +303,13 @@
                     </div>
                 `;
             });
+            if (isAdminLoggedIn) {
+                attachDeleteListeners();
+            }
         }
         
-        function renderEvents(events) {
+        function renderEvents() {
+            const events = eventsData;
             const calendarContainer = document.getElementById('calendar-container');
             if (!calendarContainer) return;
 
@@ -326,9 +337,13 @@
                     </div>
                 `;
             });
+            if (isAdminLoggedIn) {
+                attachDeleteListeners();
+            }
         }
 
-        function renderAdmins(admins) {
+        function renderAdmins() {
+            const admins = adminsData;
             const adminListEl = document.getElementById('admin-list');
             if (!adminListEl) return;
             
@@ -338,11 +353,13 @@
                 adminEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
                 adminEl.innerHTML = `
                     <span class="font-semibold">${admin.username}</span>
-                    <button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${admin.id}">Ta bort</button>
+                    ${isAdminLoggedIn ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${admin.id}">Ta bort</button>` : ''}
                 `;
                 adminListEl.appendChild(adminEl);
             });
-            attachAdminDeleteListeners();
+            if (isAdminLoggedIn) {
+                attachAdminDeleteListeners();
+            }
         }
         
         document.addEventListener('DOMContentLoaded', async () => {
@@ -364,32 +381,32 @@
                     auth.onAuthStateChanged((user) => {
                         if (user) {
                             console.log("Authenticated with Firebase:", user.uid);
-                            // Initial rendering
+                            // Initial rendering and live listeners
                             const newsRef = collection(db, `news`);
                             onSnapshot(newsRef, (snapshot) => {
-                                const news = [];
+                                newsData = [];
                                 snapshot.forEach(doc => {
-                                    news.push({ id: doc.id, ...doc.data() });
+                                    newsData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderNews(news);
+                                renderNews();
                             });
 
                             const eventsRef = collection(db, `events`);
                             onSnapshot(eventsRef, (snapshot) => {
-                                const events = [];
+                                eventsData = [];
                                 snapshot.forEach(doc => {
-                                    events.push({ id: doc.id, ...doc.data() });
+                                    eventsData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderEvents(events);
+                                renderEvents();
                             });
                             
                             const adminsRef = collection(db, `admins`);
                             onSnapshot(adminsRef, (snapshot) => {
-                                const admins = [];
+                                adminsData = [];
                                 snapshot.forEach(doc => {
-                                    admins.push({ id: doc.id, ...doc.data() });
+                                    adminsData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderAdmins(admins);
+                                renderAdmins();
                             });
                         } else {
                             console.log("Not authenticated with Firebase.");
@@ -582,24 +599,11 @@
                     eventAddBtn.disabled = false;
                     eventAddBtn.classList.remove('bg-gray-400');
                     eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    // Renderar om innehållet med admin-knappar
-                    const newsRef = collection(db, `news`);
-                    onSnapshot(newsRef, (snapshot) => {
-                        const news = [];
-                        snapshot.forEach(doc => {
-                            news.push({ id: doc.id, ...doc.data() });
-                        });
-                        renderNews(news);
-                    });
-
-                    const eventsRef = collection(db, `events`);
-                    onSnapshot(eventsRef, (snapshot) => {
-                        const events = [];
-                        snapshot.forEach(doc => {
-                            events.push({ id: doc.id, ...doc.data() });
-                        });
-                        renderEvents(events);
-                    });
+                    
+                    // Manuell uppdatering av UI efter inloggning för att visa delete-knappar
+                    renderNews();
+                    renderEvents();
+                    renderAdmins();
                 } else {
                     showModal('errorModal', 'Felaktigt användarnamn eller lösenord!');
                 }
