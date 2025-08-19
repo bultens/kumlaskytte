@@ -210,7 +210,8 @@
             measurementId: "G-KSJ9NLNDBX"
         };
 
-        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey !== "DIN_API_KEY_HÄR";
+        // Kontrollerar om Firebase-konfigurationen finns
+        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey.length > 0;
         let db;
         let auth;
 
@@ -329,7 +330,7 @@
                             document.getElementById('add-event-btn').classList.remove('bg-gray-400');
                             document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
 
-                            const newsRef = collection(db, `public/news`);
+                            const newsRef = collection(db, `data/public-news`);
                             onSnapshot(newsRef, (snapshot) => {
                                 const news = [];
                                 snapshot.forEach(doc => {
@@ -338,7 +339,7 @@
                                 renderNews(news);
                             });
 
-                            const eventsRef = collection(db, `public/events`);
+                            const eventsRef = collection(db, `data/public-events`);
                             onSnapshot(eventsRef, (snapshot) => {
                                 const events = [];
                                 snapshot.forEach(doc => {
@@ -451,7 +452,7 @@
                 };
                 
                 try {
-                    await addDoc(collection(db, `public/news`), newNews);
+                    await addDoc(collection(db, `data/public-news`), newNews);
                     console.log("Nyhet tillagd!");
                     addNewsForm.reset();
                     showModal('confirmationModal', "Nyhet har lagts till!");
@@ -477,7 +478,7 @@
                 };
                 
                 try {
-                    await addDoc(collection(db, `public/events`), newEvent);
+                    await addDoc(collection(db, `data/public-events`), newEvent);
                     console.log("Händelse tillagd!");
                     addEventForm.reset();
                     showModal('confirmationModal', "Händelse har lagts till!");
