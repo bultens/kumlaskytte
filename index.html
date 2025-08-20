@@ -27,7 +27,7 @@
         .card {
             background-color: #ffffff;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             padding: 2rem;
             margin-bottom: 1.5rem;
         }
@@ -106,7 +106,7 @@
             max-width: 100%;
             height: auto;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             margin-top: 1rem;
             margin-bottom: 1rem;
         }
@@ -130,10 +130,12 @@
     <!-- Header och navigering -->
     <header class="bg-blue-800 text-white shadow-lg">
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
-            <div class="flex items-center">
-                <img src="logo.png" alt="Kumla Skytteförening logotyp" class="h-10 w-10 mr-4 rounded-full">
-                <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.32</p>
+            <div class="flex items-center space-x-4">
+                <img src="logo.png" alt="Kumla Skytteförening logotyp" class="h-12 w-12 mr-2 rounded-full">
+                <div class="flex flex-col items-start">
+                    <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
+                    <p class="text-sm text-gray-300">Ver. 1.33</p>
+                </div>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -575,9 +577,6 @@
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 const firstLine = getFirstLineText(item.content);
                 const firstImage = getFirstImage(item.content);
-                const likes = item.likes || {};
-                const likeCount = Object.keys(likes).length;
-                const userHasLiked = currentUserId && likes[currentUserId];
                 
                 let imageHtml = '';
                 if (firstImage) {
@@ -744,6 +743,9 @@
                 const createdAt = item.createdAt?.toDate() || new Date();
                 const updatedAt = item.updatedAt?.toDate() || createdAt;
                 const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+                const likes = item.likes || {};
+                const likeCount = Object.keys(likes).length;
+                const userHasLiked = currentUserId && likes[currentUserId];
 
                 historyContainer.innerHTML += `
                     <div class="card" id="history-${item.id}">
@@ -947,7 +949,7 @@
             // Function to handle liking a post
             async function handleLike(docId, collectionName) {
                 if (!currentUserId) {
-                    showModal('errorModal', "Du måste vara inloggad för att gilla poster.");
+                    showModal('errorModal', "Du måste vara inloggad för att gilla poster.", "Fel!");
                     return;
                 }
                 const docRef = doc(db, collectionName, docId);
@@ -967,7 +969,7 @@
                     await updateDoc(docRef, { likes: likes });
                 } catch (error) {
                     console.error("Error updating likes:", error);
-                    showModal('errorModal', "Ett fel uppstod när like-funktionen skulle uppdateras.");
+                    showModal('errorModal', "Ett fel uppstod när like-funktionen skulle uppdateras.", "Fel!");
                 }
             }
 
@@ -975,43 +977,43 @@
             // Function to handle deletion of news/events/history
             async function deleteDocument(docId, collectionName) {
                 if (!db || !isAdminLoggedIn) {
-                    showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                    showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
                     return;
                 }
                 const docRef = doc(db, collectionName, docId);
                 try {
                     await deleteDoc(docRef);
-                    showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`);
+                    showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`, "Lyckades!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
                     console.error("Fel vid borttagning av post:", error);
-                    showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.");
+                    showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.", "Fel!");
                 }
             }
             
             // Function to handle deletion of admins
             async function deleteAdmin(adminId) {
                 if (!db || !isAdminLoggedIn) {
-                    showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                    showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
                     return;
                 }
                 if (adminsData.length <= 1) {
-                    showModal('errorModal', "Kan inte ta bort den sista administratören.");
+                    showModal('errorModal', "Kan inte ta bort den sista administratören.", "Fel!");
                     return;
                 }
                 const adminToDelete = adminsData.find(a => a.id === adminId);
                 if (adminToDelete.username === loggedInAdminUsername) {
-                    showModal('errorModal', "Du kan inte ta bort dig själv.");
+                    showModal('errorModal', "Du kan inte ta bort dig själv.", "Fel!");
                     return;
                 }
                 const adminRef = doc(db, 'admins', adminId);
                 try {
                     await deleteDoc(adminRef);
-                    showModal('confirmationModal', "Admin har tagits bort.");
+                    showModal('confirmationModal', "Admin har tagits bort.", "Lyckades!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
                     console.error("Fel vid borttagning av admin:", error);
-                    showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.");
+                    showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.", "Fel!");
                 }
             }
 
@@ -1049,7 +1051,7 @@
                                 batch.delete(doc.ref);
                             });
                             await batch.commit();
-                            showModal('confirmationModal', "Hela serien har tagits bort.");
+                            showModal('confirmationModal', "Hela serien har tagits bort.", "Lyckades!");
                             setTimeout(() => hideModal('confirmationModal'), 2000);
                             hideModal('deleteEventModal');
                         };
@@ -1080,13 +1082,10 @@
                     const pageUrl = window.location.origin + window.location.pathname;
                     const shareUrl = `${pageUrl}#nyheter#news-${newsId}`;
 
-                    const shareModalTitle = document.getElementById('share-message-title');
-                    const shareFacebookBtn = document.getElementById('share-facebook-btn');
+                    document.getElementById('share-message-title').textContent = newsTitle;
+                    document.getElementById('share-facebook-btn').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+
                     const copyLinkBtn = document.getElementById('copy-link-btn');
-
-                    shareModalTitle.textContent = newsTitle;
-                    shareFacebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-
                     copyLinkBtn.onclick = () => {
                         try {
                             const tempInput = document.createElement('input');
@@ -1095,14 +1094,14 @@
                             tempInput.select();
                             document.execCommand('copy');
                             document.body.removeChild(tempInput);
-                            showModal('confirmationModal', "Länken har kopierats till urklipp!");
+                            showModal('confirmationModal', "Länken har kopierats till urklipp!", "Lyckades!");
                             hideModal('shareModal');
                         } catch (err) {
-                            showModal('errorModal', "Kunde inte kopiera länken.");
+                            showModal('errorModal', "Kunde inte kopiera länken.", "Fel!");
                         }
                     };
 
-                    showModal('shareModal');
+                    showModal('shareModal', '', 'Dela nyhet');
                 }
             });
 
@@ -1280,19 +1279,22 @@
                 document.querySelectorAll('.page').forEach(page => {
                     page.classList.remove('active');
                 });
-                const targetPage = document.querySelector(hash);
+                const hashParts = hash.split('#');
+                const targetPageId = hashParts[1];
+                const targetElementId = hashParts[2];
+                
+                const targetPage = document.querySelector(`#${targetPageId}`);
                 if (targetPage) {
                     targetPage.classList.add('active');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    
-                    const anchor = hash.split('#')[2];
-                    if (anchor) {
+                    if (targetElementId) {
                         setTimeout(() => {
-                            const targetElement = document.getElementById(anchor);
+                            const targetElement = document.getElementById(targetElementId);
                             if (targetElement) {
                                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }
                         }, 100);
+                    } else {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                 } else {
                     document.getElementById('hem').classList.add('active');
@@ -1353,13 +1355,7 @@
                 const newsPost = e.target.closest('.home-news-post');
                 if (newsPost) {
                     const id = newsPost.getAttribute('data-id');
-                    navigate('#nyheter');
-                    setTimeout(() => {
-                        const targetNews = document.getElementById(`news-${id}`);
-                        if (targetNews) {
-                            targetNews.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }, 100);
+                    navigate(`#nyheter#news-${id}`);
                 }
             });
             
@@ -1501,7 +1497,7 @@
                     renderImages();
                     renderAdmins();
                 } else {
-                    showModal('errorModal', 'Felaktigt användarnamn eller lösenord!');
+                    showModal('errorModal', 'Felaktigt användarnamn eller lösenord!', 'Fel!');
                 }
             });
 
@@ -1541,7 +1537,7 @@
             addAdminForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten.");
+                    showModal('errorModal', "Databasen är inte ansluten.", "Fel!");
                     return;
                 }
                 const newAdmin = {
