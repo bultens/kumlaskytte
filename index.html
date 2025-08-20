@@ -139,8 +139,12 @@
                 <!-- Logotypen har nu klassen logo-large -->
                 <img src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
                 <div class="flex flex-col items-start">
-                    <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 1.35</p>
+                    <div class="flex items-center space-x-2">
+                        <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
+                        <!-- Visuell indikator för adminläge -->
+                        <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
+                    </div>
+                    <p class="text-sm text-gray-300">Ver. 1.36</p>
                 </div>
             </div>
             <nav>
@@ -655,13 +659,13 @@
             calendarContainer.innerHTML = '';
             homeEventsContainer.innerHTML = '';
             
-            // Sort events by date and filter out old events
+            // Sortera händelser efter datum och filtrera bort gamla händelser
             const today = new Date().toISOString().split('T')[0];
             const upcomingEvents = events.filter(e => e.date >= today);
             
             upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
-            // Render the 2 next upcoming events on the home page
+            // Rendera de 2 närmaste kommande händelserna på startsidan
             upcomingEvents.slice(0, 2).forEach(item => {
                 const eventDate = new Date(item.date);
                 const day = eventDate.getDate();
@@ -1426,6 +1430,7 @@
             const adminLoginPanel = document.getElementById('admin-login-panel');
             const adminPanel = document.getElementById('admin-panel');
             const adminUserInfo = document.getElementById('admin-user-info');
+            const adminIndicator = document.getElementById('admin-indicator');
             const addAdminForm = document.getElementById('add-admin-form');
             const newAdminUsernameInput = document.getElementById('new-admin-username');
             const newAdminPasswordInput = document.getElementById('new-admin-password');
@@ -1520,6 +1525,7 @@
                     loggedInAdminUsername = adminToLog.username;
                     adminLoginPanel.classList.add('hidden');
                     adminPanel.classList.remove('hidden');
+                    adminIndicator.classList.remove('hidden'); // Visa adminindikatorn
                     if (auth && auth.currentUser) {
                         adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid}, Admin: ${loggedInAdminUsername})`;
                     }
@@ -1552,6 +1558,7 @@
                 loggedInAdminUsername = '';
                 adminLoginPanel.classList.remove('hidden');
                 adminPanel.classList.add('hidden');
+                adminIndicator.classList.add('hidden'); // Dölj adminindikatorn
                 adminUsernameInput.value = '';
                 adminPasswordInput.value = '';
                 newsAddBtn.disabled = true;
@@ -1571,6 +1578,7 @@
                 historyFormTitle.textContent = 'Lägg till Huvudsidposter';
                 imageFormTitle.textContent = 'Lägg till Bild';
 
+                // Uppdatera sidorna efter utloggning för att dölja admin-knapparna
                 renderNews();
                 renderEvents();
                 renderHistory();
