@@ -27,7 +27,7 @@
         .card {
             background-color: #ffffff;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             padding: 2rem;
             margin-bottom: 1.5rem;
         }
@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.38</p>
+                    <p class="text-sm text-gray-300">Ver. 1.39</p>
                 </div>
             </div>
             <nav>
@@ -654,7 +654,7 @@
                             </button>
                             <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378z"/>
+                                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
                                 </svg>
                                 <span class="ml-1 hidden sm:inline">Dela</span>
                             </button>
@@ -1504,69 +1504,73 @@
                 }
             });
 
+            // --- Lösningen på inloggningsproblemet börjar här ---
             loginBtn.addEventListener('click', async () => {
-                const username = adminUsernameInput.value;
-                const password = adminPasswordInput.value;
-                let foundAdmin = false;
-                let adminToLog = {};
+                const username = adminUsernameInput.value.trim();
+                const password = adminPasswordInput.value.trim();
 
-                // Handle the hardcoded admin user
-                if (username === 'admin' && password === 'admin') {
-                    foundAdmin = true;
-                    adminToLog = { username: 'admin' };
-                    // Add the hardcoded admin to the database if it doesn't exist
-                    try {
-                        const adminsRef = collection(db, 'admins');
-                        const q = query(adminsRef, where('username', '==', 'admin'));
-                        const querySnapshot = await getDocs(q);
-                        if (querySnapshot.empty) {
-                            await addDoc(adminsRef, { username: 'admin', password: 'admin' });
-                            console.log('Hardcoded admin created in the database.');
-                        }
-                    } catch (error) {
-                        console.error('Error handling hardcoded admin:', error);
-                    }
-                } else {
-                    // Search for admin in the database
-                    try {
-                        const adminsRef = collection(db, 'admins');
-                        const q = query(adminsRef, where('username', '==', username), where('password', '==', password));
-                        const querySnapshot = await getDocs(q);
-                        if (!querySnapshot.empty) {
-                            foundAdmin = true;
-                            querySnapshot.forEach(doc => {
-                                adminToLog = { ...doc.data() };
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error searching for admin:', error);
-                    }
+                if (!username || !password) {
+                    showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
+                    return;
                 }
 
-                if (foundAdmin) {
-                    isAdminLoggedIn = true;
-                    loggedInAdminUsername = adminToLog.username;
-                    adminLoginPanel.classList.add('hidden');
-                    adminPanel.classList.remove('hidden');
-                    if (auth && auth.currentUser) {
-                        adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid}, Admin: ${loggedInAdminUsername})`;
+                try {
+                    const q = query(collection(db, 'admins'), where('username', '==', username));
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                        return;
                     }
-                    newsAddBtn.disabled = false;
-                    newsAddBtn.classList.remove('bg-gray-400');
-                    newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    eventAddBtn.disabled = false;
-                    eventAddBtn.classList.remove('bg-gray-400');
-                    eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    historyAddBtn.disabled = false;
-                    historyAddBtn.classList.remove('bg-gray-400');
-                    historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    addImageBtn.disabled = false;
-                    addImageBtn.classList.remove('bg-gray-400');
-                    addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    updateUI(); // Uppdatera nu alla UI-element
-                } else {
-                    showModal('errorModal', 'Felaktigt användarnamn eller lösenord!', 'Fel!');
+
+                    let loginSuccess = false;
+                    let adminData;
+                    querySnapshot.forEach(docSnap => {
+                        adminData = docSnap.data();
+                        if (adminData.password === password) {
+                            loginSuccess = true;
+                        }
+                    });
+
+                    if (loginSuccess) {
+                        isAdminLoggedIn = true;
+                        loggedInAdminUsername = username;
+
+                        document.getElementById('admin-login-panel').classList.add('hidden');
+                        document.getElementById('admin-panel').classList.remove('hidden');
+                        
+                        if (auth && auth.currentUser) {
+                            adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid}, Admin: ${loggedInAdminUsername})`;
+                        } else {
+                            adminUserInfo.textContent = `Du är inloggad som administratör (Admin: ${loggedInAdminUsername})`;
+                        }
+
+                        // Aktivera alla admin-knappar
+                        newsAddBtn.disabled = false;
+                        newsAddBtn.classList.remove('bg-gray-400');
+                        newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        
+                        eventAddBtn.disabled = false;
+                        eventAddBtn.classList.remove('bg-gray-400');
+                        eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        
+                        historyAddBtn.disabled = false;
+                        historyAddBtn.classList.remove('bg-gray-400');
+                        historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        
+                        addImageBtn.disabled = false;
+                        addImageBtn.classList.remove('bg-gray-400');
+                        addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        
+                        updateUI();
+                        
+                    } else {
+                        showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                    }
+
+                } catch (err) {
+                    console.error("Fel vid inloggning:", err);
+                    showModal('errorModal', "Ett fel uppstod vid inloggning.", "Fel!");
                 }
             });
 
@@ -1577,15 +1581,20 @@
                 adminPanel.classList.add('hidden');
                 adminUsernameInput.value = '';
                 adminPasswordInput.value = '';
+
+                // Inaktivera alla admin-knappar
                 newsAddBtn.disabled = true;
                 newsAddBtn.classList.add('bg-gray-400');
                 newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                
                 eventAddBtn.disabled = true;
                 eventAddBtn.classList.add('bg-gray-400');
                 eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                
                 historyAddBtn.disabled = true;
                 historyAddBtn.classList.add('bg-gray-400');
                 historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                
                 addImageBtn.disabled = true;
                 addImageBtn.classList.add('bg-gray-400');
                 addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
@@ -1594,9 +1603,10 @@
                 historyFormTitle.textContent = 'Lägg till Huvudsidposter';
                 imageFormTitle.textContent = 'Lägg till Bild';
                 
-                updateUI(); // Uppdatera alla UI-element
+                updateUI();
                 navigate('#hem');
             });
+            // --- Lösningen slutar här ---
 
 
             addAdminForm.addEventListener('submit', async (e) => {
