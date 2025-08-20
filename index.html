@@ -132,7 +132,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.30</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.31</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -425,7 +425,7 @@
                     </a>
                     <button id="copy-link-btn" class="flex items-center justify-center px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705zm3.074 1.455l-1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
+                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
                         </svg>
                         <span class="ml-2">Kopiera länk</span>
                     </button>
@@ -1069,10 +1069,10 @@
                     const newsId = shareBtn.getAttribute('data-id');
                     const newsTitle = shareBtn.getAttribute('data-title');
                     
-                    const pageUrl = window.location.origin + window.location.pathname + '#nyheter';
-                    const shareUrl = `${pageUrl}#news-${newsId}`;
+                    const pageUrl = window.location.origin + window.location.pathname;
+                    const shareUrl = `${pageUrl}#nyheter#news-${newsId}`;
 
-                    document.getElementById('share-message').textContent = `Dela nyheten "${newsTitle}"`;
+                    document.getElementById('share-message-title').textContent = newsTitle;
                     document.getElementById('share-facebook-btn').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
 
                     const copyLinkBtn = document.getElementById('copy-link-btn');
@@ -1085,6 +1085,7 @@
                             document.execCommand('copy');
                             document.body.removeChild(tempInput);
                             showModal('confirmationModal', "Länken har kopierats till urklipp!");
+                            hideModal('shareModal');
                         } catch (err) {
                             showModal('errorModal', "Kunde inte kopiera länken.");
                         }
