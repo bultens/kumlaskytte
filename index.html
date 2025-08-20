@@ -126,7 +126,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.18</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.19</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -374,7 +374,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
@@ -394,6 +394,7 @@
         let newsData = [];
         let eventsData = [];
         let adminsData = [];
+        let editingNewsId = null; // Håll koll på vilken nyhet som redigeras
 
         // --- MODAL-FUNKTIONER ---
         function showModal(modalId, message) {
@@ -488,7 +489,12 @@
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
                         <div class="text-gray-700 markdown-content">${item.content}</div>
-                        ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>` : ''}
+                        ${isAdminLoggedIn ? `
+                            <div class="flex space-x-2 mt-4">
+                                <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
+                                <button class="edit-news-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -766,6 +772,31 @@
                             hideModal('deleteConfirmationModal');
                         };
                         document.getElementById('cancel-delete-btn').onclick = () => hideModal('deleteConfirmationModal');
+                    }
+                }
+            });
+            
+            // Händelsedelegation för "Ändra"-knappen
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-news-btn')) {
+                    const docId = e.target.getAttribute('data-id');
+                    const newsItem = newsData.find(item => item.id === docId);
+
+                    if (newsItem) {
+                        // Fyll i formuläret med befintlig data
+                        document.getElementById('news-title').value = newsItem.title;
+                        document.getElementById('news-content-editor').innerHTML = newsItem.content;
+                        
+                        // Spara ID för den nyhet som redigeras
+                        editingNewsId = docId;
+                        
+                        // Ändra knapptext och navigera till admin-sidan
+                        const addNewsBtn = document.getElementById('add-news-btn');
+                        addNewsBtn.textContent = 'Spara ändringar';
+                        addNewsBtn.classList.remove('bg-gray-400');
+                        addNewsBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+
+                        navigate('#admin');
                     }
                 }
             });
@@ -1098,22 +1129,41 @@
                     showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
                     return;
                 }
-                const newNews = {
-                    title: document.getElementById('news-title').value,
-                    content: document.getElementById('news-content-editor').innerHTML,
+                
+                const newsTitle = document.getElementById('news-title').value;
+                const newsContent = document.getElementById('news-content-editor').innerHTML;
+                
+                const newsObject = {
+                    title: newsTitle,
+                    content: newsContent,
                     createdAt: serverTimestamp()
                 };
-                
+
                 try {
-                    await addDoc(collection(db, `news`), newNews);
-                    console.log("Nyhet tillagd!");
+                    if (editingNewsId) {
+                        // Uppdatera befintlig nyhet
+                        await updateDoc(doc(db, 'news', editingNewsId), newsObject);
+                        console.log("Nyhet uppdaterad!");
+                        showModal('confirmationModal', "Nyhet har uppdaterats!");
+                    } else {
+                        // Lägg till ny nyhet
+                        await addDoc(collection(db, `news`), newsObject);
+                        console.log("Nyhet tillagd!");
+                        showModal('confirmationModal', "Nyhet har lagts till!");
+                    }
+                    
+                    // Återställ formuläret och variabler
                     addNewsForm.reset();
                     document.getElementById('news-content-editor').innerHTML = '';
-                    showModal('confirmationModal', "Nyhet har lagts till!");
+                    editingNewsId = null;
+                    newsAddBtn.textContent = 'Lägg till';
+                    newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    newsAddBtn.classList.add('bg-gray-400');
+                    
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
-                    console.error("Fel vid tillägg av nyhet:", error);
-                    showModal('errorModal', "Ett fel uppstod när nyheten skulle läggas till. Kontrollera dina Firebase Security Rules.");
+                    console.error("Fel vid hantering av nyhet:", error);
+                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.");
                 }
             });
 
