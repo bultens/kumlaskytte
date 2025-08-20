@@ -27,7 +27,7 @@
         .card {
             background-color: #ffffff;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
             padding: 2rem;
             margin-bottom: 1.5rem;
         }
@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.36</p>
+                    <p class="text-sm text-gray-300">Ver. 1.37</p>
                 </div>
             </div>
             <nav>
@@ -563,6 +563,25 @@
             return firstImage ? firstImage.outerHTML : '';
         }
 
+        // En central funktion för att uppdatera hela gränssnittet
+        function updateUI() {
+            renderNews();
+            renderEvents();
+            renderHistory();
+            renderImages();
+            renderAdmins();
+
+            // Hantera synligheten för adminindikatorn
+            const adminIndicator = document.getElementById('admin-indicator');
+            if (adminIndicator) {
+                if (isAdminLoggedIn) {
+                    adminIndicator.classList.remove('hidden');
+                } else {
+                    adminIndicator.classList.add('hidden');
+                }
+            }
+        }
+
         // --- CONTENT RENDERING ---
         function renderNews() {
             const news = newsData;
@@ -906,7 +925,7 @@
                                 snapshot.forEach(doc => {
                                     newsData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderNews();
+                                updateUI();
                             });
 
                             const eventsRef = collection(db, `events`);
@@ -915,7 +934,7 @@
                                 snapshot.forEach(doc => {
                                     eventsData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderEvents();
+                                updateUI();
                             });
                             
                             const adminsRef = collection(db, `admins`);
@@ -924,7 +943,7 @@
                                 snapshot.forEach(doc => {
                                     adminsData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderAdmins();
+                                updateUI();
                             });
 
                             const historyRef = collection(db, `history`);
@@ -933,7 +952,7 @@
                                 snapshot.forEach(doc => {
                                     historyData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderHistory();
+                                updateUI();
                             });
 
                             const imageRef = collection(db, `images`);
@@ -942,8 +961,10 @@
                                 snapshot.forEach(doc => {
                                     imageData.push({ id: doc.id, ...doc.data() });
                                 });
-                                renderImages();
+                                updateUI();
                             });
+                            // Initial UI update after setting up all listeners
+                            updateUI();
 
                         } else {
                             console.log("Not authenticated with Firebase.");
@@ -1000,6 +1021,7 @@
                     await deleteDoc(docRef);
                     showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`, "Lyckades!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
+                    updateUI(); // Uppdatera UI efter borttagning
                 } catch (error) {
                     console.error("Fel vid borttagning av post:", error);
                     showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.", "Fel!");
@@ -1026,6 +1048,7 @@
                     await deleteDoc(adminRef);
                     showModal('confirmationModal', "Admin har tagits bort.", "Lyckades!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
+                    updateUI(); // Uppdatera UI efter borttagning
                 } catch (error) {
                     console.error("Fel vid borttagning av admin:", error);
                     showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.", "Fel!");
@@ -1069,6 +1092,7 @@
                             showModal('confirmationModal', "Hela serien har tagits bort.", "Lyckades!");
                             setTimeout(() => hideModal('confirmationModal'), 2000);
                             hideModal('deleteEventModal');
+                            updateUI(); // Uppdatera UI efter borttagning av serie
                         };
                         document.getElementById('cancel-event-delete-btn').onclick = () => hideModal('deleteEventModal');
                     } else {
@@ -1430,7 +1454,6 @@
             const adminLoginPanel = document.getElementById('admin-login-panel');
             const adminPanel = document.getElementById('admin-panel');
             const adminUserInfo = document.getElementById('admin-user-info');
-            const adminIndicator = document.getElementById('admin-indicator');
             const addAdminForm = document.getElementById('add-admin-form');
             const newAdminUsernameInput = document.getElementById('new-admin-username');
             const newAdminPasswordInput = document.getElementById('new-admin-password');
@@ -1525,7 +1548,6 @@
                     loggedInAdminUsername = adminToLog.username;
                     adminLoginPanel.classList.add('hidden');
                     adminPanel.classList.remove('hidden');
-                    adminIndicator.classList.remove('hidden'); // Visa adminindikatorn
                     if (auth && auth.currentUser) {
                         adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid}, Admin: ${loggedInAdminUsername})`;
                     }
@@ -1542,12 +1564,7 @@
                     addImageBtn.classList.remove('bg-gray-400');
                     addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                     
-                    // Manually update UI after login to show delete buttons
-                    renderNews();
-                    renderEvents();
-                    renderHistory();
-                    renderImages();
-                    renderAdmins();
+                    updateUI();
                 } else {
                     showModal('errorModal', 'Felaktigt användarnamn eller lösenord!', 'Fel!');
                 }
@@ -1558,7 +1575,6 @@
                 loggedInAdminUsername = '';
                 adminLoginPanel.classList.remove('hidden');
                 adminPanel.classList.add('hidden');
-                adminIndicator.classList.add('hidden'); // Dölj adminindikatorn
                 adminUsernameInput.value = '';
                 adminPasswordInput.value = '';
                 newsAddBtn.disabled = true;
@@ -1577,13 +1593,8 @@
                 // Återställ formulär-titlar till standard
                 historyFormTitle.textContent = 'Lägg till Huvudsidposter';
                 imageFormTitle.textContent = 'Lägg till Bild';
-
-                // Uppdatera sidorna efter utloggning för att dölja admin-knapparna
-                renderNews();
-                renderEvents();
-                renderHistory();
-                renderImages();
-                renderAdmins();
+                
+                updateUI();
                 navigate('#hem');
             });
 
