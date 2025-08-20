@@ -134,7 +134,7 @@
                 <img src="logo.png" alt="Kumla Skytteförening logotyp" class="h-12 w-12 mr-2 rounded-full">
                 <div class="flex flex-col items-start">
                     <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 1.33</p>
+                    <p class="text-sm text-gray-300">Ver. 1.34</p>
                 </div>
             </div>
             <nav>
@@ -698,7 +698,12 @@
                             <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                             <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
                             <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
-                            ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>` : ''}
+                            ${isAdminLoggedIn ? `
+                                <div class="flex space-x-2 mt-4">
+                                    <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
+                                    <button class="edit-event-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1076,7 +1081,7 @@
                 const shareBtn = e.target.closest('.share-btn');
                 if (shareBtn) {
                     const newsId = shareBtn.getAttribute('data-id');
-                    const newsTitle = shareBtn.getAttribute('data-title');
+                    const newsTitle = newsData.find(n => n.id === newsId)?.title || 'Nyhet';
                     
                     // Create the URL to the specific news item
                     const pageUrl = window.location.origin + window.location.pathname;
@@ -1180,6 +1185,39 @@
                     }
                 }
             });
+            
+            // Event delegation for "edit" button on events
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-event-btn')) {
+                    const docId = e.target.getAttribute('data-id');
+                    const eventItem = eventsData.find(item => item.id === docId);
+
+                    if (eventItem) {
+                        document.getElementById('event-title').value = eventItem.title;
+                        document.getElementById('event-description-editor').innerHTML = eventItem.description;
+                        document.getElementById('event-date').value = eventItem.date;
+                        
+                        // Handle recurring event logic if needed here
+                        document.getElementById('is-recurring').checked = !!eventItem.seriesId;
+                        if (eventItem.seriesId) {
+                            // Logic to populate recurring fields from a series (currently not implemented)
+                            showModal('errorModal', "Redigering av enskilda händelser i en serie stöds inte fullt ut. Redigera enskilda instanser istället.", "Funktion ej fullständig!");
+                        }
+                        
+                        // Set editing ID
+                        editingEventId = docId;
+                        
+                        // Change button text and navigate to admin
+                        const addEventBtn = document.getElementById('add-event-btn');
+                        addEventBtn.textContent = 'Spara ändringar';
+                        addEventBtn.classList.remove('bg-gray-400');
+                        addEventBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        
+                        navigate('#admin');
+                    }
+                }
+            });
+
 
             // Event delegation for "Delete Admin" buttons
             document.addEventListener('click', (e) => {
@@ -1407,8 +1445,10 @@
             const imageMonthSelect = document.getElementById('image-month');
             const addImageBtn = document.getElementById('add-image-btn');
 
-            const eventAddBtn = document.getElementById('add-event-btn');
+            const eventTitleInput = document.getElementById('event-title');
             const eventDescriptionEditor = document.getElementById('event-description-editor');
+            const eventDateInput = document.getElementById('event-date');
+            const addEventBtn = document.getElementById('add-event-btn');
 
             // Toggle for recurring events
             const isRecurringCheckbox = document.getElementById('is-recurring');
@@ -1707,11 +1747,16 @@
                     return;
                 }
                 
-                const newEvent = {
-                    title: document.getElementById('event-title').value,
-                    description: document.getElementById('event-description-editor').innerHTML,
-                    createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
-                    updatedAt: editingNewsId ? serverTimestamp() : null
+                const eventTitle = eventTitleInput.value;
+                const eventDescription = eventDescriptionEditor.innerHTML;
+                const eventDate = eventDateInput.value;
+
+                const eventObject = {
+                    title: eventTitle,
+                    description: eventDescription,
+                    date: eventDate,
+                    createdAt: editingEventId ? eventsData.find(evt => evt.id === editingEventId).createdAt : serverTimestamp(),
+                    updatedAt: editingEventId ? serverTimestamp() : null
                 };
 
                 const isRecurring = document.getElementById('is-recurring').checked;
@@ -1736,7 +1781,7 @@
                         if (d.getDay() === weekday) {
                             const newDate = d.toISOString().split('T')[0];
                             const eventRef = doc(eventsCollection);
-                            batch.set(eventRef, { ...newEvent, date: newDate, seriesId: seriesId });
+                            batch.set(eventRef, { ...eventObject, date: newDate, seriesId: seriesId });
                         }
                     }
                     
@@ -1744,7 +1789,7 @@
                         await batch.commit();
                         console.log("Återkommande händelser tillagda!");
                         addEventForm.reset();
-                        document.getElementById('event-description-editor').innerHTML = '';
+                        eventDescriptionEditor.innerHTML = '';
                         showModal('confirmationModal', "Återkommande händelser har lagts till!", "Lyckades!");
                         setTimeout(() => hideModal('confirmationModal'), 2000);
                     } catch (error) {
@@ -1752,18 +1797,27 @@
                         showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.", "Fel!");
                     }
                 } else {
-                    const eventDate = document.getElementById('event-date').value;
                     if (!eventDate) {
                         showModal('errorModal', "Datum måste anges för enskild händelse.", "Fel!");
                         return;
                     }
 
                     try {
-                        await addDoc(eventsCollection, { ...newEvent, date: eventDate });
-                        console.log("Händelse tillagd!");
+                        if (editingEventId) {
+                            await updateDoc(doc(db, 'events', editingEventId), eventObject);
+                            console.log("Händelse uppdaterad!");
+                            showModal('confirmationModal', "Händelsen har uppdaterats!", "Lyckades!");
+                        } else {
+                            await addDoc(eventsCollection, { ...eventObject, date: eventDate });
+                            console.log("Händelse tillagd!");
+                            showModal('confirmationModal', "Händelse har lagts till!", "Lyckades!");
+                        }
+                        
                         addEventForm.reset();
-                        document.getElementById('event-description-editor').innerHTML = '';
-                        showModal('confirmationModal', "Händelse har lagts till!", "Lyckades!");
+                        eventDescriptionEditor.innerHTML = '';
+                        editingEventId = null;
+                        document.getElementById('add-event-btn').textContent = 'Lägg till';
+                        
                         setTimeout(() => hideModal('confirmationModal'), 2000);
                     } catch (error) {
                         console.error("Fel vid tillägg av händelse:", error);
