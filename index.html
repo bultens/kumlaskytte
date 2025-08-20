@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.37</p>
+                    <p class="text-sm text-gray-300">Ver. 1.38</p>
                 </div>
             </div>
             <nav>
@@ -563,7 +563,7 @@
             return firstImage ? firstImage.outerHTML : '';
         }
 
-        // En central funktion för att uppdatera hela gränssnittet
+        // En central funktion för att uppdatera alla UI-delar som beror på inloggningsstatus
         function updateUI() {
             renderNews();
             renderEvents();
@@ -917,59 +917,59 @@
                         if (user) {
                             currentUserId = user.uid;
                             console.log("Authenticated with Firebase:", currentUserId);
-                            
-                            // Initial rendering and live listeners
-                            const newsRef = collection(db, `news`);
-                            onSnapshot(newsRef, (snapshot) => {
-                                newsData = [];
-                                snapshot.forEach(doc => {
-                                    newsData.push({ id: doc.id, ...doc.data() });
-                                });
-                                updateUI();
-                            });
-
-                            const eventsRef = collection(db, `events`);
-                            onSnapshot(eventsRef, (snapshot) => {
-                                eventsData = [];
-                                snapshot.forEach(doc => {
-                                    eventsData.push({ id: doc.id, ...doc.data() });
-                                });
-                                updateUI();
-                            });
-                            
-                            const adminsRef = collection(db, `admins`);
-                            onSnapshot(adminsRef, (snapshot) => {
-                                adminsData = [];
-                                snapshot.forEach(doc => {
-                                    adminsData.push({ id: doc.id, ...doc.data() });
-                                });
-                                updateUI();
-                            });
-
-                            const historyRef = collection(db, `history`);
-                            onSnapshot(historyRef, (snapshot) => {
-                                historyData = [];
-                                snapshot.forEach(doc => {
-                                    historyData.push({ id: doc.id, ...doc.data() });
-                                });
-                                updateUI();
-                            });
-
-                            const imageRef = collection(db, `images`);
-                            onSnapshot(imageRef, (snapshot) => {
-                                imageData = [];
-                                snapshot.forEach(doc => {
-                                    imageData.push({ id: doc.id, ...doc.data() });
-                                });
-                                updateUI();
-                            });
-                            // Initial UI update after setting up all listeners
-                            updateUI();
-
                         } else {
                             console.log("Not authenticated with Firebase.");
                         }
                     });
+
+                    // Initial rendering and live listeners
+                    const newsRef = collection(db, `news`);
+                    onSnapshot(newsRef, (snapshot) => {
+                        newsData = [];
+                        snapshot.forEach(doc => {
+                            newsData.push({ id: doc.id, ...doc.data() });
+                        });
+                        updateUI();
+                    });
+
+                    const eventsRef = collection(db, `events`);
+                    onSnapshot(eventsRef, (snapshot) => {
+                        eventsData = [];
+                        snapshot.forEach(doc => {
+                            eventsData.push({ id: doc.id, ...doc.data() });
+                        });
+                        updateUI();
+                    });
+                    
+                    const adminsRef = collection(db, `admins`);
+                    onSnapshot(adminsRef, (snapshot) => {
+                        adminsData = [];
+                        snapshot.forEach(doc => {
+                            adminsData.push({ id: doc.id, ...doc.data() });
+                        });
+                        updateUI();
+                    });
+
+                    const historyRef = collection(db, `history`);
+                    onSnapshot(historyRef, (snapshot) => {
+                        historyData = [];
+                        snapshot.forEach(doc => {
+                            historyData.push({ id: doc.id, ...doc.data() });
+                        });
+                        updateUI();
+                    });
+
+                    const imageRef = collection(db, `images`);
+                    onSnapshot(imageRef, (snapshot) => {
+                        imageData = [];
+                        snapshot.forEach(doc => {
+                            imageData.push({ id: doc.id, ...doc.data() });
+                        });
+                        updateUI();
+                    });
+
+                    updateUI();
+
                 } catch (initError) {
                     console.error("Error initializing Firebase App:", initError);
                     statusIndicator.textContent = "Fel: Kunde inte ansluta till Firebase.";
@@ -1564,7 +1564,7 @@
                     addImageBtn.classList.remove('bg-gray-400');
                     addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                     
-                    updateUI();
+                    updateUI(); // Uppdatera nu alla UI-element
                 } else {
                     showModal('errorModal', 'Felaktigt användarnamn eller lösenord!', 'Fel!');
                 }
@@ -1594,7 +1594,7 @@
                 historyFormTitle.textContent = 'Lägg till Huvudsidposter';
                 imageFormTitle.textContent = 'Lägg till Bild';
                 
-                updateUI();
+                updateUI(); // Uppdatera alla UI-element
                 navigate('#hem');
             });
 
