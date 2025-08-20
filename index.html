@@ -123,6 +123,11 @@
             object-fit: cover;
             border-radius: 0.5rem;
         }
+        /* Specialklass för större logo-storlek */
+        .logo-large {
+            height: 72px;
+            width: 72px;
+        }
     </style>
 </head>
 <body>
@@ -131,10 +136,11 @@
     <header class="bg-blue-800 text-white shadow-lg">
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div class="flex items-center space-x-4">
-                <img src="logo.png" alt="Kumla Skytteförening logotyp" class="h-12 w-12 mr-2 rounded-full">
+                <!-- Logotypen har nu klassen logo-large -->
+                <img src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
                 <div class="flex flex-col items-start">
                     <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 1.34</p>
+                    <p class="text-sm text-gray-300">Ver. 1.35</p>
                 </div>
             </div>
             <nav>
