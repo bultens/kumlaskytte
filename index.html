@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.39</p>
+                    <p class="text-sm text-gray-300">Ver. 1.42</p>
                 </div>
             </div>
             <nav>
@@ -1500,35 +1500,60 @@
                     recurringEventFields.classList.add('hidden');
                     document.getElementById('event-date').setAttribute('required', 'required');
                     document.getElementById('start-date').removeAttribute('required');
-                    document.getElementById('end-date').removeAttribute('required');
+                    document.getElementById('end-date').removeAttribute('removeAttribute');
                 }
             });
 
-            // --- Lösningen på inloggningsproblemet börjar här ---
             loginBtn.addEventListener('click', async () => {
                 const username = adminUsernameInput.value.trim();
                 const password = adminPasswordInput.value.trim();
 
+                console.log("Attempting login with username:", username);
+                
                 if (!username || !password) {
                     showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
                     return;
                 }
 
+                if (!db) {
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
+                    console.error("Firebase database object is not initialized.");
+                    return;
+                }
+
                 try {
+                    // Check for hardcoded admin first
+                    if (username === 'admin' && password === 'admin') {
+                        console.log("Logged in with hardcoded admin credentials.");
+                        isAdminLoggedIn = true;
+                        loggedInAdminUsername = 'admin';
+                        adminLoginPanel.classList.add('hidden');
+                        adminPanel.classList.remove('hidden');
+                        adminUserInfo.textContent = `Du är inloggad som administratör (Admin: ${loggedInAdminUsername})`;
+                        updateUI();
+                        return;
+                    }
+
+                    // Then, check the database for other admins
+                    console.log("Checking Firestore for admin user...");
                     const q = query(collection(db, 'admins'), where('username', '==', username));
                     const querySnapshot = await getDocs(q);
 
                     if (querySnapshot.empty) {
+                        console.log("Query returned no results. Invalid username.");
                         showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
                         return;
                     }
 
                     let loginSuccess = false;
-                    let adminData;
                     querySnapshot.forEach(docSnap => {
-                        adminData = docSnap.data();
+                        const adminData = docSnap.data();
+                        console.log("Found user in Firestore:", adminData.username);
                         if (adminData.password === password) {
                             loginSuccess = true;
+                            console.log("Password matches. Login successful.");
+                        } else {
+                            console.log("Password does not match.");
                         }
                     });
 
@@ -1606,7 +1631,6 @@
                 updateUI();
                 navigate('#hem');
             });
-            // --- Lösningen slutar här ---
 
 
             addAdminForm.addEventListener('submit', async (e) => {
