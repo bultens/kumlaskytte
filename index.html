@@ -125,8 +125,8 @@
     <header class="bg-blue-800 text-white shadow-lg">
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
-                <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.20</p>
+                <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.22</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -145,7 +145,7 @@
         <!-- Sida: Hem -->
         <section id="hem" class="page active">
             <div class="bg-blue-100 p-8 rounded-xl text-center mb-8">
-                <h1 class="text-4xl font-extrabold text-blue-900 mb-4">Välkommen till Kumla Skytte Förening!</h1>
+                <h1 class="text-4xl font-extrabold text-blue-900 mb-4">Välkommen till Kumla Skytteförening!</h1>
                 <p class="text-lg text-blue-700">Vi är en klubb för entusiaster av skytte. Här kan du hitta information om vår historia, nyheter och kommande evenemang.</p>
             </div>
             
@@ -159,7 +159,7 @@
                 <!-- Kalenderhändelser kommer att renderas här av JavaScript -->
             </div>
 
-            <h2 class="text-3xl font-bold mt-8 mb-4">Klubbens Historia och Poster</h2>
+            <h2 class="text-3xl font-bold mt-8 mb-4">Klubbens Poster</h2>
             <div id="home-history-container" class="space-y-6">
                 <!-- Historieposter renderas här av JavaScript -->
             </div>
@@ -382,7 +382,7 @@
     <!-- Footer -->
     <footer class="bg-blue-800 text-white text-center py-4 mt-8">
         <div class="container text-sm">
-            <p class="font-bold">Kumla Skytte Förening</p>
+            <p class="font-bold">Kumla Skytteförening</p>
             <p>Adress: Viagatan 5, Kumla, Sweden</p>
             <p>Telefon: 073-088 57 25</p>
             <p>Grundad: 1904</p>
@@ -394,6 +394,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { updateDoc as updateDocFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
@@ -416,8 +419,9 @@
         let historyData = [];
         let editingNewsId = null; 
         let editingHistoryId = null;
+        let currentUserId = null;
 
-        // --- MODAL-FUNKTIONER ---
+        // --- MODAL FUNCTIONS ---
         function showModal(modalId, message) {
             const modal = document.getElementById(modalId);
             if (!modal) return;
@@ -434,7 +438,7 @@
             modal.classList.remove('active');
         }
 
-        // Funktion för att extrahera den första textraden från HTML-innehåll
+        // Function to extract the first line of text from HTML content
         function getFirstLineText(htmlContent) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
@@ -445,7 +449,7 @@
             return tempDiv.textContent.split('\n')[0].trim();
         }
 
-        // Funktion för att extrahera den första bilden från HTML-innehåll
+        // Function to extract the first image from HTML content
         function getFirstImage(htmlContent) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
@@ -453,7 +457,7 @@
             return firstImage ? firstImage.outerHTML : '';
         }
 
-        // --- RENDERING AV INNEHÅLL ---
+        // --- CONTENT RENDERING ---
         function renderNews() {
             const news = newsData;
             const homeNewsContainer = document.getElementById('home-news-container');
@@ -470,19 +474,21 @@
                 return dateB - dateA;
             });
             
-            // Visa de 2 senaste nyheterna på startsidan
+            // Render the 2 latest news items on the home page
             news.slice(0, 2).forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 const firstLine = getFirstLineText(item.content);
                 const firstImage = getFirstImage(item.content);
+                const likes = item.likes || {};
+                const likeCount = Object.keys(likes).length;
+                const userHasLiked = currentUserId && likes[currentUserId];
                 
                 let imageHtml = '';
                 if (firstImage) {
                     const tempImgDiv = document.createElement('div');
                     tempImgDiv.innerHTML = firstImage;
                     const img = tempImgDiv.querySelector('img');
-                    // Ändra storleken på bilden till en liten miniatyr för startsidan
                     img.setAttribute('style', 'width: 150px; height: auto;');
                     img.classList.add('rounded-lg', 'object-cover', 'mr-4');
                     imageHtml = `<div class="flex-shrink-0">${img.outerHTML}</div>`;
@@ -500,21 +506,28 @@
                 `;
             });
 
-            // Visa alla nyheter på nyhetssidan
+            // Render all news items on the news page
             news.forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+                const likes = item.likes || {};
+                const likeCount = Object.keys(likes).length;
+                const userHasLiked = currentUserId && likes[currentUserId];
+
                 allNewsContainer.innerHTML += `
                     <div class="card" id="news-${item.id}">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
                         <div class="text-gray-700 markdown-content">${item.content}</div>
-                        ${isAdminLoggedIn ? `
-                            <div class="flex space-x-2 mt-4">
+                        <div class="flex items-center space-x-2 mt-4">
+                            <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="news" data-liked="${userHasLiked}">
+                                👍 <span class="like-count">${likeCount}</span>
+                            </button>
+                            ${isAdminLoggedIn ? `
                                 <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
                                 <button class="edit-news-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -530,13 +543,13 @@
             calendarContainer.innerHTML = '';
             homeEventsContainer.innerHTML = '';
             
-            // Sortera händelser efter datum och filtrera bort gamla händelser
+            // Sort events by date and filter out old events
             const today = new Date().toISOString().split('T')[0];
             const upcomingEvents = events.filter(e => e.date >= today);
             
             upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
-            // Visa de 2 nästkommande händelserna på startsidan
+            // Render the 2 next upcoming events on the home page
             upcomingEvents.slice(0, 2).forEach(item => {
                 const eventDate = new Date(item.date);
                 const day = eventDate.getDate();
@@ -582,10 +595,9 @@
                 `;
             });
 
-            // Fäster event-lyssnare för kalenderposterna
+            // Attach event listeners for calendar posts
             document.querySelectorAll('.calendar-post').forEach(post => {
                 post.addEventListener('click', (e) => {
-                    // Förhindra att klick på "Ta bort"-knappen utlöser expansionen
                     if (e.target.classList.contains('delete-btn')) {
                         return;
                     }
@@ -604,7 +616,7 @@
             });
         }
 
-        // --- RENDERING AV HISTORIEINLÄGG ---
+        // --- RENDER HISTORY POSTS ---
         function renderHistory() {
             const historyContainer = document.getElementById('home-history-container');
             if (!historyContainer) return;
@@ -620,17 +632,24 @@
             historyData.forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+                const likes = item.likes || {};
+                const likeCount = Object.keys(likes).length;
+                const userHasLiked = currentUserId && likes[currentUserId];
+
                 historyContainer.innerHTML += `
                     <div class="card" id="history-${item.id}">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
                         <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
                         <div class="text-gray-700 markdown-content">${item.content}</div>
-                        ${isAdminLoggedIn ? `
-                            <div class="flex space-x-2 mt-4">
+                        <div class="flex items-center space-x-2 mt-4">
+                            <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="history" data-liked="${userHasLiked}">
+                                👍 <span class="like-count">${likeCount}</span>
+                            </button>
+                            ${isAdminLoggedIn ? `
                                 <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="history">Ta bort</button>
                                 <button class="edit-history-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -653,13 +672,13 @@
             });
         }
 
-        // --- EDITOR-FUNKTIONER ---
+        // --- EDITOR FUNCTIONS ---
         function applyEditorCommand(editor, command, value = null) {
             editor.focus();
             document.execCommand(command, false, value);
         }
         
-        // Hantera att knappar blir aktiva/inaktiva baserat på markören
+        // Handle active/inactive buttons based on cursor position
         function updateToolbarButtons(editor) {
             const toolbar = editor.previousElementSibling;
             if (!toolbar) return;
@@ -679,7 +698,7 @@
             }
         }
 
-        // --- EVENT-LYSSNARE ---
+        // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', async () => {
             const statusIndicator = document.createElement('div');
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
@@ -698,7 +717,9 @@
 
                     auth.onAuthStateChanged((user) => {
                         if (user) {
-                            console.log("Authenticated with Firebase:", user.uid);
+                            currentUserId = user.uid;
+                            console.log("Authenticated with Firebase:", currentUserId);
+                            
                             // Initial rendering and live listeners
                             const newsRef = collection(db, `news`);
                             onSnapshot(newsRef, (snapshot) => {
@@ -752,7 +773,35 @@
                 statusIndicator.classList.add('bg-red-500');
             }
 
-            // Funktion för att hantera radering av nyheter/events/history
+            // Function to handle liking a post
+            async function handleLike(docId, collectionName) {
+                if (!currentUserId) {
+                    showModal('errorModal', "Du måste vara inloggad för att gilla poster.");
+                    return;
+                }
+                const docRef = doc(db, collectionName, docId);
+                const docSnap = await getDoc(docRef);
+                const data = docSnap.data();
+                const likes = data.likes || {};
+
+                if (likes[currentUserId]) {
+                    // Unlike
+                    delete likes[currentUserId];
+                } else {
+                    // Like
+                    likes[currentUserId] = true;
+                }
+
+                try {
+                    await updateDoc(docRef, { likes: likes });
+                } catch (error) {
+                    console.error("Error updating likes:", error);
+                    showModal('errorModal', "Ett fel uppstod när like-funktionen skulle uppdateras.");
+                }
+            }
+
+
+            // Function to handle deletion of news/events/history
             async function deleteDocument(docId, collectionName) {
                 if (!db || !isAdminLoggedIn) {
                     showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
@@ -769,7 +818,7 @@
                 }
             }
             
-            // Funktion för att hantera radering av admins
+            // Function to handle deletion of admins
             async function deleteAdmin(adminId) {
                 if (!db || !isAdminLoggedIn) {
                     showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
@@ -795,7 +844,17 @@
                 }
             }
 
-            // Händelsedelegation för "Ta bort"-knappar (nyheter och kalender)
+            // Event delegation for "like" buttons
+            document.addEventListener('click', (e) => {
+                const likeBtn = e.target.closest('.like-btn');
+                if (likeBtn) {
+                    const docId = likeBtn.getAttribute('data-id');
+                    const docType = likeBtn.getAttribute('data-type');
+                    handleLike(docId, docType);
+                }
+            });
+
+            // Event delegation for "delete" buttons (news and calendar)
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('delete-btn')) {
                     const docId = e.target.getAttribute('data-id');
@@ -803,7 +862,7 @@
                     const seriesId = e.target.getAttribute('data-series-id');
                     
                     if (docType === 'events' && seriesId) {
-                        // Visa modal för radering av serie
+                        // Show modal for deleting series
                         document.getElementById('delete-event-message').textContent = 'Denna händelse är en del av en serie. Vill du radera enbart denna händelse eller hela serien?';
                         document.getElementById('deleteEventModal').classList.add('active');
                         document.getElementById('delete-single-event-btn').onclick = () => {
@@ -811,7 +870,7 @@
                             hideModal('deleteEventModal');
                         };
                         document.getElementById('delete-series-event-btn').onclick = async () => {
-                            // Radera hela serien
+                            // Delete the entire series
                             const batch = writeBatch(db);
                             const q = query(collection(db, 'events'), where('seriesId', '==', seriesId));
                             const querySnapshot = await getDocs(q);
@@ -825,8 +884,8 @@
                         };
                         document.getElementById('cancel-event-delete-btn').onclick = () => hideModal('deleteEventModal');
                     } else {
-                        // Visa en allmän bekräftelsemodal istället för confirm()
-                        const postType = docType === 'news' ? 'nyhet' : (docType === 'events' ? 'händelse' : 'historiepost');
+                        // Show a general confirmation modal instead of confirm()
+                        const postType = docType === 'news' ? 'nyhet' : (docType === 'events' ? 'händelse' : 'post');
                         document.getElementById('delete-confirmation-message').textContent = `Är du säker på att du vill ta bort denna ${postType}?`;
                         document.getElementById('deleteConfirmationModal').classList.add('active');
                         
@@ -839,21 +898,21 @@
                 }
             });
             
-            // Händelsedelegation för "Ändra"-knappen för nyheter
+            // Event delegation for "edit" button for news
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('edit-news-btn')) {
                     const docId = e.target.getAttribute('data-id');
                     const newsItem = newsData.find(item => item.id === docId);
 
                     if (newsItem) {
-                        // Fyll i formuläret med befintlig data
+                        // Fill the form with existing data
                         document.getElementById('news-title').value = newsItem.title;
                         document.getElementById('news-content-editor').innerHTML = newsItem.content;
                         
-                        // Spara ID för den nyhet som redigeras
+                        // Save the ID of the news being edited
                         editingNewsId = docId;
                         
-                        // Ändra knapptext och navigera till admin-sidan
+                        // Change button text and navigate to admin page
                         const addNewsBtn = document.getElementById('add-news-btn');
                         addNewsBtn.textContent = 'Spara ändringar';
                         addNewsBtn.classList.remove('bg-gray-400');
@@ -864,7 +923,7 @@
                 }
             });
 
-            // Händelsedelegation för "Ändra"-knappen för historieposter
+            // Event delegation for "edit" button for history posts
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('edit-history-btn')) {
                     const docId = e.target.getAttribute('data-id');
@@ -887,11 +946,11 @@
                 }
             });
 
-            // Händelsedelegation för "Ta bort Admin"-knappar
+            // Event delegation for "Delete Admin" buttons
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('delete-admin-btn')) {
                     const adminId = e.target.getAttribute('data-id');
-                    // Visa en allmän bekräftelsemodal istället för confirm()
+                    // Show a general confirmation modal instead of confirm()
                     document.getElementById('delete-confirmation-message').textContent = `Är du säker på att du vill ta bort denna administratör?`;
                     document.getElementById('deleteConfirmationModal').classList.add('active');
                     
@@ -903,7 +962,7 @@
                 }
             });
             
-            // Hantera klick på editor-knapparna
+            // Handle clicks on editor buttons
             document.querySelectorAll('.editor-toolbar button').forEach(button => {
                 button.addEventListener('click', () => {
                     const command = button.dataset.command;
@@ -919,7 +978,7 @@
                             const protocol = url.startsWith('http') ? '' : 'https://';
                             document.execCommand('insertHTML', false, `<a href="${protocol}${url}" target="_blank">${linkText}</a>`);
                         } else if (command === 'insertImage') {
-                            // Visa den nya modalen för bildinfogning
+                            // Show the new modal for image insertion
                             showModal('insertImageModal', '');
                             const insertBtn = document.getElementById('insert-image-btn');
                             const cancelBtn = document.getElementById('cancel-image-btn');
@@ -955,7 +1014,7 @@
                 });
             });
 
-            // Hantera att knappar blir aktiva/inaktiva baserat på markören
+            // Handle active/inactive buttons based on cursor position
             document.querySelectorAll('.editor-content').forEach(editor => {
                 editor.addEventListener('mouseup', () => updateToolbarButtons(editor));
                 editor.addEventListener('keyup', () => updateToolbarButtons(editor));
@@ -980,7 +1039,7 @@
                 }
             }
 
-            // Funktion för att navigera och uppdatera admin-status
+            // Function to navigate and update admin status
             function navigate(hash) {
                 document.querySelectorAll('.page').forEach(page => {
                     page.classList.remove('active');
@@ -994,7 +1053,7 @@
                 }
             }
 
-            // --- MODAL EVENT LYSSNARE ---
+            // --- MODAL EVENT LISTENERS ---
             const errorModal = document.getElementById('errorModal');
             const closeErrorModalBtn = document.getElementById('close-error-modal');
             if (closeErrorModalBtn) {
@@ -1019,9 +1078,8 @@
                 });
             }
 
-            // Händelsedelegation för nyheter och kalender i hemvyn
+            // Event delegation for news and calendar on home page
             document.addEventListener('click', (e) => {
-                // Klick på kalenderhändelse
                 const calendarPost = e.target.closest('.home-calendar-post');
                 if (calendarPost) {
                     const id = calendarPost.getAttribute('data-id');
@@ -1036,7 +1094,6 @@
                         }
                     }, 100);
                 }
-                // Klick på nyhet
                 const newsPost = e.target.closest('.home-news-post');
                 if (newsPost) {
                     const id = newsPost.getAttribute('data-id');
@@ -1065,7 +1122,7 @@
             
             navigate(window.location.hash || '#hem');
 
-            // --- ADMINPANELENS LOGIK ---
+            // --- ADMIN PANEL LOGIC ---
             const loginBtn = document.getElementById('login-btn');
             const logoutBtn = document.getElementById('logout-btn');
             const adminUsernameInput = document.getElementById('admin-username');
@@ -1077,12 +1134,12 @@
             const newAdminUsernameInput = document.getElementById('new-admin-username');
             const newAdminPasswordInput = document.getElementById('new-admin-password');
             
-            // Formulär för nyheter
+            // News form
             const newsTitleInput = document.getElementById('news-title');
             const newsContentEditor = document.getElementById('news-content-editor');
             const newsAddBtn = document.getElementById('add-news-btn');
 
-            // Formulär för historieposter
+            // History form
             const historyTitleInput = document.getElementById('history-title');
             const historyContentEditor = document.getElementById('history-content-editor');
             const historyAddBtn = document.getElementById('add-history-btn');
@@ -1090,7 +1147,7 @@
             const eventAddBtn = document.getElementById('add-event-btn');
             const eventDescriptionEditor = document.getElementById('event-description-editor');
 
-            // Toggle för återkommande händelser
+            // Toggle for recurring events
             const isRecurringCheckbox = document.getElementById('is-recurring');
             const singleEventFields = document.getElementById('single-event-fields');
             const recurringEventFields = document.getElementById('recurring-event-fields');
@@ -1116,24 +1173,24 @@
                 let foundAdmin = false;
                 let adminToLog = {};
 
-                // Hantera den hårdkodade admin-användaren
+                // Handle the hardcoded admin user
                 if (username === 'admin' && password === 'admin') {
                     foundAdmin = true;
                     adminToLog = { username: 'admin' };
-                    // Lägg till den hårdkodade admin i databasen om den inte redan finns
+                    // Add the hardcoded admin to the database if it doesn't exist
                     try {
                         const adminsRef = collection(db, 'admins');
                         const q = query(adminsRef, where('username', '==', 'admin'));
                         const querySnapshot = await getDocs(q);
                         if (querySnapshot.empty) {
                             await addDoc(adminsRef, { username: 'admin', password: 'admin' });
-                            console.log('Hårdkodad admin skapad i databasen.');
+                            console.log('Hardcoded admin created in the database.');
                         }
                     } catch (error) {
-                        console.error('Fel vid hantering av hårdkodad admin:', error);
+                        console.error('Error handling hardcoded admin:', error);
                     }
                 } else {
-                    // Sök efter admin i databasen
+                    // Search for admin in the database
                     try {
                         const adminsRef = collection(db, 'admins');
                         const q = query(adminsRef, where('username', '==', username), where('password', '==', password));
@@ -1145,7 +1202,7 @@
                             });
                         }
                     } catch (error) {
-                        console.error('Fel vid sökning efter admin:', error);
+                        console.error('Error searching for admin:', error);
                     }
                 }
 
@@ -1167,7 +1224,7 @@
                     historyAddBtn.classList.remove('bg-gray-400');
                     historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                     
-                    // Manuell uppdatering av UI efter inloggning för att visa delete-knappar
+                    // Manually update UI after login to show delete buttons
                     renderNews();
                     renderEvents();
                     renderHistory();
@@ -1224,7 +1281,7 @@
             });
 
 
-            // --- FORMULÄR FÖR ATT LÄGGA TILL DATA TILL FIREBASE ---
+            // --- FORMS TO ADD DATA TO FIREBASE ---
             const addNewsForm = document.getElementById('add-news-form');
             addNewsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1244,18 +1301,18 @@
 
                 try {
                     if (editingNewsId) {
-                        // Uppdatera befintlig nyhet
+                        // Update existing news
                         await updateDoc(doc(db, 'news', editingNewsId), newsObject);
                         console.log("Nyhet uppdaterad!");
                         showModal('confirmationModal', "Nyhet har uppdaterats!");
                     } else {
-                        // Lägg till ny nyhet
+                        // Add new news
                         await addDoc(collection(db, `news`), newsObject);
                         console.log("Nyhet tillagd!");
                         showModal('confirmationModal', "Nyhet har lagts till!");
                     }
                     
-                    // Återställ formuläret och variabler
+                    // Reset form and variables
                     addNewsForm.reset();
                     newsContentEditor.innerHTML = '';
                     editingNewsId = null;
