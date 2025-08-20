@@ -132,7 +132,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.28</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.29</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -410,6 +410,29 @@
             </div>
         </div>
 
+        <!-- Modal för att dela nyhet -->
+        <div id="shareModal" class="modal">
+            <div class="modal-content">
+                <span id="close-share-modal" class="modal-close-btn">&times;</span>
+                <h3 class="text-xl font-bold mb-4">Dela nyhet</h3>
+                <p id="share-message" class="mb-4 text-sm"></p>
+                <div class="flex justify-center space-x-4 mt-4">
+                    <a id="share-facebook-btn" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
+                        </svg>
+                        <span class="ml-2 hidden sm:inline">Dela på Facebook</span>
+                    </a>
+                    <button id="copy-link-btn" class="flex items-center justify-center p-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705zm3.074 1.455l-1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
+                        </svg>
+                        <span class="ml-2 hidden sm:inline">Kopiera länk</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal för att lägga till bild -->
         <div id="insertImageModal" class="modal">
             <div class="modal-content">
@@ -593,6 +616,12 @@
                         <div class="flex items-center space-x-2 mt-4">
                             <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="news" data-liked="${userHasLiked}">
                                 👍 <span class="like-count">${likeCount}</span>
+                            </button>
+                            <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378z"/>
+                                </svg>
+                                <span class="ml-1 hidden sm:inline">Dela</span>
                             </button>
                             ${isAdminLoggedIn ? `
                                 <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
@@ -1240,6 +1269,16 @@
                     }
                 });
             }
+            
+            const shareModal = document.getElementById('shareModal');
+            if (shareModal) {
+                shareModal.addEventListener('click', (event) => {
+                    if (event.target === shareModal || event.target.closest('#close-share-modal')) {
+                        hideModal('shareModal');
+                    }
+                });
+            }
+
 
             // Event delegation for news and calendar on home page
             document.addEventListener('click', (e) => {
