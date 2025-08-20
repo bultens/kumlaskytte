@@ -132,7 +132,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.25</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.27</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -233,7 +233,7 @@
 
                 <!-- Formulär för Historieposter -->
                 <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Historiepost</h2>
+                    <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Huvudsidposter</h2>
                     <form id="add-history-form">
                         <label for="history-title" class="block mb-2 font-semibold">Titel</label>
                         <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
@@ -253,10 +253,13 @@
                 </div>
 
                 <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4">Lägg till Nyhet</h2>
+                    <h2 class="text-2xl font-bold mb-4" id="news-form-title">Lägg till Nyhet</h2>
                     <form id="add-news-form">
                         <label for="news-title" class="block mb-2 font-semibold">Titel</label>
                         <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <label for="news-date" class="block mb-2 font-semibold">Datum</label>
+                        <input type="date" id="news-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         
                         <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
                         <div class="editor-toolbar" data-editor-target="news-content-editor">
@@ -476,10 +479,10 @@
         let eventsData = [];
         let adminsData = [];
         let historyData = [];
-        let imageData = []; // Ny array för bilder
+        let imageData = []; 
         let editingNewsId = null; 
         let editingHistoryId = null;
-        let editingImageId = null; // Håll koll på vilken bild som redigeras
+        let editingImageId = null;
         let currentUserId = null;
 
         // --- MODAL FUNCTIONS ---
@@ -537,7 +540,7 @@
             
             // Render the 2 latest news items on the home page
             news.slice(0, 2).forEach(item => {
-                const date = item.createdAt?.toDate() || new Date(item.date);
+                const date = item.date ? new Date(item.date) : (item.createdAt?.toDate() || new Date());
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 const firstLine = getFirstLineText(item.content);
                 const firstImage = getFirstImage(item.content);
@@ -554,6 +557,9 @@
                     img.classList.add('rounded-lg', 'object-cover', 'mr-4');
                     imageHtml = `<div class="flex-shrink-0">${img.outerHTML}</div>`;
                 }
+                
+                const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
+
 
                 homeNewsContainer.innerHTML += `
                     <div class="card flex items-start news-post home-news-post cursor-pointer" data-id="${item.id}">
@@ -561,7 +567,7 @@
                         <div class="flex-grow">
                             <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
                             <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                            <div class="text-gray-700 markdown-content">${firstLine}</div>
+                            <div class="text-gray-700 markdown-content">${shortContent}</div>
                         </div>
                     </div>
                 `;
@@ -569,16 +575,19 @@
 
             // Render all news items on the news page
             news.forEach(item => {
-                const date = item.createdAt?.toDate() || new Date(item.date);
+                const date = item.date ? new Date(item.date) : (item.createdAt?.toDate() || new Date());
+                const createdAt = item.createdAt?.toDate() || new Date();
+                const updatedAt = item.updatedAt?.toDate() || createdAt;
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 const likes = item.likes || {};
                 const likeCount = Object.keys(likes).length;
                 const userHasLiked = currentUserId && likes[currentUserId];
+                const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
 
                 allNewsContainer.innerHTML += `
                     <div class="card" id="news-${item.id}">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
+                        <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                         <div class="text-gray-700 markdown-content">${item.content}</div>
                         <div class="flex items-center space-x-2 mt-4">
                             <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="news" data-liked="${userHasLiked}">
@@ -638,7 +647,10 @@
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = item.description;
                 const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
-                
+                const createdAt = item.createdAt?.toDate() || new Date();
+                const updatedAt = item.updatedAt?.toDate() || createdAt;
+                const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+
                 calendarContainer.innerHTML += `
                     <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
                         <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
@@ -647,7 +659,7 @@
                         </div>
                         <div class="flex-grow">
                             <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                            <p class="text-sm text-gray-500 mb-2">${item.date}</p>
+                            <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                             <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
                             <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
                             ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>` : ''}
@@ -692,15 +704,14 @@
             
             historyData.forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
-                const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-                const likes = item.likes || {};
-                const likeCount = Object.keys(likes).length;
-                const userHasLiked = currentUserId && likes[currentUserId];
+                const createdAt = item.createdAt?.toDate() || new Date();
+                const updatedAt = item.updatedAt?.toDate() || createdAt;
+                const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
 
                 historyContainer.innerHTML += `
                     <div class="card" id="history-${item.id}">
                         <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
+                        <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                         <div class="text-gray-700 markdown-content">${item.content}</div>
                         <div class="flex items-center space-x-2 mt-4">
                             <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="history" data-liked="${userHasLiked}">
@@ -1032,6 +1043,9 @@
                         document.getElementById('news-title').value = newsItem.title;
                         document.getElementById('news-content-editor').innerHTML = newsItem.content;
                         
+                        const newsDate = newsItem.date || (newsItem.createdAt?.toDate() || new Date()).toISOString().split('T')[0];
+                        document.getElementById('news-date').value = newsDate;
+
                         // Save the ID of the news being edited
                         editingNewsId = docId;
                         
@@ -1053,7 +1067,7 @@
                     const historyItem = historyData.find(item => item.id === docId);
 
                     if (historyItem) {
-                        document.getElementById('history-form-title').textContent = 'Ändra Historiepost';
+                        historyFormTitle.textContent = 'Ändra Huvudsidpost';
                         document.getElementById('history-title').value = historyItem.title;
                         document.getElementById('history-content-editor').innerHTML = historyItem.content;
                         
@@ -1283,11 +1297,14 @@
             const newAdminPasswordInput = document.getElementById('new-admin-password');
             
             // News form
+            const newsFormTitle = document.getElementById('news-form-title');
             const newsTitleInput = document.getElementById('news-title');
+            const newsDateInput = document.getElementById('news-date');
             const newsContentEditor = document.getElementById('news-content-editor');
             const newsAddBtn = document.getElementById('add-news-btn');
 
             // History form
+            const historyFormTitle = document.getElementById('history-form-title');
             const historyTitleInput = document.getElementById('history-title');
             const historyContentEditor = document.getElementById('history-content-editor');
             const historyAddBtn = document.getElementById('add-history-btn');
@@ -1413,6 +1430,11 @@
                 addImageBtn.disabled = true;
                 addImageBtn.classList.add('bg-gray-400');
                 addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+
+                // Återställ formulär-titlar till standard
+                historyFormTitle.textContent = 'Lägg till Huvudsidposter';
+                imageFormTitle.textContent = 'Lägg till Bild';
+
                 renderNews();
                 renderEvents();
                 renderHistory();
@@ -1456,11 +1478,14 @@
                 
                 const newsTitle = newsTitleInput.value;
                 const newsContent = newsContentEditor.innerHTML;
+                const newsDate = newsDateInput.value;
                 
                 const newsObject = {
                     title: newsTitle,
                     content: newsContent,
-                    createdAt: serverTimestamp()
+                    date: newsDate,
+                    createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
+                    updatedAt: editingNewsId ? serverTimestamp() : null
                 };
 
                 try {
@@ -1479,7 +1504,9 @@
                     // Reset form and variables
                     addNewsForm.reset();
                     newsContentEditor.innerHTML = '';
+                    newsDateInput.value = new Date().toISOString().split('T')[0];
                     editingNewsId = null;
+                    newsFormTitle.textContent = 'Lägg till Nyhet';
                     newsAddBtn.textContent = 'Lägg till';
                     newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                     newsAddBtn.classList.add('bg-gray-400');
@@ -1504,23 +1531,25 @@
                 const historyObject = {
                     title: historyTitle,
                     content: historyContent,
-                    createdAt: serverTimestamp()
+                    createdAt: editingHistoryId ? historyData.find(h => h.id === editingHistoryId).createdAt : serverTimestamp(),
+                    updatedAt: editingHistoryId ? serverTimestamp() : null
                 };
 
                 try {
                     if (editingHistoryId) {
                         await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
                         console.log("Historiepost uppdaterad!");
-                        showModal('confirmationModal', "Historiepost har uppdaterats!");
+                        showModal('confirmationModal', "Huvudsidpost har uppdaterats!");
                     } else {
                         await addDoc(collection(db, 'history'), historyObject);
                         console.log("Historiepost tillagd!");
-                        showModal('confirmationModal', "Historiepost har lagts till!");
+                        showModal('confirmationModal', "Huvudsidpost har lagts till!");
                     }
 
                     addHistoryForm.reset();
                     historyContentEditor.innerHTML = '';
                     editingHistoryId = null;
+                    historyFormTitle.textContent = 'Lägg till Huvudsidposter';
                     historyAddBtn.textContent = 'Lägg till';
                     historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                     historyAddBtn.classList.add('bg-gray-400');
@@ -1550,7 +1579,8 @@
                     url: imageUrl,
                     year: imageYear,
                     month: imageMonth,
-                    createdAt: serverTimestamp()
+                    createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
+                    updatedAt: editingImageId ? serverTimestamp() : null
                 };
 
                 try {
@@ -1590,7 +1620,8 @@
                 const newEvent = {
                     title: document.getElementById('event-title').value,
                     description: document.getElementById('event-description-editor').innerHTML,
-                    createdAt: serverTimestamp()
+                    createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
+                    updatedAt: editingNewsId ? serverTimestamp() : null
                 };
 
                 const isRecurring = document.getElementById('is-recurring').checked;
