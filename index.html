@@ -27,7 +27,7 @@
         .card {
             background-color: #ffffff;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
             padding: 2rem;
             margin-bottom: 1.5rem;
         }
@@ -106,7 +106,7 @@
             max-width: 100%;
             height: auto;
             border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
             margin-top: 1rem;
             margin-bottom: 1rem;
         }
@@ -130,9 +130,10 @@
     <!-- Header och navigering -->
     <header class="bg-blue-800 text-white shadow-lg">
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
-            <div>
+            <div class="flex items-center">
+                <img src="logo.png" alt="Kumla Skytteförening logotyp" class="h-10 w-10 mr-4 rounded-full">
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.31</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.32</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -415,7 +416,7 @@
             <div class="modal-content">
                 <span id="close-share-modal" class="modal-close-btn">&times;</span>
                 <h3 class="text-xl font-bold mb-4">Dela nyhet</h3>
-                <p id="share-message" class="mb-4 text-sm"></p>
+                <p id="share-message-title" class="mb-4 text-sm"></p>
                 <div class="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 mt-4 justify-center">
                     <a id="share-facebook-btn" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-300 cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
@@ -509,13 +510,19 @@
         let currentUserId = null;
 
         // --- MODAL FUNCTIONS ---
-        function showModal(modalId, message) {
+        function showModal(modalId, message, title) {
             const modal = document.getElementById(modalId);
             if (!modal) return;
+            
             const messageEl = modal.querySelector('p');
+            const titleEl = modal.querySelector('h3');
             if (messageEl) {
                 messageEl.innerHTML = message;
             }
+            if (titleEl) {
+                titleEl.textContent = title;
+            }
+            
             modal.classList.add('active');
         }
 
@@ -1069,13 +1076,17 @@
                     const newsId = shareBtn.getAttribute('data-id');
                     const newsTitle = shareBtn.getAttribute('data-title');
                     
+                    // Create the URL to the specific news item
                     const pageUrl = window.location.origin + window.location.pathname;
                     const shareUrl = `${pageUrl}#nyheter#news-${newsId}`;
 
-                    document.getElementById('share-message-title').textContent = newsTitle;
-                    document.getElementById('share-facebook-btn').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-
+                    const shareModalTitle = document.getElementById('share-message-title');
+                    const shareFacebookBtn = document.getElementById('share-facebook-btn');
                     const copyLinkBtn = document.getElementById('copy-link-btn');
+
+                    shareModalTitle.textContent = newsTitle;
+                    shareFacebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+
                     copyLinkBtn.onclick = () => {
                         try {
                             const tempInput = document.createElement('input');
@@ -1204,7 +1215,7 @@
                             document.execCommand('insertHTML', false, `<a href="${protocol}${url}" target="_blank">${linkText}</a>`);
                         } else if (command === 'insertImage') {
                             // Show the new modal for image insertion
-                            showModal('insertImageModal', '');
+                            showModal('insertImageModal', '', 'Infoga bild');
                             const insertBtn = document.getElementById('insert-image-btn');
                             const cancelBtn = document.getElementById('cancel-image-btn');
                             const imageUrlInput = document.getElementById('image-url-input');
@@ -1273,6 +1284,16 @@
                 if (targetPage) {
                     targetPage.classList.add('active');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
+                    const anchor = hash.split('#')[2];
+                    if (anchor) {
+                        setTimeout(() => {
+                            const targetElement = document.getElementById(anchor);
+                            if (targetElement) {
+                                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }, 100);
+                    }
                 } else {
                     document.getElementById('hem').classList.add('active');
                 }
@@ -1531,11 +1552,11 @@
                 try {
                     await addDoc(collection(db, `admins`), newAdmin);
                     addAdminForm.reset();
-                    showModal('confirmationModal', "Ny admin har lagts till!");
+                    showModal('confirmationModal', "Ny admin har lagts till!", "Lyckades!");
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
                     console.error("Fel vid tillägg av admin:", error);
-                    showModal('errorModal', "Ett fel uppstod när admin skulle läggas till.");
+                    showModal('errorModal', "Ett fel uppstod när admin skulle läggas till.", "Fel!");
                 }
             });
 
@@ -1545,7 +1566,7 @@
             addNewsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
                     return;
                 }
                 
@@ -1566,12 +1587,12 @@
                         // Update existing news
                         await updateDoc(doc(db, 'news', editingNewsId), newsObject);
                         console.log("Nyhet uppdaterad!");
-                        showModal('confirmationModal', "Nyhet har uppdaterats!");
+                        showModal('confirmationModal', "Nyhet har uppdaterats!", "Lyckades!");
                     } else {
                         // Add new news
                         await addDoc(collection(db, `news`), newsObject);
                         console.log("Nyhet tillagd!");
-                        showModal('confirmationModal', "Nyhet har lagts till!");
+                        showModal('confirmationModal', "Nyhet har lagts till!", "Lyckades!");
                     }
                     
                     // Reset form and variables
@@ -1587,7 +1608,7 @@
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
                     console.error("Fel vid hantering av nyhet:", error);
-                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.");
+                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.", "Fel!");
                 }
             });
 
@@ -1595,7 +1616,7 @@
             addHistoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
                     return;
                 }
                 const historyTitle = historyTitleInput.value;
@@ -1612,11 +1633,11 @@
                     if (editingHistoryId) {
                         await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
                         console.log("Historiepost uppdaterad!");
-                        showModal('confirmationModal', "Huvudsidpost har uppdaterats!");
+                        showModal('confirmationModal', "Huvudsidpost har uppdaterats!", "Lyckades!");
                     } else {
                         await addDoc(collection(db, 'history'), historyObject);
                         console.log("Historiepost tillagd!");
-                        showModal('confirmationModal', "Huvudsidpost har lagts till!");
+                        showModal('confirmationModal', "Huvudsidpost har lagts till!", "Lyckades!");
                     }
 
                     addHistoryForm.reset();
@@ -1630,7 +1651,7 @@
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
                     console.error("Fel vid hantering av historiepost:", error);
-                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.");
+                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.", "Fel!");
                 }
             });
 
@@ -1638,7 +1659,7 @@
             addImageForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
                     return;
                 }
                 
@@ -1660,11 +1681,11 @@
                     if (editingImageId) {
                         await updateDoc(doc(db, 'images', editingImageId), imageObject);
                         console.log("Bild uppdaterad!");
-                        showModal('confirmationModal', "Bilden har uppdaterats!");
+                        showModal('confirmationModal', "Bilden har uppdaterats!", "Lyckades!");
                     } else {
                         await addDoc(collection(db, 'images'), imageObject);
                         console.log("Bild tillagd!");
-                        showModal('confirmationModal', "Bilden har lagts till!");
+                        showModal('confirmationModal', "Bilden har lagts till!", "Lyckades!");
                     }
 
                     addImageForm.reset();
@@ -1677,7 +1698,7 @@
                     setTimeout(() => hideModal('confirmationModal'), 2000);
                 } catch (error) {
                     console.error("Fel vid hantering av bild:", error);
-                    showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.");
+                    showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.", "Fel!");
                 }
             });
 
@@ -1686,7 +1707,7 @@
             addEventForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.");
+                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
                     return;
                 }
                 
@@ -1706,7 +1727,7 @@
                     const weekday = parseInt(document.getElementById('weekday-select').value, 10);
                     
                     if (!startDate || !endDate) {
-                        showModal('errorModal', "Start- och slutdatum måste anges för återkommande händelser.");
+                        showModal('errorModal', "Start- och slutdatum måste anges för återkommande händelser.", "Fel!");
                         return;
                     }
 
@@ -1728,16 +1749,16 @@
                         console.log("Återkommande händelser tillagda!");
                         addEventForm.reset();
                         document.getElementById('event-description-editor').innerHTML = '';
-                        showModal('confirmationModal', "Återkommande händelser har lagts till!");
+                        showModal('confirmationModal', "Återkommande händelser har lagts till!", "Lyckades!");
                         setTimeout(() => hideModal('confirmationModal'), 2000);
                     } catch (error) {
                         console.error("Fel vid tillägg av händelse:", error);
-                        showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.");
+                        showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.", "Fel!");
                     }
                 } else {
                     const eventDate = document.getElementById('event-date').value;
                     if (!eventDate) {
-                        showModal('errorModal', "Datum måste anges för enskild händelse.");
+                        showModal('errorModal', "Datum måste anges för enskild händelse.", "Fel!");
                         return;
                     }
 
@@ -1746,11 +1767,11 @@
                         console.log("Händelse tillagd!");
                         addEventForm.reset();
                         document.getElementById('event-description-editor').innerHTML = '';
-                        showModal('confirmationModal', "Händelse har lagts till!");
+                        showModal('confirmationModal', "Händelse har lagts till!", "Lyckades!");
                         setTimeout(() => hideModal('confirmationModal'), 2000);
                     } catch (error) {
                         console.error("Fel vid tillägg av händelse:", error);
-                        showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.");
+                        showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.", "Fel!");
                     }
                 }
             });
