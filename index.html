@@ -126,7 +126,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytte Förening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.17</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.18</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -311,6 +311,18 @@
             </div>
         </div>
         
+        <!-- Raderingsmodal för kalenderhändelser och nyheter -->
+        <div id="deleteConfirmationModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold mb-4">Bekräfta borttagning</h3>
+                <p id="delete-confirmation-message" class="mb-4"></p>
+                <div class="flex justify-center space-x-4">
+                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Ja</button>
+                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Raderingsmodal för kalenderhändelser -->
         <div id="deleteEventModal" class="modal">
             <div class="modal-content">
@@ -319,7 +331,29 @@
                 <div class="flex justify-center space-x-4">
                     <button id="delete-single-event-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Radera enskild händelse</button>
                     <button id="delete-series-event-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Radera hel serie</button>
-                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                    <button id="cancel-event-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal för att lägga till bild -->
+        <div id="insertImageModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold mb-4">Infoga bild</h3>
+                <label for="image-url-input" class="block mb-2 font-semibold">Bild-URL</label>
+                <input type="url" id="image-url-input" placeholder="https://exempel.se/bild.jpg" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                
+                <label for="image-size-select" class="block mb-2 font-semibold">Storlek</label>
+                <select id="image-size-select" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <option value="small">Liten (150px)</option>
+                    <option value="medium" selected>Medium (400px)</option>
+                    <option value="large">Stor (800px)</option>
+                    <option value="original">Originalstorlek</option>
+                </select>
+
+                <div class="flex justify-center space-x-4">
+                    <button id="insert-image-btn" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Infoga</button>
+                    <button id="cancel-image-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
                 </div>
             </div>
         </div>
@@ -367,7 +401,7 @@
             if (!modal) return;
             const messageEl = modal.querySelector('p');
             if (messageEl) {
-                messageEl.textContent = message;
+                messageEl.innerHTML = message; // Använd innerHTML för att tillåta HTML-taggar
             }
             modal.classList.add('active');
         }
@@ -376,6 +410,26 @@
             const modal = document.getElementById(modalId);
             if (!modal) return;
             modal.classList.remove('active');
+        }
+
+        // Funktion för att extrahera den första textraden från HTML-innehåll
+        function getFirstLineText(htmlContent) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            // Hämta första textnoden eller första paragrafens text
+            const firstChild = tempDiv.firstElementChild;
+            if (firstChild && firstChild.tagName === 'P') {
+                return firstChild.textContent;
+            }
+            return tempDiv.textContent.split('\n')[0].trim();
+        }
+
+        // Funktion för att extrahera den första bilden från HTML-innehåll
+        function getFirstImage(htmlContent) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            const firstImage = tempDiv.querySelector('img');
+            return firstImage ? firstImage.outerHTML : '';
         }
 
         // --- RENDERING AV INNEHÅLL ---
@@ -399,12 +453,28 @@
             news.slice(0, 2).forEach(item => {
                 const date = item.createdAt?.toDate() || new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+                const firstLine = getFirstLineText(item.content);
+                const firstImage = getFirstImage(item.content);
+                
+                let imageHtml = '';
+                if (firstImage) {
+                    const tempImgDiv = document.createElement('div');
+                    tempImgDiv.innerHTML = firstImage;
+                    const img = tempImgDiv.querySelector('img');
+                    // Ändra storleken på bilden till en liten miniatyr för startsidan
+                    img.setAttribute('style', 'width: 150px; height: auto;');
+                    img.classList.add('rounded-lg', 'object-cover', 'mr-4');
+                    imageHtml = `<div class="flex-shrink-0">${img.outerHTML}</div>`;
+                }
+
                 homeNewsContainer.innerHTML += `
-                    <div class="card">
-                        <h3 class="text-2xl font-semibold mb-2"><a href="#nyheter" data-id="${item.id}" class="news-link">${item.title}</a></h3>
-                        <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                        <div class="text-gray-700 markdown-content">${item.content.substring(0, 200)}...</div>
-                        ${isAdminLoggedIn ? `<button class="delete-btn mt-4 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>` : ''}
+                    <div class="card flex items-start news-post home-news-post cursor-pointer" data-id="${item.id}">
+                        ${imageHtml}
+                        <div class="flex-grow">
+                            <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
+                            <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
+                            <div class="text-gray-700 markdown-content">${firstLine}</div>
+                        </div>
                     </div>
                 `;
             });
@@ -528,22 +598,7 @@
         // --- EDITOR-FUNKTIONER ---
         function applyEditorCommand(editor, command, value = null) {
             editor.focus();
-            if (command === 'createLink') {
-                const url = prompt("Ange URL för länken:");
-                if (!url) return;
-                let linkText = prompt("Ange länktext (lämna tomt för att visa URL):");
-                if (!linkText) linkText = url;
-                
-                const protocol = url.startsWith('http') ? '' : 'https://';
-                document.execCommand('insertHTML', false, `<a href="${protocol}${url}" target="_blank">${linkText}</a>`);
-            } else if (command === 'insertImage') {
-                const imageUrl = prompt("Ange URL för bilden:");
-                if (imageUrl) {
-                    document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Bild" style="max-width: 100%; height: auto;">`);
-                }
-            } else {
-                document.execCommand(command, false, value);
-            }
+            document.execCommand(command, false, value);
         }
         
         // Hantera att knappar blir aktiva/inaktiva baserat på markören
@@ -678,6 +733,7 @@
                     const docId = e.target.getAttribute('data-id');
                     const docType = e.target.getAttribute('data-type');
                     const seriesId = e.target.getAttribute('data-series-id');
+                    
                     if (docType === 'events' && seriesId) {
                         // Visa modal för radering av serie
                         document.getElementById('delete-event-message').textContent = 'Denna händelse är en del av en serie. Vill du radera enbart denna händelse eller hela serien?';
@@ -699,12 +755,17 @@
                             setTimeout(() => hideModal('confirmationModal'), 2000);
                             hideModal('deleteEventModal');
                         };
-                        document.getElementById('cancel-delete-btn').onclick = () => hideModal('deleteEventModal');
+                        document.getElementById('cancel-event-delete-btn').onclick = () => hideModal('deleteEventModal');
                     } else {
-                        // Standardradering
-                        if (confirm(`Är du säker på att du vill ta bort denna ${docType === 'news' ? 'nyhet' : 'händelse'}?`)) {
+                        // Visa en allmän bekräftelsemodal istället för confirm()
+                        document.getElementById('delete-confirmation-message').textContent = `Är du säker på att du vill ta bort denna ${docType === 'news' ? 'nyhet' : 'händelse'}?`;
+                        document.getElementById('deleteConfirmationModal').classList.add('active');
+                        
+                        document.getElementById('confirm-delete-btn').onclick = () => {
                             deleteDocument(docId, docType);
-                        }
+                            hideModal('deleteConfirmationModal');
+                        };
+                        document.getElementById('cancel-delete-btn').onclick = () => hideModal('deleteConfirmationModal');
                     }
                 }
             });
@@ -713,18 +774,25 @@
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('delete-admin-btn')) {
                     const adminId = e.target.getAttribute('data-id');
-                    if (confirm(`Är du säker på att du vill ta bort denna administratör?`)) {
+                    // Visa en allmän bekräftelsemodal istället för confirm()
+                    document.getElementById('delete-confirmation-message').textContent = `Är du säker på att du vill ta bort denna administratör?`;
+                    document.getElementById('deleteConfirmationModal').classList.add('active');
+                    
+                    document.getElementById('confirm-delete-btn').onclick = () => {
                         deleteAdmin(adminId);
-                    }
+                        hideModal('deleteConfirmationModal');
+                    };
+                    document.getElementById('cancel-delete-btn').onclick = () => hideModal('deleteConfirmationModal');
                 }
             });
             
-            // Hantera klick på editor-knapparna och fokus
+            // Hantera klick på editor-knapparna
             document.querySelectorAll('.editor-toolbar button').forEach(button => {
                 button.addEventListener('click', () => {
                     const command = button.dataset.command;
                     const editor = document.getElementById(button.parentElement.dataset.editorTarget);
                     if (editor) {
+                        editor.focus();
                         if (command === 'createLink') {
                             const url = prompt("Ange URL för länken:");
                             if (!url) return;
@@ -734,14 +802,38 @@
                             const protocol = url.startsWith('http') ? '' : 'https://';
                             document.execCommand('insertHTML', false, `<a href="${protocol}${url}" target="_blank">${linkText}</a>`);
                         } else if (command === 'insertImage') {
-                            const imageUrl = prompt("Ange URL för bilden:");
-                            if (imageUrl) {
-                                document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Bild" style="max-width: 100%; height: auto;">`);
-                            }
+                            // Visa den nya modalen för bildinfogning
+                            showModal('insertImageModal', '');
+                            const insertBtn = document.getElementById('insert-image-btn');
+                            const cancelBtn = document.getElementById('cancel-image-btn');
+                            const imageUrlInput = document.getElementById('image-url-input');
+                            const imageSizeSelect = document.getElementById('image-size-select');
+
+                            insertBtn.onclick = () => {
+                                const imageUrl = imageUrlInput.value;
+                                const imageSize = imageSizeSelect.value;
+                                if (imageUrl) {
+                                    let style = '';
+                                    let maxWidth = '100%';
+                                    if (imageSize === 'small') {
+                                        maxWidth = '150px';
+                                    } else if (imageSize === 'medium') {
+                                        maxWidth = '400px';
+                                    } else if (imageSize === 'large') {
+                                        maxWidth = '800px';
+                                    }
+                                    style = `style="max-width: ${maxWidth}; height: auto;"`;
+                                    
+                                    document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Bild" ${style}>`);
+                                }
+                                hideModal('insertImageModal');
+                            };
+                            cancelBtn.onclick = () => {
+                                hideModal('insertImageModal');
+                            };
                         } else {
                             document.execCommand(command, false);
                         }
-                        editor.focus();
                     }
                 });
             });
@@ -809,34 +901,29 @@
                     }
                 });
             }
-            
-            // Fäster event-lyssnare för kalenderposter i hemvyn
+
+            // Händelsedelegation för nyheter och kalender i hemvyn
             document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('home-calendar-post') || e.target.closest('.home-calendar-post')) {
-                    const postElement = e.target.closest('.home-calendar-post');
-                    const id = postElement.getAttribute('data-id');
+                // Klick på kalenderhändelse
+                const calendarPost = e.target.closest('.home-calendar-post');
+                if (calendarPost) {
+                    const id = calendarPost.getAttribute('data-id');
                     navigate('#kalender');
-                    // Scrolla till rätt händelse på kalendersidan
                     setTimeout(() => {
                         const targetEvent = document.getElementById(`event-${id}`);
                         if (targetEvent) {
                             targetEvent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            // Expandera den klickade händelsen om den inte redan är det
                             if (targetEvent.getAttribute('data-expanded') === 'false') {
                                 targetEvent.click();
                             }
                         }
                     }, 100);
                 }
-            });
-            
-            // Fäster event-lyssnare för nyheter i hemvyn
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('news-link')) {
-                    e.preventDefault();
-                    const id = e.target.getAttribute('data-id');
+                // Klick på nyhet
+                const newsPost = e.target.closest('.home-news-post');
+                if (newsPost) {
+                    const id = newsPost.getAttribute('data-id');
                     navigate('#nyheter');
-                    // Scrolla till rätt nyhet på nyhetssidan
                     setTimeout(() => {
                         const targetNews = document.getElementById(`news-${id}`);
                         if (targetNews) {
@@ -845,7 +932,7 @@
                     }, 100);
                 }
             });
-
+            
             document.querySelectorAll('nav a').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
