@@ -132,7 +132,7 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div>
                 <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300 mt-1">Ver. 1.27</p>
+                <p class="text-sm text-gray-300 mt-1">Ver. 1.28</p>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
@@ -532,15 +532,16 @@
             homeNewsContainer.innerHTML = '';
             allNewsContainer.innerHTML = '';
 
+            // Sortera nyheterna efter det angivna datumet
             news.sort((a, b) => {
-                const dateA = a.createdAt?.toDate() || new Date(a.date);
-                const dateB = b.createdAt?.toDate() || new Date(b.date);
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
                 return dateB - dateA;
             });
             
             // Render the 2 latest news items on the home page
             news.slice(0, 2).forEach(item => {
-                const date = item.date ? new Date(item.date) : (item.createdAt?.toDate() || new Date());
+                const date = new Date(item.date);
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
                 const firstLine = getFirstLineText(item.content);
                 const firstImage = getFirstImage(item.content);
@@ -575,7 +576,7 @@
 
             // Render all news items on the news page
             news.forEach(item => {
-                const date = item.date ? new Date(item.date) : (item.createdAt?.toDate() || new Date());
+                const date = new Date(item.date);
                 const createdAt = item.createdAt?.toDate() || new Date();
                 const updatedAt = item.updatedAt?.toDate() || createdAt;
                 const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
