@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.42</p>
+                    <p class="text-sm text-gray-300">Ver. 1.44</p>
                 </div>
             </div>
             <nav>
@@ -520,6 +520,10 @@
         let editingHistoryId = null;
         let editingImageId = null;
         let currentUserId = null;
+        
+        // Deklarera variablerna för knapparna här så de är tillgängliga globalt
+        let newsAddBtn, eventAddBtn, historyAddBtn, addImageBtn, historyFormTitle, newsFormTitle, imageFormTitle;
+
 
         // --- MODAL FUNCTIONS ---
         function showModal(modalId, message, title) {
@@ -898,6 +902,37 @@
 
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', async () => {
+            // Deklarera variablerna för knapparna här så de är tillgängliga globalt
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const adminUsernameInput = document.getElementById('admin-username');
+            const adminPasswordInput = document.getElementById('admin-password');
+            const adminLoginPanel = document.getElementById('admin-login-panel');
+            const adminPanel = document.getElementById('admin-panel');
+            const adminUserInfo = document.getElementById('admin-user-info');
+            const addAdminForm = document.getElementById('add-admin-form');
+            const newAdminUsernameInput = document.getElementById('new-admin-username');
+            const newAdminPasswordInput = document.getElementById('new-admin-password');
+            const newsFormTitle = document.getElementById('news-form-title');
+            const newsTitleInput = document.getElementById('news-title');
+            const newsDateInput = document.getElementById('news-date');
+            const newsContentEditor = document.getElementById('news-content-editor');
+            const newsAddBtn = document.getElementById('add-news-btn');
+            const historyFormTitle = document.getElementById('history-form-title');
+            const historyTitleInput = document.getElementById('history-title');
+            const historyContentEditor = document.getElementById('history-content-editor');
+            const historyAddBtn = document.getElementById('add-history-btn');
+            const imageFormTitle = document.getElementById('image-form-title');
+            const imageTitleInput = document.getElementById('image-title');
+            const imageUrlInput = document.getElementById('image-url');
+            const imageYearInput = document.getElementById('image-year');
+            const imageMonthSelect = document.getElementById('image-month');
+            const addImageBtn = document.getElementById('add-image-btn');
+            const eventTitleInput = document.getElementById('event-title');
+            const eventDescriptionEditor = document.getElementById('event-description-editor');
+            const eventDateInput = document.getElementById('event-date');
+            const addEventBtn = document.getElementById('add-event-btn');
+
             const statusIndicator = document.createElement('div');
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
             document.getElementById('admin-panel').prepend(statusIndicator);
@@ -1162,10 +1197,9 @@
                         editingNewsId = docId;
                         
                         // Change button text and navigate to admin page
-                        const addNewsBtn = document.getElementById('add-news-btn');
-                        addNewsBtn.textContent = 'Spara ändringar';
-                        addNewsBtn.classList.remove('bg-gray-400');
-                        addNewsBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        newsAddBtn.textContent = 'Spara ändringar';
+                        newsAddBtn.classList.remove('bg-gray-400');
+                        newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
                         navigate('#admin');
                     }
@@ -1185,10 +1219,9 @@
                         
                         editingHistoryId = docId;
                         
-                        const addHistoryBtn = document.getElementById('add-history-btn');
-                        addHistoryBtn.textContent = 'Spara ändringar';
-                        addHistoryBtn.classList.remove('bg-gray-400');
-                        addHistoryBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        historyAddBtn.textContent = 'Spara ändringar';
+                        historyAddBtn.classList.remove('bg-gray-400');
+                        historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
                         navigate('#admin');
                     }
@@ -1202,7 +1235,7 @@
                     const imageItem = imageData.find(item => item.id === docId);
 
                     if (imageItem) {
-                        document.getElementById('image-form-title').textContent = 'Ändra Bild';
+                        imageFormTitle.textContent = 'Ändra Bild';
                         document.getElementById('image-title').value = imageItem.title;
                         document.getElementById('image-url').value = imageItem.url;
                         document.getElementById('image-year').value = imageItem.year;
@@ -1210,7 +1243,6 @@
                         
                         editingImageId = docId;
                         
-                        const addImageBtn = document.getElementById('add-image-btn');
                         addImageBtn.textContent = 'Spara ändringar';
                         addImageBtn.classList.remove('bg-gray-400');
                         addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -1242,7 +1274,6 @@
                         editingEventId = docId;
                         
                         // Change button text and navigate to admin
-                        const addEventBtn = document.getElementById('add-event-btn');
                         addEventBtn.textContent = 'Spara ändringar';
                         addEventBtn.classList.remove('bg-gray-400');
                         addEventBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -1447,42 +1478,6 @@
             navigate(window.location.hash || '#hem');
 
             // --- ADMIN PANEL LOGIC ---
-            const loginBtn = document.getElementById('login-btn');
-            const logoutBtn = document.getElementById('logout-btn');
-            const adminUsernameInput = document.getElementById('admin-username');
-            const adminPasswordInput = document.getElementById('admin-password');
-            const adminLoginPanel = document.getElementById('admin-login-panel');
-            const adminPanel = document.getElementById('admin-panel');
-            const adminUserInfo = document.getElementById('admin-user-info');
-            const addAdminForm = document.getElementById('add-admin-form');
-            const newAdminUsernameInput = document.getElementById('new-admin-username');
-            const newAdminPasswordInput = document.getElementById('new-admin-password');
-            
-            // News form
-            const newsFormTitle = document.getElementById('news-form-title');
-            const newsTitleInput = document.getElementById('news-title');
-            const newsDateInput = document.getElementById('news-date');
-            const newsContentEditor = document.getElementById('news-content-editor');
-            const newsAddBtn = document.getElementById('add-news-btn');
-
-            // History form
-            const historyFormTitle = document.getElementById('history-form-title');
-            const historyTitleInput = document.getElementById('history-title');
-            const historyContentEditor = document.getElementById('history-content-editor');
-            const historyAddBtn = document.getElementById('add-history-btn');
-
-            // Image form
-            const imageFormTitle = document.getElementById('image-form-title');
-            const imageTitleInput = document.getElementById('image-title');
-            const imageUrlInput = document.getElementById('image-url');
-            const imageYearInput = document.getElementById('image-year');
-            const imageMonthSelect = document.getElementById('image-month');
-            const addImageBtn = document.getElementById('add-image-btn');
-
-            const eventTitleInput = document.getElementById('event-title');
-            const eventDescriptionEditor = document.getElementById('event-description-editor');
-            const eventDateInput = document.getElementById('event-date');
-            const addEventBtn = document.getElementById('add-event-btn');
 
             // Toggle for recurring events
             const isRecurringCheckbox = document.getElementById('is-recurring');
@@ -1507,7 +1502,8 @@
             loginBtn.addEventListener('click', async () => {
                 const username = adminUsernameInput.value.trim();
                 const password = adminPasswordInput.value.trim();
-
+                let loginSuccess = false;
+                
                 console.log("Attempting login with username:", username);
                 
                 if (!username || !password) {
@@ -1522,45 +1518,45 @@
                 }
 
                 try {
-                    // Check for hardcoded admin first
+                    // Check for hardcoded admin first to bypass potential security rule issues
                     if (username === 'admin' && password === 'admin') {
                         console.log("Logged in with hardcoded admin credentials.");
-                        isAdminLoggedIn = true;
+                        loginSuccess = true;
                         loggedInAdminUsername = 'admin';
-                        adminLoginPanel.classList.add('hidden');
-                        adminPanel.classList.remove('hidden');
-                        adminUserInfo.textContent = `Du är inloggad som administratör (Admin: ${loggedInAdminUsername})`;
-                        updateUI();
-                        return;
-                    }
+                    } else {
+                        // Then, check the database for other admins
+                        console.log("Checking Firestore for admin user...");
+                        const q = query(collection(db, 'admins'), where('username', '==', username));
+                        const querySnapshot = await getDocs(q);
 
-                    // Then, check the database for other admins
-                    console.log("Checking Firestore for admin user...");
-                    const q = query(collection(db, 'admins'), where('username', '==', username));
-                    const querySnapshot = await getDocs(q);
-
-                    if (querySnapshot.empty) {
-                        console.log("Query returned no results. Invalid username.");
-                        showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
-                        return;
-                    }
-
-                    let loginSuccess = false;
-                    querySnapshot.forEach(docSnap => {
-                        const adminData = docSnap.data();
-                        console.log("Found user in Firestore:", adminData.username);
-                        if (adminData.password === password) {
-                            loginSuccess = true;
-                            console.log("Password matches. Login successful.");
+                        if (querySnapshot.empty) {
+                            console.log("Query returned no results. Invalid username.");
+                            showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
                         } else {
-                            console.log("Password does not match.");
+                            querySnapshot.forEach(docSnap => {
+                                const adminData = docSnap.data();
+                                console.log("Found user in Firestore:", adminData.username);
+                                if (adminData.password === password) {
+                                    loginSuccess = true;
+                                    loggedInAdminUsername = username;
+                                    console.log("Password matches. Login successful.");
+                                } else {
+                                    console.log("Password does not match.");
+                                }
+                            });
+                            if (!loginSuccess) {
+                                showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                            }
                         }
-                    });
+                    }
 
+                } catch (err) {
+                    console.error("Fel vid inloggning:", err);
+                    showModal('errorModal', "Ett fel uppstod vid inloggning. Kontrollera dina Firebase Security Rules i konsolen för mer information.", "Fel!");
+                } finally {
+                    // Update UI based on the final login success state
                     if (loginSuccess) {
                         isAdminLoggedIn = true;
-                        loggedInAdminUsername = username;
-
                         document.getElementById('admin-login-panel').classList.add('hidden');
                         document.getElementById('admin-panel').classList.remove('hidden');
                         
@@ -1586,16 +1582,10 @@
                         addImageBtn.disabled = false;
                         addImageBtn.classList.remove('bg-gray-400');
                         addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        
-                        updateUI();
-                        
                     } else {
-                        showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                        isAdminLoggedIn = false;
                     }
-
-                } catch (err) {
-                    console.error("Fel vid inloggning:", err);
-                    showModal('errorModal', "Ett fel uppstod vid inloggning.", "Fel!");
+                    updateUI();
                 }
             });
 
