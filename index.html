@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klubbens Webbplats</title>
+    <title id="page-title">Kumla Skytteförening</title>
+    <!-- Favicon för webbläsarfliken -->
+    <link id="favicon-link" rel="icon" type="image/png" href="logo.png">
     <!-- Använd Tailwind CSS för en snygg och responsiv design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -137,14 +139,14 @@
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div class="flex items-center space-x-4">
                 <!-- Logotypen har nu klassen logo-large -->
-                <img src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
+                <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
                 <div class="flex flex-col items-start">
                     <div class="flex items-center space-x-2">
-                        <a href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
+                        <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.49</p>
+                    <p class="text-sm text-gray-300">Ver. 1.51</p>
                 </div>
             </div>
             <nav>
@@ -367,10 +369,12 @@
                 <!-- Webbplatsinställningar -->
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
-                    <form id="update-logo-form">
+                    <form id="update-site-settings-form">
                         <label for="logo-url-input" class="block mb-2 font-semibold">Logotyp-URL</label>
                         <input type="url" id="logo-url-input" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <button type="submit" id="update-logo-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Uppdatera logotyp</button>
+                        <label for="site-name-input" class="block mb-2 font-semibold">Webbplatsnamn</label>
+                        <input type="text" id="site-name-input" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <button type="submit" id="update-site-settings-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Uppdatera inställningar</button>
                     </form>
                 </div>
                 
@@ -504,7 +508,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { updateDoc as updateDocFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -960,9 +964,14 @@
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
             
             // Få tag i logotypen och webbplatsinställningsformuläret
-            const logoEl = document.querySelector('header img');
-            const updateLogoForm = document.getElementById('update-logo-form');
+            const siteTitleElement = document.getElementById('site-title-display');
+            const pageTitleElement = document.getElementById('page-title');
+            const faviconLink = document.getElementById('favicon-link');
+            const siteLogoElement = document.getElementById('site-logo');
+
+            const updateSiteSettingsForm = document.getElementById('update-site-settings-form');
             const logoUrlInput = document.getElementById('logo-url-input');
+            const siteNameInput = document.getElementById('site-name-input');
             const settingsCollection = 'settings';
 
             if(adminPanel) {
@@ -1036,13 +1045,16 @@
                     });
                     
                     // Lyssna på ändringar i webbplatsinställningar
-                    const logoDocRef = doc(db, settingsCollection, 'logo');
-                    onSnapshot(logoDocRef, (docSnap) => {
+                    const siteSettingsRef = doc(db, settingsCollection, 'siteSettings');
+                    onSnapshot(siteSettingsRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
-                            if (logoEl) {
-                                logoEl.src = data.url;
-                            }
+                            if (siteTitleElement) siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
+                            if (pageTitleElement) pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
+                            if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
+                            if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
+                            if (logoUrlInput) logoUrlInput.value = data.logoUrl || '';
+                            if (siteNameInput) siteNameInput.value = data.siteName || '';
                         }
                     });
 
@@ -1671,23 +1683,25 @@
                 navigate('#hem');
             });
             
-            // Hantera uppdatering av logotypen
-            if (updateLogoForm) {
-                updateLogoForm.addEventListener('submit', async (e) => {
+            // Hantera uppdatering av webbplatsinställningar
+            if (updateSiteSettingsForm) {
+                updateSiteSettingsForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     if (!db) {
                         showModal('errorModal', "Databasen är inte ansluten.", "Fel!");
                         return;
                     }
                     const logoUrl = logoUrlInput.value;
+                    const siteName = siteNameInput.value;
+                    
                     try {
-                        const logoDocRef = doc(db, settingsCollection, 'logo');
-                        await setDoc(logoDocRef, { url: logoUrl });
-                        showModal('confirmationModal', "Logotypen har uppdaterats!", "Lyckades!");
+                        const settingsDocRef = doc(db, settingsCollection, 'siteSettings');
+                        await setDoc(settingsDocRef, { logoUrl: logoUrl, siteName: siteName });
+                        showModal('confirmationModal', "Webbplatsinställningarna har uppdaterats!", "Lyckades!");
                         setTimeout(() => hideModal('confirmationModal'), 2000);
                     } catch (error) {
-                        console.error("Fel vid uppdatering av logotyp:", error);
-                        showModal('errorModal', "Ett fel uppstod när logotypen skulle uppdateras.", "Fel!");
+                        console.error("Fel vid uppdatering av webbplatsinställningar:", error);
+                        showModal('errorModal', "Ett fel uppstod när inställningarna skulle uppdateras.", "Fel!");
                     }
                 });
             }
