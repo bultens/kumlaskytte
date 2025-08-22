@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.47</p>
+                    <p class="text-sm text-gray-300">Ver. 1.48</p>
                 </div>
             </div>
             <nav>
@@ -343,7 +343,7 @@
                 </div>
                 <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
                 
-                <!-- Adminhantering -->
+                <!-- Webbplatsinställningar -->
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
                     <form id="update-logo-form">
@@ -353,6 +353,7 @@
                     </form>
                 </div>
                 
+                <!-- Adminhantering -->
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
                     <form id="add-admin-form">
@@ -1521,11 +1522,68 @@
                     document.getElementById('end-date').removeAttribute('removeAttribute');
                 }
             });
+            
+            // Ny central funktion för att hantera admin-inloggningsstatus
+            function toggleAdminUI(isLoggedIn, username) {
+                isAdminLoggedIn = isLoggedIn;
+                loggedInAdminUsername = isLoggedIn ? username : '';
+                
+                if (isLoggedIn) {
+                    document.getElementById('admin-login-panel').classList.add('hidden');
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                    const adminUserInfo = document.getElementById('admin-user-info');
+                    if (adminUserInfo) {
+                        adminUserInfo.textContent = `Du är inloggad som administratör (Admin: ${loggedInAdminUsername})`;
+                    }
+
+                    // Aktivera alla admin-knappar
+                    if (newsAddBtn) newsAddBtn.disabled = false;
+                    if (newsAddBtn) newsAddBtn.classList.remove('bg-gray-400');
+                    if (newsAddBtn) newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    
+                    if (eventAddBtn) eventAddBtn.disabled = false;
+                    if (eventAddBtn) eventAddBtn.classList.remove('bg-gray-400');
+                    if (eventAddBtn) eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    
+                    if (historyAddBtn) historyAddBtn.disabled = false;
+                    if (historyAddBtn) historyAddBtn.classList.remove('bg-gray-400');
+                    if (historyAddBtn) historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    
+                    if (addImageBtn) addImageBtn.disabled = false;
+                    if (addImageBtn) addImageBtn.classList.remove('bg-gray-400');
+                    if (addImageBtn) addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                } else {
+                    document.getElementById('admin-login-panel').classList.remove('hidden');
+                    document.getElementById('admin-panel').classList.add('hidden');
+
+                    // Inaktivera alla admin-knappar
+                    if (newsAddBtn) newsAddBtn.disabled = true;
+                    if (newsAddBtn) newsAddBtn.classList.add('bg-gray-400');
+                    if (newsAddBtn) newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    
+                    if (eventAddBtn) eventAddBtn.disabled = true;
+                    if (eventAddBtn) eventAddBtn.classList.add('bg-gray-400');
+                    if (eventAddBtn) eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    
+                    if (historyAddBtn) historyAddBtn.disabled = true;
+                    if (historyAddBtn) historyAddBtn.classList.add('bg-gray-400');
+                    if (historyAddBtn) historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    
+                    if (addImageBtn) addImageBtn.disabled = true;
+                    if (addImageBtn) addImageBtn.classList.add('bg-gray-400');
+                    if (addImageBtn) addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+
+                    // Återställ formulär-titlar till standard
+                    if (historyFormTitle) historyFormTitle.textContent = 'Lägg till Huvudsidposter';
+                    if (imageFormTitle) imageFormTitle.textContent = 'Lägg till Bild';
+                }
+
+                updateUI();
+            }
 
             loginBtn.addEventListener('click', async () => {
                 const username = adminUsernameInput.value.trim();
                 const password = adminPasswordInput.value.trim();
-                let loginSuccess = false;
                 
                 console.log("Attempting login with username:", username);
                 
@@ -1541,109 +1599,52 @@
                 }
 
                 try {
-                    // Check for hardcoded admin first to bypass potential security rule issues
+                    // Check for hardcoded admin first
                     if (username === 'admin' && password === 'admin') {
                         console.log("Logged in with hardcoded admin credentials.");
-                        loginSuccess = true;
-                        loggedInAdminUsername = 'admin';
-                    } else {
-                        // Then, check the database for other admins
-                        console.log("Checking Firestore for admin user...");
-                        const q = query(collection(db, 'admins'), where('username', '==', username));
-                        const querySnapshot = await getDocs(q);
+                        toggleAdminUI(true, 'admin');
+                        return;
+                    }
 
-                        if (querySnapshot.empty) {
-                            console.log("Query returned no results. Invalid username.");
-                            showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
-                        } else {
-                            querySnapshot.forEach(docSnap => {
-                                const adminData = docSnap.data();
-                                console.log("Found user in Firestore:", adminData.username);
-                                if (adminData.password === password) {
-                                    loginSuccess = true;
-                                    loggedInAdminUsername = username;
-                                    console.log("Password matches. Login successful.");
-                                } else {
-                                    console.log("Password does not match.");
-                                }
-                            });
-                            if (!loginSuccess) {
-                                showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                    // Then, check the database for other admins
+                    console.log("Checking Firestore for admin user...");
+                    const q = query(collection(db, 'admins'), where('username', '==', username));
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        console.log("Query returned no results. Invalid username.");
+                        showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                    } else {
+                        let loginSuccess = false;
+                        querySnapshot.forEach(docSnap => {
+                            const adminData = docSnap.data();
+                            console.log("Found user in Firestore:", adminData.username);
+                            if (adminData.password === password) {
+                                loginSuccess = true;
+                                console.log("Password matches. Login successful.");
+                            } else {
+                                console.log("Password does not match.");
                             }
+                        });
+                        if (loginSuccess) {
+                            toggleAdminUI(true, username);
+                        } else {
+                            showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                            toggleAdminUI(false, null);
                         }
                     }
 
                 } catch (err) {
                     console.error("Fel vid inloggning:", err);
                     showModal('errorModal', "Ett fel uppstod vid inloggning. Kontrollera dina Firebase Security Rules i konsolen för mer information.", "Fel!");
-                } finally {
-                    // Update UI based on the final login success state
-                    if (loginSuccess) {
-                        isAdminLoggedIn = true;
-                        document.getElementById('admin-login-panel').classList.add('hidden');
-                        document.getElementById('admin-panel').classList.remove('hidden');
-                        
-                        if (auth && auth.currentUser) {
-                            adminUserInfo.textContent = `Du är inloggad som administratör (Användar-ID: ${auth.currentUser.uid}, Admin: ${loggedInAdminUsername})`;
-                        } else {
-                            adminUserInfo.textContent = `Du är inloggad som administratör (Admin: ${loggedInAdminUsername})`;
-                        }
-
-                        // Aktivera alla admin-knappar
-                        newsAddBtn.disabled = false;
-                        newsAddBtn.classList.remove('bg-gray-400');
-                        newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        
-                        eventAddBtn.disabled = false;
-                        eventAddBtn.classList.remove('bg-gray-400');
-                        eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        
-                        historyAddBtn.disabled = false;
-                        historyAddBtn.classList.remove('bg-gray-400');
-                        historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        
-                        addImageBtn.disabled = false;
-                        addImageBtn.classList.remove('bg-gray-400');
-                        addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    } else {
-                        isAdminLoggedIn = false;
-                        document.getElementById('admin-login-panel').classList.remove('hidden');
-                        document.getElementById('admin-panel').classList.add('hidden');
-                    }
-                    updateUI();
+                    toggleAdminUI(false, null);
                 }
             });
 
             logoutBtn.addEventListener('click', () => {
-                isAdminLoggedIn = false;
-                loggedInAdminUsername = '';
-                adminLoginPanel.classList.remove('hidden');
-                adminPanel.classList.add('hidden');
+                toggleAdminUI(false, null);
                 adminUsernameInput.value = '';
                 adminPasswordInput.value = '';
-
-                // Inaktivera alla admin-knappar
-                newsAddBtn.disabled = true;
-                newsAddBtn.classList.add('bg-gray-400');
-                newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                
-                eventAddBtn.disabled = true;
-                eventAddBtn.classList.add('bg-gray-400');
-                eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                
-                historyAddBtn.disabled = true;
-                historyAddBtn.classList.add('bg-gray-400');
-                historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                
-                addImageBtn.disabled = true;
-                addImageBtn.classList.add('bg-gray-400');
-                addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-
-                // Återställ formulär-titlar till standard
-                if (historyFormTitle) historyFormTitle.textContent = 'Lägg till Huvudsidposter';
-                if (imageFormTitle) imageFormTitle.textContent = 'Lägg till Bild';
-                
-                updateUI();
                 navigate('#hem');
             });
             
