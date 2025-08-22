@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.48</p>
+                    <p class="text-sm text-gray-300">Ver. 1.49</p>
                 </div>
             </div>
             <nav>
@@ -182,6 +182,27 @@
             <h2 class="text-3xl font-bold mt-8 mb-4">Klubbens Poster</h2>
             <div id="home-history-container" class="space-y-6">
                 <!-- Historieposter renderas här av JavaScript -->
+            </div>
+            
+            <!-- Formulär för Historieposter (Admin) -->
+            <div class="card mt-6 hidden" id="history-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Huvudsidposter</h2>
+                <form id="add-history-form">
+                    <label for="history-title" class="block mb-2 font-semibold">Titel</label>
+                    <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="history-content" class="block mb-2 font-semibold">Innehåll</label>
+                    <div class="editor-toolbar" data-editor-target="history-content-editor">
+                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
+                    </div>
+                    <div id="history-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                    <input type="hidden" id="history-content-hidden">
+                    
+                    <button type="submit" id="add-history-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
+                </form>
             </div>
         </section>
 
@@ -576,12 +597,14 @@
                     document.getElementById('news-edit-section').classList.remove('hidden');
                     document.getElementById('calendar-edit-section').classList.remove('hidden');
                     document.getElementById('image-edit-section').classList.remove('hidden');
+                    document.getElementById('history-edit-section').classList.remove('hidden');
                 } else {
                     adminIndicator.classList.add('hidden');
                     // Dölj redigeringssektionerna
                     document.getElementById('news-edit-section').classList.add('hidden');
                     document.getElementById('calendar-edit-section').classList.add('hidden');
                     document.getElementById('image-edit-section').classList.add('hidden');
+                    document.getElementById('history-edit-section').classList.add('hidden');
                 }
             }
         }
@@ -1216,7 +1239,7 @@
                         // Save the ID of the news being edited
                         editingNewsId = docId;
                         
-                        // Change button text and navigate to admin page
+                        // Change button text and navigate to news page
                         newsAddBtn.textContent = 'Spara ändringar';
                         newsAddBtn.classList.remove('bg-gray-400');
                         newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -1245,7 +1268,7 @@
                         historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
                         navigate('#hem');
-                        document.getElementById('history-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        document.getElementById('history-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
             });
