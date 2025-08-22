@@ -144,7 +144,7 @@
                         <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.45</p>
+                    <p class="text-sm text-gray-300">Ver. 1.47</p>
                 </div>
             </div>
             <nav>
@@ -191,6 +191,30 @@
             <div id="all-news-container" class="space-y-6">
                 <!-- Nyheter kommer att renderas här av JavaScript -->
             </div>
+            
+            <!-- Formulär för Nyheter (Admin) -->
+            <div class="card mt-6 hidden" id="news-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="news-form-title">Lägg till Nyhet</h2>
+                <form id="add-news-form">
+                    <label for="news-title" class="block mb-2 font-semibold">Titel</label>
+                    <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="news-date" class="block mb-2 font-semibold">Datum</label>
+                    <input type="date" id="news-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
+                    <div class="editor-toolbar" data-editor-target="news-content-editor">
+                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
+                    </div>
+                    <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                    <input type="hidden" id="news-content-hidden">
+                    
+                    <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
+                </form>
+            </div>
         </section>
 
         <!-- Sida: Kalender -->
@@ -199,6 +223,63 @@
             <div id="calendar-container" class="space-y-6">
                 <!-- Kalenderhändelser kommer att renderas här av JavaScript -->
             </div>
+
+            <!-- Formulär för Kalenderhändelser (Admin) -->
+            <div class="card mt-6 hidden" id="calendar-edit-section">
+                <h2 class="text-2xl font-bold mb-4">Lägg till Kalenderhändelse</h2>
+                <form id="add-event-form">
+                    <label for="event-title" class="block mb-2 font-semibold">Titel</label>
+                    <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <!-- Välj om händelsen är återkommande eller inte -->
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="is-recurring" class="mr-2">
+                        <label for="is-recurring" class="font-semibold">Återkommande händelse</label>
+                    </div>
+
+                    <!-- Fält för engångshändelse -->
+                    <div id="single-event-fields">
+                        <label for="event-date" class="block mb-2 font-semibold">Datum</label>
+                        <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    </div>
+
+                    <!-- Fält för återkommande händelse -->
+                    <div id="recurring-event-fields" class="hidden">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="start-date" class="block mb-2 font-semibold">Startdatum</label>
+                                <input type="date" id="start-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="end-date" class="block mb-2 font-semibold">Slutdatum</label>
+                                <input type="date" id="end-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <label class="block mb-2 font-semibold">Veckodag</label>
+                        <select id="weekday-select" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                            <option value="1">Måndag</option>
+                            <option value="2">Tisdag</option>
+                            <option value="3">Onsdag</option>
+                            <option value="4">Torsdag</option>
+                            <option value="5">Fredag</option>
+                            <option value="6">Lördag</option>
+                            <option value="0">Söndag</option>
+                        </select>
+                    </div>
+
+                    <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
+                    <div class="editor-toolbar" data-editor-target="event-description-editor">
+                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
+                    </div>
+                    <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                    <input type="hidden" id="event-description-hidden">
+
+                    <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
+                </form>
+            </div>
         </section>
 
         <!-- Sida: Bilder -->
@@ -206,6 +287,43 @@
             <h1 class="text-4xl font-bold mb-6">Bildgalleri</h1>
             <div id="gallery-container">
                 <!-- Bilder kommer att renderas här av JavaScript -->
+            </div>
+
+            <!-- Formulär för att lägga till bilder (Admin) -->
+            <div class="card mt-6 hidden" id="image-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
+                <form id="add-image-form">
+                    <label for="image-title" class="block mb-2 font-semibold">Titel/Beskrivning</label>
+                    <input type="text" id="image-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <label for="image-url" class="block mb-2 font-semibold">Bild-URL</label>
+                    <input type="url" id="image-url" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="image-year" class="block mb-2 font-semibold">År</label>
+                            <input type="number" id="image-year" required value="${new Date().getFullYear()}" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        </div>
+                        <div>
+                            <label for="image-month" class="block mb-2 font-semibold">Månad</label>
+                            <select id="image-month" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                                <option value="1">Januari</option>
+                                <option value="2">Februari</option>
+                                <option value="3">Mars</option>
+                                <option value="4">April</option>
+                                <option value="5">Maj</option>
+                                <option value="6">Juni</option>
+                                <option value="7">Juli</option>
+                                <option value="8">Augusti</option>
+                                <option value="9">September</option>
+                                <option value="10">Oktober</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Bild</button>
+                </form>
             </div>
         </section>
 
@@ -227,6 +345,15 @@
                 
                 <!-- Adminhantering -->
                 <div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
+                    <form id="update-logo-form">
+                        <label for="logo-url-input" class="block mb-2 font-semibold">Logotyp-URL</label>
+                        <input type="url" id="logo-url-input" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <button type="submit" id="update-logo-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Uppdatera logotyp</button>
+                    </form>
+                </div>
+                
+                <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
                     <form id="add-admin-form">
                         <label for="new-admin-username" class="block mb-2 font-semibold">Nytt Admin-användarnamn</label>
@@ -244,142 +371,6 @@
                     </div>
                 </div>
 
-                <!-- Formulär för Historieposter -->
-                <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Huvudsidposter</h2>
-                    <form id="add-history-form">
-                        <label for="history-title" class="block mb-2 font-semibold">Titel</label>
-                        <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        
-                        <label for="history-content" class="block mb-2 font-semibold">Innehåll</label>
-                        <div class="editor-toolbar" data-editor-target="history-content-editor">
-                            <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
-                            <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
-                            <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
-                            <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
-                        </div>
-                        <div id="history-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
-                        <input type="hidden" id="history-content-hidden">
-                        
-                        <button type="submit" id="add-history-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
-                    </form>
-                </div>
-
-                <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4" id="news-form-title">Lägg till Nyhet</h2>
-                    <form id="add-news-form">
-                        <label for="news-title" class="block mb-2 font-semibold">Titel</label>
-                        <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        
-                        <label for="news-date" class="block mb-2 font-semibold">Datum</label>
-                        <input type="date" id="news-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        
-                        <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
-                        <div class="editor-toolbar" data-editor-target="news-content-editor">
-                            <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
-                            <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
-                            <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
-                            <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
-                        </div>
-                        <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
-                        <input type="hidden" id="news-content-hidden">
-                        
-                        <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
-                    </form>
-                </div>
-
-                <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4">Lägg till Kalenderhändelse</h2>
-                    <form id="add-event-form">
-                        <label for="event-title" class="block mb-2 font-semibold">Titel</label>
-                        <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        
-                        <!-- Välj om händelsen är återkommande eller inte -->
-                        <div class="flex items-center mb-4">
-                            <input type="checkbox" id="is-recurring" class="mr-2">
-                            <label for="is-recurring" class="font-semibold">Återkommande händelse</label>
-                        </div>
-
-                        <!-- Fält för engångshändelse -->
-                        <div id="single-event-fields">
-                            <label for="event-date" class="block mb-2 font-semibold">Datum</label>
-                            <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        </div>
-
-                        <!-- Fält för återkommande händelse -->
-                        <div id="recurring-event-fields" class="hidden">
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label for="start-date" class="block mb-2 font-semibold">Startdatum</label>
-                                    <input type="date" id="start-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
-                                <div>
-                                    <label for="end-date" class="block mb-2 font-semibold">Slutdatum</label>
-                                    <input type="date" id="end-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
-                            </div>
-                            <label class="block mb-2 font-semibold">Veckodag</label>
-                            <select id="weekday-select" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                                <option value="1">Måndag</option>
-                                <option value="2">Tisdag</option>
-                                <option value="3">Onsdag</option>
-                                <option value="4">Torsdag</option>
-                                <option value="5">Fredag</option>
-                                <option value="6">Lördag</option>
-                                <option value="0">Söndag</option>
-                            </select>
-                        </div>
-
-                        <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
-                        <div class="editor-toolbar" data-editor-target="event-description-editor">
-                            <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
-                            <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
-                            <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
-                            <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
-                        </div>
-                        <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
-                        <input type="hidden" id="event-description-hidden">
-
-                        <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
-                    </form>
-                </div>
-
-                <!-- Formulär för att lägga till bilder -->
-                <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
-                    <form id="add-image-form">
-                        <label for="image-title" class="block mb-2 font-semibold">Titel/Beskrivning</label>
-                        <input type="text" id="image-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <label for="image-url" class="block mb-2 font-semibold">Bild-URL</label>
-                        <input type="url" id="image-url" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="image-year" class="block mb-2 font-semibold">År</label>
-                                <input type="number" id="image-year" required value="${new Date().getFullYear()}" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                            </div>
-                            <div>
-                                <label for="image-month" class="block mb-2 font-semibold">Månad</label>
-                                <select id="image-month" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                                    <option value="1">Januari</option>
-                                    <option value="2">Februari</option>
-                                    <option value="3">Mars</option>
-                                    <option value="4">April</option>
-                                    <option value="5">Maj</option>
-                                    <option value="6">Juni</option>
-                                    <option value="7">Juli</option>
-                                    <option value="8">Augusti</option>
-                                    <option value="9">September</option>
-                                    <option value="10">Oktober</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Bild</button>
-                    </form>
-                </div>
             </div>
         </section>
         
@@ -580,8 +571,16 @@
             if (adminIndicator) {
                 if (isAdminLoggedIn) {
                     adminIndicator.classList.remove('hidden');
+                    // Visa redigeringssektionerna på de olika sidorna
+                    document.getElementById('news-edit-section').classList.remove('hidden');
+                    document.getElementById('calendar-edit-section').classList.remove('hidden');
+                    document.getElementById('image-edit-section').classList.remove('hidden');
                 } else {
                     adminIndicator.classList.add('hidden');
+                    // Dölj redigeringssektionerna
+                    document.getElementById('news-edit-section').classList.add('hidden');
+                    document.getElementById('calendar-edit-section').classList.add('hidden');
+                    document.getElementById('image-edit-section').classList.add('hidden');
                 }
             }
         }
@@ -935,7 +934,16 @@
 
             const statusIndicator = document.createElement('div');
             statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
-            document.getElementById('admin-panel').prepend(statusIndicator);
+            
+            // Få tag i logotypen och webbplatsinställningsformuläret
+            const logoEl = document.querySelector('header img');
+            const updateLogoForm = document.getElementById('update-logo-form');
+            const logoUrlInput = document.getElementById('logo-url-input');
+            const settingsCollection = 'settings';
+
+            if(adminPanel) {
+                adminPanel.prepend(statusIndicator);
+            }
             
             if (firebaseConfigExists) {
                 try {
@@ -1001,6 +1009,17 @@
                             imageData.push({ id: doc.id, ...doc.data() });
                         });
                         updateUI();
+                    });
+                    
+                    // Lyssna på ändringar i webbplatsinställningar
+                    const logoDocRef = doc(db, settingsCollection, 'logo');
+                    onSnapshot(logoDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            if (logoEl) {
+                                logoEl.src = data.url;
+                            }
+                        }
                     });
 
                     updateUI();
@@ -1201,7 +1220,8 @@
                         newsAddBtn.classList.remove('bg-gray-400');
                         newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
-                        navigate('#admin');
+                        navigate('#nyheter');
+                        document.getElementById('news-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
             });
@@ -1223,7 +1243,8 @@
                         historyAddBtn.classList.remove('bg-gray-400');
                         historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
-                        navigate('#admin');
+                        navigate('#hem');
+                        document.getElementById('history-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
             });
@@ -1247,7 +1268,8 @@
                         addImageBtn.classList.remove('bg-gray-400');
                         addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
 
-                        navigate('#admin');
+                        navigate('#bilder');
+                        document.getElementById('image-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
             });
@@ -1278,7 +1300,8 @@
                         addEventBtn.classList.remove('bg-gray-400');
                         addEventBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                         
-                        navigate('#admin');
+                        navigate('#kalender');
+                        document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 }
             });
@@ -1617,12 +1640,33 @@
                 addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
 
                 // Återställ formulär-titlar till standard
-                historyFormTitle.textContent = 'Lägg till Huvudsidposter';
-                imageFormTitle.textContent = 'Lägg till Bild';
+                if (historyFormTitle) historyFormTitle.textContent = 'Lägg till Huvudsidposter';
+                if (imageFormTitle) imageFormTitle.textContent = 'Lägg till Bild';
                 
                 updateUI();
                 navigate('#hem');
             });
+            
+            // Hantera uppdatering av logotypen
+            if (updateLogoForm) {
+                updateLogoForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    if (!db) {
+                        showModal('errorModal', "Databasen är inte ansluten.", "Fel!");
+                        return;
+                    }
+                    const logoUrl = logoUrlInput.value;
+                    try {
+                        const logoDocRef = doc(db, settingsCollection, 'logo');
+                        await setDoc(logoDocRef, { url: logoUrl });
+                        showModal('confirmationModal', "Logotypen har uppdaterats!", "Lyckades!");
+                        setTimeout(() => hideModal('confirmationModal'), 2000);
+                    } catch (error) {
+                        console.error("Fel vid uppdatering av logotyp:", error);
+                        showModal('errorModal', "Ett fel uppstod när logotypen skulle uppdateras.", "Fel!");
+                    }
+                });
+            }
 
 
             addAdminForm.addEventListener('submit', async (e) => {
