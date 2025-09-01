@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="page-title">Kumla Skytteförening</title>
-    <!-- Favicon för webbläsarfliken -->
-    <link id="favicon-link" rel="icon" type="image/png" href="logo.png">
-    <!-- Använd Tailwind CSS för en snygg och responsiv design -->
+    <title>Vykortsbutik</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
@@ -14,12 +11,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
             color: #1f2937;
-        }
-        .page {
-            display: none;
-        }
-        .page.active {
-            display: block;
         }
         .container {
             max-width: 1200px;
@@ -33,7 +24,6 @@
             padding: 2rem;
             margin-bottom: 1.5rem;
         }
-        /* Modal-styling för felmeddelanden och bekräftelse */
         .modal {
             position: fixed;
             z-index: 1000;
@@ -60,8 +50,8 @@
             border: 1px solid #888;
             border-radius: 0.75rem;
             width: 80%;
-            max-width: 500px;
-            text-align: center;
+            max-width: 600px;
+            text-align: left;
         }
         .modal-close-btn {
             float: right;
@@ -75,439 +65,260 @@
             text-decoration: none;
             cursor: pointer;
         }
-        /* Style för den enkla redigeraren */
-        .editor-toolbar {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            flex-wrap: wrap; /* Gör att knapparna kan radbrytas på små skärmar */
+        .confirmation-message {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #10B981; /* Tailwind green-500 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px; /* Tailwind rounded-full */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
         }
-        .editor-toolbar button {
-            transition: background-color 0.2s;
+        .confirmation-message.active {
+            opacity: 1;
         }
-        .editor-toolbar .active {
-            background-color: #cbd5e1; /* Tailwind 'slate-300' för aktiv knapp */
-        }
-        .editor-content {
-            min-height: 150px;
-            border: 1px solid #d1d5db;
+        .news-item {
+            border-left: 4px solid #3b82f6;
+            background-color: #eff6ff;
+            padding: 1rem;
             border-radius: 0.5rem;
-            padding: 0.75rem;
-            background-color: #f9fafb;
-            outline: none;
-        }
-        /* Stilar för Markdown-innehåll */
-        .markdown-content p {
             margin-bottom: 1rem;
         }
-        .markdown-content a {
-            color: #2563eb;
-            text-decoration: underline;
-        }
-        .markdown-content img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            margin-top: 1rem;
-            margin-bottom: 1rem;
-        }
-        /* Kalenderpost-styling för klickbarhet */
-        .calendar-post {
-            cursor: pointer;
-        }
-        .calendar-post-expanded {
-            display: block;
-        }
-        .gallery-image {
+        .postcard-image-wrapper {
+            position: relative;
             width: 100%;
-            height: auto;
-            object-fit: cover;
-            border-radius: 0.5rem;
+            overflow: hidden;
         }
-        /* Specialklass för större logo-storlek */
-        .logo-large {
-            height: 72px;
-            width: 72px;
+        .postcard-image-wrapper.portrait {
+            padding-top: 141.42%; /* A4 portrait ratio: 1/sqrt(2) */
+        }
+        .postcard-image-wrapper.landscape {
+            padding-top: 70.71%; /* A4 landscape ratio: 1/sqrt(2) */
+        }
+        .postcard-image-wrapper img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .cart-item-details {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem 1rem;
+        }
+        .cart-item-details strong {
+            justify-self: start;
+        }
+        .cart-item-details span {
+            justify-self: end;
+            text-align: right;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50; /* Adjust z-index as needed to ensure it's on top of other content */
         }
     </style>
 </head>
 <body>
-
-    <!-- Header och navigering -->
-    <header class="bg-blue-800 text-white shadow-lg">
-        <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <!-- Logotypen har nu klassen logo-large -->
-                <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
-                <div class="flex flex-col items-start">
-                    <div class="flex items-center space-x-2">
-                        <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                        <!-- Visuell indikator för adminläge -->
-                        <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
-                    </div>
-                    <p class="text-sm text-gray-300">Ver. 1.51</p>
+    <header class="bg-gray-800 text-white shadow-lg sticky-header">
+        <div class="container py-4 flex justify-between items-center">
+            <span class="text-3xl font-bold tracking-tight">Vykortsbutik</span>
+            <div class="flex space-x-4 items-center">
+                <button id="cart-btn" class="relative hover:text-gray-300 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">0</span>
+                </button>
+                <div id="user-status" class="text-sm font-medium">
+                    <a href="#" id="login-link" class="hover:text-gray-300 transition duration-300">Logga in</a>
                 </div>
+                <a href="admin.html" class="hover:text-gray-300 transition duration-300">Adminpanel</a>
             </div>
-            <nav>
-                <ul class="flex space-x-4 font-medium">
-                    <li><a href="#hem" class="hover:text-gray-300 transition duration-300">Hem</a></li>
-                    <li><a href="#nyheter" class="hover:text-gray-300 transition duration-300">Nyheter</a></li>
-                    <li><a href="#kalender" class="hover:text-gray-300 transition duration-300">Kalender</a></li>
-                    <li><a href="#bilder" class="hover:text-gray-300 transition duration-300">Bilder</a></li>
-                    <li><a href="#admin" class="hover:text-gray-300 transition duration-300">Admin</a></li>
-                </ul>
-            </nav>
         </div>
     </header>
 
-    <!-- Huvudinnehåll -->
-    <main class="container">
+    <div class="text-center mt-2 text-gray-500 text-sm">Version 1.71</div>
 
-        <!-- Sida: Hem -->
-        <section id="hem" class="page active">
-            <div class="bg-blue-100 p-8 rounded-xl text-center mb-8">
-                <h1 class="text-4xl font-extrabold text-blue-900 mb-4">Välkommen till Kumla Skytteförening!</h1>
-                <p class="text-lg text-blue-700">Vi är en klubb för entusiaster av skytte. Här kan du hitta information om vår historia, nyheter och kommande evenemang.</p>
+    <div class="container text-center py-4 text-gray-700 leading-relaxed">
+        <p>Du kan beställa vilket som helst av mina konstverk som vykort till vem som helst i världen! Alla vykort trycks och skickas från ett professionellt tryckeri i Sverige.</p>
+        <br>
+        <p class="font-bold">Storlekar:</p>
+        <ul class="list-disc list-inside mx-auto max-w-lg text-left">
+            <li>Liten (A6, 105 × 148 mm, 4.1 × 5.8 tum)</li>
+            <li>Mellan (A5, 148 × 210 mm, 5.8 × 8.3 tum)</li>
+            <li>Stor (A4, 210 × 297 mm, 8.3 × 11.7 tum)</li>
+        </ul>
+        <br>
+        <p class="font-bold">Leveranstid:</p>
+        <p>Leverans tar 3 till 15 dagar, beroende på destination. Vänligen kontakta mig för en mer exakt uppskattning.</p>
+    </div>
+
+    <div id="news-section" class="container py-4 hidden">
+        <hr class="my-6">
+        <h2 class="text-3xl font-bold mb-4 text-center">Nyheter</h2>
+        <div id="news-list">
             </div>
-            
-            <h2 class="text-3xl font-bold mb-4">Senaste Nyheterna</h2>
-            <div id="home-news-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Nyheter kommer att renderas här av JavaScript -->
-            </div>
-            
-            <h2 class="text-3xl font-bold mt-8 mb-4">Kommande Evenemang</h2>
-            <div id="home-events-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Kalenderhändelser kommer att renderas här av JavaScript -->
-            </div>
+        <hr class="my-6">
+    </div>
 
-            <h2 class="text-3xl font-bold mt-8 mb-4">Klubbens Poster</h2>
-            <div id="home-history-container" class="space-y-6">
-                <!-- Historieposter renderas här av JavaScript -->
-            </div>
-            
-            <!-- Formulär för Historieposter (Admin) -->
-            <div class="card mt-6 hidden" id="history-edit-section">
-                <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Huvudsidposter</h2>
-                <form id="add-history-form">
-                    <label for="history-title" class="block mb-2 font-semibold">Titel</label>
-                    <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    
-                    <label for="history-content" class="block mb-2 font-semibold">Innehåll</label>
-                    <div class="editor-toolbar" data-editor-target="history-content-editor">
-                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
-                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
-                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
-                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
-                    </div>
-                    <div id="history-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
-                    <input type="hidden" id="history-content-hidden">
-                    
-                    <button type="submit" id="add-history-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Sida: Nyheter -->
-        <section id="nyheter" class="page">
-            <h1 class="text-4xl font-bold mb-6">Alla Nyheter</h1>
-            <div id="all-news-container" class="space-y-6">
-                <!-- Nyheter kommer att renderas här av JavaScript -->
-            </div>
-            
-            <!-- Formulär för Nyheter (Admin) -->
-            <div class="card mt-6 hidden" id="news-edit-section">
-                <h2 class="text-2xl font-bold mb-4" id="news-form-title">Lägg till Nyhet</h2>
-                <form id="add-news-form">
-                    <label for="news-title" class="block mb-2 font-semibold">Titel</label>
-                    <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    
-                    <label for="news-date" class="block mb-2 font-semibold">Datum</label>
-                    <input type="date" id="news-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    
-                    <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
-                    <div class="editor-toolbar" data-editor-target="news-content-editor">
-                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
-                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
-                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
-                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
-                    </div>
-                    <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
-                    <input type="hidden" id="news-content-hidden">
-                    
-                    <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Sida: Kalender -->
-        <section id="kalender" class="page">
-            <h1 class="text-4xl font-bold mb-6">Kalender</h1>
-            <div id="calendar-container" class="space-y-6">
-                <!-- Kalenderhändelser kommer att renderas här av JavaScript -->
-            </div>
-
-            <!-- Formulär för Kalenderhändelser (Admin) -->
-            <div class="card mt-6 hidden" id="calendar-edit-section">
-                <h2 class="text-2xl font-bold mb-4">Lägg till Kalenderhändelse</h2>
-                <form id="add-event-form">
-                    <label for="event-title" class="block mb-2 font-semibold">Titel</label>
-                    <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    
-                    <!-- Välj om händelsen är återkommande eller inte -->
-                    <div class="flex items-center mb-4">
-                        <input type="checkbox" id="is-recurring" class="mr-2">
-                        <label for="is-recurring" class="font-semibold">Återkommande händelse</label>
-                    </div>
-
-                    <!-- Fält för engångshändelse -->
-                    <div id="single-event-fields">
-                        <label for="event-date" class="block mb-2 font-semibold">Datum</label>
-                        <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    </div>
-
-                    <!-- Fält för återkommande händelse -->
-                    <div id="recurring-event-fields" class="hidden">
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label for="start-date" class="block mb-2 font-semibold">Startdatum</label>
-                                <input type="date" id="start-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label for="end-date" class="block mb-2 font-semibold">Slutdatum</label>
-                                <input type="date" id="end-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                        </div>
-                        <label class="block mb-2 font-semibold">Veckodag</label>
-                        <select id="weekday-select" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                            <option value="1">Måndag</option>
-                            <option value="2">Tisdag</option>
-                            <option value="3">Onsdag</option>
-                            <option value="4">Torsdag</option>
-                            <option value="5">Fredag</option>
-                            <option value="6">Lördag</option>
-                            <option value="0">Söndag</option>
-                        </select>
-                    </div>
-
-                    <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
-                    <div class="editor-toolbar" data-editor-target="event-description-editor">
-                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
-                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
-                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
-                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
-                    </div>
-                    <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
-                    <input type="hidden" id="event-description-hidden">
-
-                    <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Sida: Bilder -->
-        <section id="bilder" class="page">
-            <h1 class="text-4xl font-bold mb-6">Bildgalleri</h1>
-            <div id="gallery-container">
-                <!-- Bilder kommer att renderas här av JavaScript -->
-            </div>
-
-            <!-- Formulär för att lägga till bilder (Admin) -->
-            <div class="card mt-6 hidden" id="image-edit-section">
-                <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
-                <form id="add-image-form">
-                    <label for="image-title" class="block mb-2 font-semibold">Titel/Beskrivning</label>
-                    <input type="text" id="image-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    <label for="image-url" class="block mb-2 font-semibold">Bild-URL</label>
-                    <input type="url" id="image-url" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="image-year" class="block mb-2 font-semibold">År</label>
-                            <input type="number" id="image-year" required value="${new Date().getFullYear()}" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        </div>
-                        <div>
-                            <label for="image-month" class="block mb-2 font-semibold">Månad</label>
-                            <select id="image-month" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                                <option value="1">Januari</option>
-                                <option value="2">Februari</option>
-                                <option value="3">Mars</option>
-                                <option value="4">April</option>
-                                <option value="5">Maj</option>
-                                <option value="6">Juni</option>
-                                <option value="7">Juli</option>
-                                <option value="8">Augusti</option>
-                                <option value="9">September</option>
-                                <option value="10">Oktober</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Bild</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Sida: Admin -->
-        <section id="admin" class="page">
-            <div id="admin-login-panel" class="card max-w-md mx-auto">
-                <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
-                <input type="text" id="admin-username" placeholder="Användarnamn" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                <input type="password" id="admin-password" placeholder="Lösenord" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                <button id="login-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Logga in</button>
-            </div>
-
-            <div id="admin-panel" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-4xl font-bold">Administrationspanel</h1>
-                    <button id="logout-btn" class="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
-                </div>
-                <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
-                
-                <!-- Webbplatsinställningar -->
-                <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
-                    <form id="update-site-settings-form">
-                        <label for="logo-url-input" class="block mb-2 font-semibold">Logotyp-URL</label>
-                        <input type="url" id="logo-url-input" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <label for="site-name-input" class="block mb-2 font-semibold">Webbplatsnamn</label>
-                        <input type="text" id="site-name-input" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <button type="submit" id="update-site-settings-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Uppdatera inställningar</button>
-                    </form>
-                </div>
-                
-                <!-- Adminhantering -->
-                <div class="card mt-6">
-                    <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
-                    <form id="add-admin-form">
-                        <label for="new-admin-username" class="block mb-2 font-semibold">Nytt Admin-användarnamn</label>
-                        <input type="text" id="new-admin-username" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <label for="new-admin-password" class="block mb-2 font-semibold">Nytt Admin-lösenord</label>
-                        <input type="password" id="new-admin-password" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <button type="submit" id="add-admin-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300">Lägg till Admin</button>
-                    </form>
-                    
-                    <div class="mt-8">
-                        <h3 class="text-xl font-bold mb-2">Befintliga administratörer</h3>
-                        <div id="admin-list" class="space-y-2">
-                            <!-- Administratörer renderas här -->
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-        
-        <!-- Modal för felmeddelanden -->
-        <div id="errorModal" class="modal">
-            <div class="modal-content">
-                <span id="close-error-modal" class="modal-close-btn">&times;</span>
-                <p id="error-message" class="text-lg font-semibold text-red-600"></p>
+    <main id="main-content" class="container">
+        <h1 class="text-4xl font-bold mb-6 text-center">Vykort</h1>
+        <div id="filter-section" class="mb-6 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <div>
+                <label for="group-filter" class="block text-sm font-medium text-gray-700">Filtrera efter grupp:</label>
+                <select id="group-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"></select>
             </div>
         </div>
-
-        <!-- Bekräftelse-modal -->
-        <div id="confirmationModal" class="modal">
-            <div class="modal-content">
-                <p id="confirmation-message" class="text-lg font-semibold text-green-600"></p>
+        <div id="postcards-list">
             </div>
-        </div>
-        
-        <!-- Raderingsmodal för kalenderhändelser och nyheter -->
-        <div id="deleteConfirmationModal" class="modal">
-            <div class="modal-content">
-                <h3 class="text-xl font-bold mb-4">Bekräfta borttagning</h3>
-                <p id="delete-confirmation-message" class="mb-4"></p>
-                <div class="flex justify-center space-x-4">
-                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Ja</button>
-                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Raderingsmodal för kalenderhändelser -->
-        <div id="deleteEventModal" class="modal">
-            <div class="modal-content">
-                <h3 class="text-xl font-bold mb-4">Radera händelse</h3>
-                <p id="delete-event-message" class="mb-4"></p>
-                <div class="flex justify-center space-x-4">
-                    <button id="delete-single-event-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Radera enskild händelse</button>
-                    <button id="delete-series-event-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Radera hel serie</button>
-                    <button id="cancel-event-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal för att dela nyhet -->
-        <div id="shareModal" class="modal">
-            <div class="modal-content">
-                <span id="close-share-modal" class="modal-close-btn">&times;</span>
-                <h3 class="text-xl font-bold mb-4">Dela nyhet</h3>
-                <p id="share-message-title" class="mb-4 text-sm"></p>
-                <div class="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 mt-4 justify-center">
-                    <a id="share-facebook-btn" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-300 cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
-                        </svg>
-                        <span class="ml-2">Dela på Facebook</span>
-                    </a>
-                    <button id="copy-link-btn" class="flex items-center justify-center px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
-                        </svg>
-                        <span class="ml-2">Kopiera länk</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal för att lägga till bild -->
-        <div id="insertImageModal" class="modal">
-            <div class="modal-content">
-                <h3 class="text-xl font-bold mb-4">Infoga bild</h3>
-                <label for="image-url-input" class="block mb-2 font-semibold">Bild-URL</label>
-                <input type="url" id="image-url-input" placeholder="https://exempel.se/bild.jpg" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                
-                <label for="image-size-select" class="block mb-2 font-semibold">Storlek</label>
-                <select id="image-size-select" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    <option value="small">Liten (150px)</option>
-                    <option value="medium" selected>Medium (400px)</option>
-                    <option value="large">Stor (800px)</option>
-                    <option value="original">Originalstorlek</option>
-                </select>
-
-                <div class="flex justify-center space-x-4">
-                    <button id="insert-image-btn" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Infoga</button>
-                    <button id="cancel-image-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
-                </div>
-            </div>
-        </div>
-
     </main>
-
-    <!-- Footer -->
-    <footer class="bg-blue-800 text-white text-center py-4 mt-8">
-        <div class="container text-sm flex flex-col sm:flex-row justify-between items-center">
-            <p class="font-bold">Kumla Skytteförening</p>
-            <div class="mt-2 sm:mt-0">
-                <a href="https://www.facebook.com/Kumlaskytte/" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-300 transition duration-300 mx-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
-                    </svg>
-                </a>
+    
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <span id="close-cart-modal" class="modal-close-btn">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">Varukorg</h2>
+            <div id="cart-items" class="space-y-4 mb-4"></div>
+            <div id="cart-summary" class="text-right font-bold text-lg border-t pt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span>Totalt (exkl. rea):</span>
+                    <span id="cart-subtotal">0 kr</span>
+                </div>
+                <div id="cart-total-discount-container" class="flex justify-between items-center mb-2 hidden">
+                    <span>Rabatt på hela korgen:</span>
+                    <span id="cart-total-discount">-0 kr</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span>Att betala:</span>
+                    <span id="cart-total">0 kr</span>
+                </div>
+                <button id="clear-cart-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300">Töm varukorg</button>
             </div>
-            <p class="mt-2 sm:mt-0">Adress: Viagatan 5, Kumla, Sweden</p>
-            <p class="mt-2 sm:mt-0">Telefon: 073-088 57 25</p>
-            <p class="mt-2 sm:mt-0">Grundad: 1904</p>
+            <button id="checkout-btn" class="mt-4 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300">Gå till kassan</button>
+        </div>
+    </div>
+    
+    <div id="postcardModal" class="modal">
+        <div class="modal-content">
+            <span id="close-postcard-modal" class="modal-close-btn">&times;</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="flex flex-col items-center text-center">
+                    <div id="modal-image-wrapper" class="w-full mb-4">
+                        <img id="modal-image" src="" alt="" class="w-full h-auto rounded-lg">
+                    </div>
+                    <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
+                </div>
+                <div id="modal-form-section" class="space-y-4">
+                    <form id="add-to-cart-form">
+                        <input type="hidden" id="modal-postcard-id">
+                        <input type="hidden" id="modal-cart-item-index"> 
+                        <div class="form-group">
+                            <label class="block font-bold">Välj storlek:</label>
+                            <div id="modal-size-options" class="flex flex-col space-y-2"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-recipient-name" class="block font-bold">Skickas till:</label>
+                            <input type="text" id="modal-recipient-name" name="recipientName" placeholder="Namn" class="w-full p-2 border rounded-md" required>
+                            <input type="text" id="modal-recipient-address" name="recipientAddress" placeholder="Adress" class="w-full p-2 mt-2 border rounded-md" required>
+                            <input type="text" id="modal-recipient-address2" name="recipientAddress2" placeholder="Adress 2 (valfritt)" class="w-full p-2 mt-2 border rounded-md">
+                            <input type="text" id="modal-recipient-zip" name="recipientZip" placeholder="Postadress" class="w-full p-2 mt-2 border rounded-md" required>
+                            <input type="text" id="modal-recipient-city" name="recipientCity" placeholder="Ort" class="w-full p-2 mt-2 border rounded-md" required>
+                            <input type="text" id="modal-recipient-country" name="recipientCountry" placeholder="Land" class="w-full p-2 mt-2 border rounded-md" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-message-text" class="block font-bold">Text på kort:</label>
+                            <textarea id="modal-message-text" name="messageText" rows="4" placeholder="Skriv din text här..." class="w-full p-2 border rounded-md"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300">Lägg i varukorgen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="confirmation-toast" class="confirmation-message">
+        Vara tillagd i varukorgen!
+    </div>
+
+    <div id="userModal" class="modal">
+        <div class="modal-content max-w-md mx-auto">
+            <span id="close-user-modal" class="modal-close-btn">&times;</span>
+            <h2 class="text-2xl font-bold mb-4 text-center" id="user-modal-title">Logga in</h2>
+            <div id="user-form-container">
+                <form id="login-form" class="space-y-4">
+                    <input type="text" id="login-username" placeholder="Användarnamn" class="w-full p-3 rounded-lg border border-gray-300">
+                    <input type="password" id="login-password" placeholder="Lösenord" class="w-full p-3 rounded-lg border border-gray-300">
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Logga in</button>
+                </form>
+                <button id="register-switch" class="mt-4 w-full text-blue-600 font-bold hover:underline">Har du inget konto? Skapa ett här!</button>
+                <form id="register-form" class="space-y-4 hidden">
+                    <input type="text" id="register-username" placeholder="Användarnamn" class="w-full p-3 rounded-lg border border-gray-300">
+                    <input type="email" id="register-email" placeholder="E-postadress" class="w-full p-3 rounded-lg border border-gray-300">
+                    <input type="password" id="register-password" placeholder="Lösenord" class="w-full p-3 rounded-lg border border-gray-300">
+                    <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700">Skapa konto</button>
+                </form>
+                <button id="login-switch" class="mt-4 w-full text-blue-600 font-bold hover:underline hidden">Har du redan ett konto? Logga in här!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content max-w-3xl mx-auto">
+            <span id="close-checkout-modal" class="modal-close-btn">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">Kassa</h2>
+            <div id="checkout-content">
+                <div id="checkout-user-section" class="mb-6 card">
+                    <h3 class="text-xl font-bold mb-4">Steg 1: Användare</h3>
+                    <div id="checkout-user-status">
+                        <p id="checkout-login-message">Du måste logga in eller skapa ett konto för att fortsätta.</p>
+                        <div id="checkout-login-forms" class="mt-4">
+                            <form id="checkout-login-form" class="space-y-2">
+                                <h4 class="font-semibold">Logga in</h4>
+                                <input type="text" id="checkout-login-username" placeholder="Användarnamn" class="w-full p-2 border rounded-md">
+                                <input type="password" id="checkout-login-password" placeholder="Lösenord" class="w-full p-2 border rounded-md">
+                                <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">Logga in</button>
+                            </form>
+                            <hr class="my-4">
+                            <form id="checkout-register-form" class="space-y-2">
+                                <h4 class="font-semibold">Skapa konto</h4>
+                                <input type="text" id="checkout-register-username" placeholder="Användarnamn" class="w-full p-2 border rounded-md">
+                                <input type="email" id="checkout-register-email" placeholder="E-postadress" class="w-full p-2 border rounded-md">
+                                <input type="password" id="checkout-register-password" placeholder="Lösenord" class="w-full p-2 border rounded-md">
+                                <button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700">Skapa konto</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="order-history-section" class="mb-6 card hidden">
+                    <h3 class="text-xl font-bold mb-4">Dina tidigare ordrar</h3>
+                    <div id="order-history-list" class="space-y-4">
+                        <p class="text-gray-500">Inga tidigare ordrar hittades.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+        <div class="container text-sm">
+            <p>&copy; 2025 Vykortsbutik</p>
         </div>
     </footer>
-    
-    <!-- Firebase SDK-skript -->
+
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     // ... resten av din kod
     
@@ -516,1445 +327,770 @@
 
     // Nu kan du använda firebaseConfig direkt här
     const appId = firebaseConfig.projectId;
+        
 
-        const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey.length > 0;
         let db;
         let auth;
-        let isAdminLoggedIn = false;
-        let loggedInAdminUsername = '';
-        let newsData = [];
-        let eventsData = [];
-        let adminsData = [];
-        let historyData = [];
-        let imageData = []; 
-        let editingNewsId = null; 
-        let editingHistoryId = null;
-        let editingImageId = null;
-        let currentUserId = null;
-        
-        // Deklarera variablerna för knapparna här så de är tillgängliga globalt
-        let newsAddBtn, eventAddBtn, historyAddBtn, addImageBtn, historyFormTitle, newsFormTitle, imageFormTitle;
+        let postcardsData = [];
+        let priceGroupsData = [];
+        let groupsData = [];
+        let salesData = [];
+        let cart = [];
+        let currentUser = null;
 
+        let initialDataLoaded = {
+            postcards: false,
+            priceGroups: false,
+            groups: false,
+            sales: false,
+            news: false
+        };
+        let allDataLoaded = false;
 
-        // --- MODAL FUNCTIONS ---
-        function showModal(modalId, message, title) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            
-            const messageEl = modal.querySelector('p');
-            const titleEl = modal.querySelector('h3');
-            if (messageEl) {
-                messageEl.innerHTML = message;
-            }
-            if (titleEl) {
-                titleEl.textContent = title;
-            }
-            
-            modal.classList.add('active');
-        }
-
-        function hideModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (!modal) return;
-            modal.classList.remove('active');
-        }
-
-        // Function to extract the first line of text from HTML content
-        function getFirstLineText(htmlContent) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-            const firstChild = tempDiv.firstElementChild;
-            if (firstChild && firstChild.tagName === 'P') {
-                return firstChild.textContent;
-            }
-            return tempDiv.textContent.split('\n')[0].trim();
-        }
-
-        // Function to extract the first image from HTML content
-        function getFirstImage(htmlContent) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-            const firstImage = tempDiv.querySelector('img');
-            return firstImage ? firstImage.outerHTML : '';
-        }
-
-        // En central funktion för att uppdatera alla UI-delar som beror på inloggningsstatus
-        function updateUI() {
-            renderNews();
-            renderEvents();
-            renderHistory();
-            renderImages();
-            renderAdmins();
-
-            // Hantera synligheten för adminindikatorn
-            const adminIndicator = document.getElementById('admin-indicator');
-            if (adminIndicator) {
-                if (isAdminLoggedIn) {
-                    adminIndicator.classList.remove('hidden');
-                    // Visa redigeringssektionerna på de olika sidorna
-                    document.getElementById('news-edit-section').classList.remove('hidden');
-                    document.getElementById('calendar-edit-section').classList.remove('hidden');
-                    document.getElementById('image-edit-section').classList.remove('hidden');
-                    document.getElementById('history-edit-section').classList.remove('hidden');
-                } else {
-                    adminIndicator.classList.add('hidden');
-                    // Dölj redigeringssektionerna
-                    document.getElementById('news-edit-section').classList.add('hidden');
-                    document.getElementById('calendar-edit-section').classList.add('hidden');
-                    document.getElementById('image-edit-section').classList.add('hidden');
-                    document.getElementById('history-edit-section').classList.add('hidden');
-                }
-            }
-        }
-
-        // --- CONTENT RENDERING ---
-        function renderNews() {
-            const news = newsData;
-            const homeNewsContainer = document.getElementById('home-news-container');
-            const allNewsContainer = document.getElementById('all-news-container');
-
-            if (!homeNewsContainer || !allNewsContainer) return;
-
-            homeNewsContainer.innerHTML = '';
-            allNewsContainer.innerHTML = '';
-
-            // Sortera nyheterna efter det angivna datumet
-            news.sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
-                return dateB - dateA;
-            });
-            
-            // Render the 2 latest news items on the home page
-            news.slice(0, 2).forEach(item => {
-                const date = new Date(item.date);
-                const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-                const firstLine = getFirstLineText(item.content);
-                const firstImage = getFirstImage(item.content);
-                
-                let imageHtml = '';
-                if (firstImage) {
-                    const tempImgDiv = document.createElement('div');
-                    tempImgDiv.innerHTML = firstImage;
-                    const img = tempImgDiv.querySelector('img');
-                    img.setAttribute('style', 'width: 150px; height: auto;');
-                    img.classList.add('rounded-lg', 'object-cover', 'mr-4');
-                    imageHtml = `<div class="flex-shrink-0">${img.outerHTML}</div>`;
-                }
-                
-                const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
-
-
-                homeNewsContainer.innerHTML += `
-                    <div class="card flex items-start news-post home-news-post cursor-pointer" data-id="${item.id}">
-                        ${imageHtml}
-                        <div class="flex-grow">
-                            <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                            <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                            <div class="text-gray-700 markdown-content">${shortContent}</div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            // Render all news items on the news page
-            news.forEach(item => {
-                const date = new Date(item.date);
-                const createdAt = item.createdAt?.toDate() || new Date();
-                const updatedAt = item.updatedAt?.toDate() || createdAt;
-                const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-                const likes = item.likes || {};
-                const likeCount = Object.keys(likes).length;
-                const userHasLiked = currentUserId && likes[currentUserId];
-                const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
-
-                allNewsContainer.innerHTML += `
-                    <div class="card" id="news-${item.id}">
-                        <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                        <div class="text-gray-700 markdown-content">${item.content}</div>
-                        <div class="flex items-center space-x-2 mt-4">
-                            <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="news" data-liked="${userHasLiked}">
-                                👍 <span class="like-count">${likeCount}</span>
-                            </button>
-                            <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
-                                </svg>
-                                <span class="ml-1 hidden sm:inline">Dela</span>
-                            </button>
-                            ${isAdminLoggedIn ? `
-                                <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
-                                <button class="edit-news-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        function renderEvents() {
-            const events = eventsData;
-            const calendarContainer = document.getElementById('calendar-container');
-            const homeEventsContainer = document.getElementById('home-events-container');
-
-            if (!calendarContainer || !homeEventsContainer) return;
-
-            calendarContainer.innerHTML = '';
-            homeEventsContainer.innerHTML = '';
-            
-            // Sortera händelser efter datum och filtrera bort gamla händelser
-            const today = new Date().toISOString().split('T')[0];
-            const upcomingEvents = events.filter(e => e.date >= today);
-            
-            upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
-
-            // Rendera de 2 närmaste kommande händelserna på startsidan
-            upcomingEvents.slice(0, 2).forEach(item => {
-                const eventDate = new Date(item.date);
-                const day = eventDate.getDate();
-                const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
-                
-                homeEventsContainer.innerHTML += `
-                    <div class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
-                        <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                            <p class="text-xl leading-none">${day}</p>
-                            <p class="text-xs uppercase">${month}</p>
-                        </div>
-                        <div class="flex-grow">
-                            <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                        </div>
-                    </div>
-                `;
-            });
-
-
-            upcomingEvents.forEach(item => {
-                const eventDate = new Date(item.date);
-                const day = eventDate.getDate();
-                const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
-                
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = item.description;
-                const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
-                const createdAt = item.createdAt?.toDate() || new Date();
-                const updatedAt = item.updatedAt?.toDate() || createdAt;
-                const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
-
-                calendarContainer.innerHTML += `
-                    <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
-                        <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                            <p class="text-xl leading-none">${day}</p>
-                            <p class="text-xs uppercase">${month}</p>
-                        </div>
-                        <div class="flex-grow">
-                            <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                            <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                            <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
-                            <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
-                            ${isAdminLoggedIn ? `
-                                <div class="flex space-x-2 mt-4">
-                                    <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
-                                    <button class="edit-event-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-
-            // Attach event listeners for calendar posts
-            document.querySelectorAll('.calendar-post').forEach(post => {
-                post.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('delete-btn')) {
-                        return;
-                    }
-                    const isExpanded = post.getAttribute('data-expanded') === 'true';
-                    post.setAttribute('data-expanded', !isExpanded);
-                    const shortText = post.querySelector('.calendar-post-short');
-                    const expandedText = post.querySelector('.calendar-post-expanded');
-                    if (isExpanded) {
-                        shortText.classList.remove('hidden');
-                        expandedText.classList.add('hidden');
-                    } else {
-                        shortText.classList.add('hidden');
-                        expandedText.classList.remove('hidden');
-                    }
-                });
-            });
-        }
-
-        // --- RENDER HISTORY POSTS ---
-        function renderHistory() {
-            const historyContainer = document.getElementById('home-history-container');
-            if (!historyContainer) return;
-
-            historyContainer.innerHTML = '';
-
-            historyData.sort((a, b) => {
-                const dateA = a.createdAt?.toDate() || new Date(a.date);
-                const dateB = b.createdAt?.toDate() || new Date(b.date);
-                return dateB - dateA;
-            });
-            
-            historyData.forEach(item => {
-                const date = item.createdAt?.toDate() || new Date(item.date);
-                const createdAt = item.createdAt?.toDate() || new Date();
-                const updatedAt = item.updatedAt?.toDate() || createdAt;
-                const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
-                const likes = item.likes || {};
-                const likeCount = Object.keys(likes).length;
-                const userHasLiked = currentUserId && likes[currentUserId];
-
-                historyContainer.innerHTML += `
-                    <div class="card" id="history-${item.id}">
-                        <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                        <div class="text-gray-700 markdown-content">${item.content}</div>
-                        <div class="flex items-center space-x-2 mt-4">
-                            <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="history" data-liked="${userHasLiked}">
-                                👍 <span class="like-count">${likeCount}</span>
-                            </button>
-                            ${isAdminLoggedIn ? `
-                                <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="history">Ta bort</button>
-                                <button class="edit-history-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // --- RENDER IMAGES ---
-        function renderImages() {
-            const galleryContainer = document.getElementById('gallery-container');
-            if (!galleryContainer) return;
-
-            galleryContainer.innerHTML = '';
-            
-            // Sortera bilder efter år och månad
-            imageData.sort((a, b) => {
-                const dateA = new Date(a.year, a.month - 1);
-                const dateB = new Date(b.year, b.month - 1);
-                return dateB - dateA;
-            });
-            
-            let currentYear = null;
-            let currentMonth = null;
-
-            imageData.forEach(item => {
-                const itemDate = new Date(item.year, item.month - 1);
-                const itemYear = itemDate.getFullYear();
-                const itemMonth = itemDate.toLocaleString('sv-SE', { month: 'long' });
-
-                if (itemYear !== currentYear || itemMonth !== currentMonth) {
-                    currentYear = itemYear;
-                    currentMonth = itemMonth;
-                    galleryContainer.innerHTML += `
-                        <h2 class="text-2xl font-bold mt-8 mb-4 col-span-full">${currentMonth} ${currentYear}</h2>
-                        <hr class="col-span-full border-gray-300 mb-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 col-span-full" id="image-group-${currentYear}-${item.month}"></div>
-                    `;
-                }
-
-                const imageGroupContainer = document.getElementById(`image-group-${currentYear}-${item.month}`);
-
-                if (imageGroupContainer) {
-                    imageGroupContainer.innerHTML += `
-                        <div class="relative group">
-                            <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300">
-                            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
-                                <h3 class="text-lg font-bold">${item.title}</h3>
-                            </div>
-                            ${isAdminLoggedIn ? `
-                                <div class="absolute top-2 right-2 flex space-x-2">
-                                    <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                                    <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }
-            });
-        }
-
-        function renderAdmins() {
-            const admins = adminsData;
-            const adminListEl = document.getElementById('admin-list');
-            if (!adminListEl) return;
-            
-            adminListEl.innerHTML = '';
-            admins.forEach(admin => {
-                const adminEl = document.createElement('div');
-                adminEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
-                adminEl.innerHTML = `
-                    <span class="font-semibold">${admin.username}</span>
-                    ${isAdminLoggedIn && admins.length > 1 && admin.username !== loggedInAdminUsername ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${admin.id}">Ta bort</button>` : ''}
-                `;
-                adminListEl.appendChild(adminEl);
-            });
-        }
-
-        // --- EDITOR FUNCTIONS ---
-        function applyEditorCommand(editor, command, value = null) {
-            editor.focus();
-            document.execCommand(command, false, value);
-        }
-        
-        // Handle active/inactive buttons based on cursor position
-        function updateToolbarButtons(editor) {
-            const toolbar = editor.previousElementSibling;
-            if (!toolbar) return;
-            const boldButton = toolbar.querySelector('[data-command="bold"]');
-            const italicButton = toolbar.querySelector('[data-command="italic"]');
-            
-            if (document.queryCommandState('bold')) {
-                boldButton.classList.add('active');
-            } else {
-                boldButton.classList.remove('active');
-            }
-            
-            if (document.queryCommandState('italic')) {
-                italicButton.classList.add('active');
-            } else {
-                italicButton.classList.remove('active');
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Deklarera variablerna för knapparna här så de är tillgängliga globalt
-            const loginBtn = document.getElementById('login-btn');
-            const logoutBtn = document.getElementById('logout-btn');
-            const adminUsernameInput = document.getElementById('admin-username');
-            const adminPasswordInput = document.getElementById('admin-password');
-            const adminLoginPanel = document.getElementById('admin-login-panel');
-            const adminPanel = document.getElementById('admin-panel');
-            const adminUserInfo = document.getElementById('admin-user-info');
-            const addAdminForm = document.getElementById('add-admin-form');
-            const newAdminUsernameInput = document.getElementById('new-admin-username');
-            const newAdminPasswordInput = document.getElementById('new-admin-password');
-            newsFormTitle = document.getElementById('news-form-title');
-            const newsTitleInput = document.getElementById('news-title');
-            const newsDateInput = document.getElementById('news-date');
-            const newsContentEditor = document.getElementById('news-content-editor');
-            newsAddBtn = document.getElementById('add-news-btn');
-            historyFormTitle = document.getElementById('history-form-title');
-            const historyTitleInput = document.getElementById('history-title');
-            const historyContentEditor = document.getElementById('history-content-editor');
-            historyAddBtn = document.getElementById('add-history-btn');
-            imageFormTitle = document.getElementById('image-form-title');
-            const imageTitleInput = document.getElementById('image-title');
-            const imageUrlInput = document.getElementById('image-url');
-            const imageYearInput = document.getElementById('image-year');
-            const imageMonthSelect = document.getElementById('image-month');
-            addImageBtn = document.getElementById('add-image-btn');
-            const eventTitleInput = document.getElementById('event-title');
-            const eventDescriptionEditor = document.getElementById('event-description-editor');
-            const eventDateInput = document.getElementById('event-date');
-            eventAddBtn = document.getElementById('add-event-btn');
-
-            const statusIndicator = document.createElement('div');
-            statusIndicator.className = "p-2 rounded-lg text-white font-semibold text-center mb-4";
-            
-            // Få tag i logotypen och webbplatsinställningsformuläret
-            const siteTitleElement = document.getElementById('site-title-display');
-            const pageTitleElement = document.getElementById('page-title');
-            const faviconLink = document.getElementById('favicon-link');
-            const siteLogoElement = document.getElementById('site-logo');
-
-            const updateSiteSettingsForm = document.getElementById('update-site-settings-form');
-            const logoUrlInput = document.getElementById('logo-url-input');
-            const siteNameInput = document.getElementById('site-name-input');
-            const settingsCollection = 'settings';
-
-            if(adminPanel) {
-                adminPanel.prepend(statusIndicator);
-            }
-            
-            if (firebaseConfigExists) {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (firebaseConfig.projectId) {
                 try {
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
                     
-                    statusIndicator.textContent = "Firebase är ansluten.";
-                    statusIndicator.classList.add('bg-green-500');
-
-                    await signInAnonymously(auth);
-
-                    auth.onAuthStateChanged((user) => {
+                    onAuthStateChanged(auth, (user) => {
                         if (user) {
-                            currentUserId = user.uid;
-                            console.log("Authenticated with Firebase:", currentUserId);
+                            currentUser = user;
+                            console.log("Användare inloggad:", user.email || user.uid);
+                            updateUserStatus(true);
+                            renderOrderHistory();
                         } else {
-                            console.log("Not authenticated with Firebase.");
+                            currentUser = null;
+                            console.log("Användare utloggad.");
+                            updateUserStatus(false);
                         }
                     });
 
-                    // Initial rendering and live listeners
-                    const newsRef = collection(db, `news`);
-                    onSnapshot(newsRef, (snapshot) => {
-                        newsData = [];
-                        snapshot.forEach(doc => {
-                            newsData.push({ id: doc.id, ...doc.data() });
-                        });
-                        updateUI();
-                    });
-
-                    const eventsRef = collection(db, `events`);
-                    onSnapshot(eventsRef, (snapshot) => {
-                        eventsData = [];
-                        snapshot.forEach(doc => {
-                            eventsData.push({ id: doc.id, ...doc.data() });
-                        });
-                        updateUI();
-                    });
-                    
-                    const adminsRef = collection(db, `admins`);
-                    onSnapshot(adminsRef, (snapshot) => {
-                        adminsData = [];
-                        snapshot.forEach(doc => {
-                            adminsData.push({ id: doc.id, ...doc.data() });
-                        });
-                        updateUI();
-                    });
-
-                    const historyRef = collection(db, `history`);
-                    onSnapshot(historyRef, (snapshot) => {
-                        historyData = [];
-                        snapshot.forEach(doc => {
-                            historyData.push({ id: doc.id, ...doc.data() });
-                        });
-                        updateUI();
-                    });
-
-                    const imageRef = collection(db, `images`);
-                    onSnapshot(imageRef, (snapshot) => {
-                        imageData = [];
-                        snapshot.forEach(doc => {
-                            imageData.push({ id: doc.id, ...doc.data() });
-                        });
-                        updateUI();
-                    });
-                    
-                    // Lyssna på ändringar i webbplatsinställningar
-                    const siteSettingsRef = doc(db, settingsCollection, 'siteSettings');
-                    onSnapshot(siteSettingsRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            if (siteTitleElement) siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-                            if (pageTitleElement) pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-                            if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
-                            if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
-                            if (logoUrlInput) logoUrlInput.value = data.logoUrl || '';
-                            if (siteNameInput) siteNameInput.value = data.siteName || '';
-                        }
-                    });
-
-                    updateUI();
-
-                } catch (initError) {
-                    console.error("Error initializing Firebase App:", initError);
-                    statusIndicator.textContent = "Fel: Kunde inte ansluta till Firebase.";
-                    statusIndicator.classList.remove('bg-green-500');
-                    statusIndicator.classList.add('bg-red-500');
+                    startListeners();
+                } catch (e) {
+                    console.error("Firebase initieringsfel:", e);
+                    document.getElementById('postcards-list').innerHTML = '<p class="text-center text-red-500">Kunde inte ansluta till databasen.</p>';
                 }
             } else {
-                statusIndicator.textContent = "Fel: Firebase-konfiguration saknas.";
-                statusIndicator.classList.remove('bg-green-500');
-                statusIndicator.classList.add('bg-red-500');
+                document.getElementById('postcards-list').innerHTML = '<p class="text-center text-red-500">Firebase-konfiguration saknas.</p>';
             }
 
-            // Function to handle liking a post
-            async function handleLike(docId, collectionName) {
-                if (!currentUserId) {
-                    showModal('errorModal', "Du måste vara inloggad för att gilla poster.", "Fel!");
-                    return;
-                }
-                const docRef = doc(db, collectionName, docId);
-                const docSnap = await getDoc(docRef);
-                const data = docSnap.data();
-                const likes = data.likes || {};
-
-                if (likes[currentUserId]) {
-                    // Unlike
-                    delete likes[currentUserId];
-                } else {
-                    // Like
-                    likes[currentUserId] = true;
-                }
-
-                try {
-                    await updateDoc(docRef, { likes: likes });
-                } catch (error) {
-                    console.error("Error updating likes:", error);
-                    showModal('errorModal', "Ett fel uppstod när like-funktionen skulle uppdateras.", "Fel!");
-                }
-            }
-
-
-            // Function to handle deletion of news/events/history
-            async function deleteDocument(docId, collectionName) {
-                if (!db || !isAdminLoggedIn) {
-                    showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
-                    return;
-                }
-                const docRef = doc(db, collectionName, docId);
-                try {
-                    await deleteDoc(docRef);
-                    showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`, "Lyckades!");
-                    setTimeout(() => hideModal('confirmationModal'), 2000);
-                    updateUI(); // Uppdatera UI efter borttagning
-                } catch (error) {
-                    console.error("Fel vid borttagning av post:", error);
-                    showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.", "Fel!");
-                }
-            }
+            loadCart();
             
-            // Function to handle deletion of admins
-            async function deleteAdmin(adminId) {
-                if (!db || !isAdminLoggedIn) {
-                    showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
-                    return;
-                }
-                if (adminsData.length <= 1) {
-                    showModal('errorModal', "Kan inte ta bort den sista administratören.", "Fel!");
-                    return;
-                }
-                const adminToDelete = adminsData.find(a => a.id === adminId);
-                if (adminToDelete.username === loggedInAdminUsername) {
-                    showModal('errorModal', "Du kan inte ta bort dig själv.", "Fel!");
-                    return;
-                }
-                const adminRef = doc(db, 'admins', adminId);
-                try {
-                    await deleteDoc(adminRef);
-                    showModal('confirmationModal', "Admin har tagits bort.", "Lyckades!");
-                    setTimeout(() => hideModal('confirmationModal'), 2000);
-                    updateUI(); // Uppdatera UI efter borttagning
-                } catch (error) {
-                    console.error("Fel vid borttagning av admin:", error);
-                    showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.", "Fel!");
-                }
-            }
-
-            // Event delegation for "like" buttons
-            document.addEventListener('click', (e) => {
-                const likeBtn = e.target.closest('.like-btn');
-                if (likeBtn) {
-                    const docId = likeBtn.getAttribute('data-id');
-                    const docType = likeBtn.getAttribute('data-type');
-                    handleLike(docId, docType);
-                }
+            document.getElementById('group-filter').addEventListener('change', renderPostcards);
+            
+            document.getElementById('cart-btn').addEventListener('click', () => {
+                renderCart();
+                document.getElementById('cartModal').classList.add('active');
             });
-
-            // Event delegation for "delete" buttons (news, calendar, images)
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-btn')) {
-                    const docId = e.target.getAttribute('data-id');
-                    const docType = e.target.getAttribute('data-type');
-                    const seriesId = e.target.getAttribute('data-series-id');
-                    
-                    if (docType === 'events' && seriesId) {
-                        // Show modal for deleting series
-                        document.getElementById('delete-event-message').textContent = 'Denna händelse är en del av en serie. Vill du radera enbart denna händelse eller hela serien?';
-                        document.getElementById('deleteEventModal').classList.add('active');
-                        document.getElementById('delete-single-event-btn').onclick = () => {
-                            deleteDocument(docId, docType);
-                            hideModal('deleteEventModal');
-                        };
-                        document.getElementById('delete-series-event-btn').onclick = async () => {
-                            // Delete the entire series
-                            const batch = writeBatch(db);
-                            const q = query(collection(db, 'events'), where('seriesId', '==', seriesId));
-                            const querySnapshot = await getDocs(q);
-                            querySnapshot.forEach(doc => {
-                                batch.delete(doc.ref);
-                            });
-                            await batch.commit();
-                            showModal('confirmationModal', "Hela serien har tagits bort.", "Lyckades!");
-                            setTimeout(() => hideModal('confirmationModal'), 2000);
-                            hideModal('deleteEventModal');
-                            updateUI(); // Uppdatera UI efter borttagning av serie
-                        };
-                        document.getElementById('cancel-event-delete-btn').onclick = () => hideModal('deleteEventModal');
-                    } else {
-                        // Show a general confirmation modal instead of confirm()
-                        const postType = docType === 'news' ? 'nyhet' : (docType === 'events' ? 'händelse' : 'post');
-                        document.getElementById('delete-confirmation-message').textContent = `Är du säker på att du vill ta bort denna ${postType}?`;
-                        document.getElementById('deleteConfirmationModal').classList.add('active');
-                        
-                        document.getElementById('confirm-delete-btn').onclick = () => {
-                            deleteDocument(docId, docType);
-                            hideModal('deleteConfirmationModal');
-                        };
-                        document.getElementById('cancel-delete-btn').onclick = () => hideModal('deleteConfirmationModal');
-                    }
+            document.getElementById('close-cart-modal').addEventListener('click', () => {
+                document.getElementById('cartModal').classList.remove('active');
+            });
+            window.addEventListener('click', (event) => {
+                if (event.target === document.getElementById('cartModal')) {
+                    document.getElementById('cartModal').classList.remove('active');
                 }
             });
             
-            // Event delegation for "share" buttons
-            document.addEventListener('click', (e) => {
-                const shareBtn = e.target.closest('.share-btn');
-                if (shareBtn) {
-                    const newsId = shareBtn.getAttribute('data-id');
-                    const newsTitle = newsData.find(n => n.id === newsId)?.title || 'Nyhet';
-                    
-                    // Create the URL to the specific news item
-                    const pageUrl = window.location.origin + window.location.pathname;
-                    const shareUrl = `${pageUrl}#nyheter#news-${newsId}`;
-
-                    document.getElementById('share-message-title').textContent = newsTitle;
-                    document.getElementById('share-facebook-btn').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-
-                    const copyLinkBtn = document.getElementById('copy-link-btn');
-                    copyLinkBtn.onclick = () => {
-                        try {
-                            const tempInput = document.createElement('input');
-                            tempInput.value = shareUrl;
-                            document.body.appendChild(tempInput);
-                            tempInput.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(tempInput);
-                            showModal('confirmationModal', "Länken har kopierats till urklipp!", "Lyckades!");
-                            hideModal('shareModal');
-                        } catch (err) {
-                            showModal('errorModal', "Kunde inte kopiera länken.", "Fel!");
-                        }
-                    };
-
-                    showModal('shareModal', '', 'Dela nyhet');
+            document.getElementById('close-postcard-modal').addEventListener('click', () => {
+                document.getElementById('postcardModal').classList.remove('active');
+            });
+            window.addEventListener('click', (event) => {
+                if (event.target === document.getElementById('postcardModal')) {
+                    document.getElementById('postcardModal').classList.remove('active');
                 }
             });
 
-            // Event delegation for "edit" button for news
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('edit-news-btn')) {
-                    const docId = e.target.getAttribute('data-id');
-                    const newsItem = newsData.find(item => item.id === docId);
+            document.getElementById('add-to-cart-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const postcardId = form.querySelector('#modal-postcard-id').value;
+                const cartItemIndex = form.querySelector('#modal-cart-item-index').value;
+                const size = form.querySelector('input[name="size"]:checked').value;
+                const recipientName = form.querySelector('#modal-recipient-name').value;
+                const recipientAddress = form.querySelector('#modal-recipient-address').value;
+                const recipientAddress2 = form.querySelector('#modal-recipient-address2').value;
+                const recipientZip = form.querySelector('#modal-recipient-zip').value;
+                const recipientCity = form.querySelector('#modal-recipient-city').value;
+                const recipientCountry = form.querySelector('#modal-recipient-country').value;
+                const messageText = form.querySelector('#modal-message-text').value;
 
-                    if (newsItem) {
-                        // Fill the form with existing data
-                        document.getElementById('news-title').value = newsItem.title;
-                        document.getElementById('news-content-editor').innerHTML = newsItem.content;
-                        
-                        const newsDate = newsItem.date || (newsItem.createdAt?.toDate() || new Date()).toISOString().split('T')[0];
-                        document.getElementById('news-date').value = newsDate;
-
-                        // Save the ID of the news being edited
-                        editingNewsId = docId;
-                        
-                        // Change button text and navigate to news page
-                        newsAddBtn.textContent = 'Spara ändringar';
-                        newsAddBtn.classList.remove('bg-gray-400');
-                        newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-
-                        navigate('#nyheter');
-                        document.getElementById('news-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
+                const postcard = postcardsData.find(p => p.id === postcardId);
+                if (!postcard) {
+                    console.error("Kunde inte lägga till i varukorgen, vykortet hittades inte.");
+                    return;
                 }
-            });
 
-            // Event delegation for "edit" button for history posts
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('edit-history-btn')) {
-                    const docId = e.target.getAttribute('data-id');
-                    const historyItem = historyData.find(item => item.id === docId);
-
-                    if (historyItem) {
-                        historyFormTitle.textContent = 'Ändra Huvudsidpost';
-                        document.getElementById('history-title').value = historyItem.title;
-                        document.getElementById('history-content-editor').innerHTML = historyItem.content;
-                        
-                        editingHistoryId = docId;
-                        
-                        historyAddBtn.textContent = 'Spara ändringar';
-                        historyAddBtn.classList.remove('bg-gray-400');
-                        historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-
-                        navigate('#hem');
-                        document.getElementById('history-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-            });
-
-            // Event delegation for "edit" button for images
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('edit-image-btn')) {
-                    const docId = e.target.getAttribute('data-id');
-                    const imageItem = imageData.find(item => item.id === docId);
-
-                    if (imageItem) {
-                        imageFormTitle.textContent = 'Ändra Bild';
-                        document.getElementById('image-title').value = imageItem.title;
-                        document.getElementById('image-url').value = imageItem.url;
-                        document.getElementById('image-year').value = imageItem.year;
-                        document.getElementById('image-month').value = imageItem.month;
-                        
-                        editingImageId = docId;
-                        
-                        addImageBtn.textContent = 'Spara ändringar';
-                        addImageBtn.classList.remove('bg-gray-400');
-                        addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-
-                        navigate('#bilder');
-                        document.getElementById('image-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-            });
-            
-            // Event delegation for "edit" button on events
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('edit-event-btn')) {
-                    const docId = e.target.getAttribute('data-id');
-                    const eventItem = eventsData.find(item => item.id === docId);
-
-                    if (eventItem) {
-                        document.getElementById('event-title').value = eventItem.title;
-                        document.getElementById('event-description-editor').innerHTML = eventItem.description;
-                        document.getElementById('event-date').value = eventItem.date;
-                        
-                        // Handle recurring event logic if needed here
-                        document.getElementById('is-recurring').checked = !!eventItem.seriesId;
-                        if (eventItem.seriesId) {
-                            // Logic to populate recurring fields from a series (currently not implemented)
-                            showModal('errorModal', "Redigering av enskilda händelser i en serie stöds inte fullt ut. Redigera enskilda instanser istället.", "Funktion ej fullständig!");
-                        }
-                        
-                        // Set editing ID
-                        editingEventId = docId;
-                        
-                        // Change button text and navigate to admin
-                        addEventBtn.textContent = 'Spara ändringar';
-                        addEventBtn.classList.remove('bg-gray-400');
-                        addEventBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        
-                        navigate('#kalender');
-                        document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-            });
-
-
-            // Event delegation for "Delete Admin" buttons
-            document.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-admin-btn')) {
-                    const adminId = e.target.getAttribute('data-id');
-                    // Show a general confirmation modal instead of confirm()
-                    document.getElementById('delete-confirmation-message').textContent = `Är du säker på att du vill ta bort denna administratör?`;
-                    document.getElementById('deleteConfirmationModal').classList.add('active');
-                    
-                    document.getElementById('confirm-delete-btn').onclick = () => {
-                        deleteAdmin(adminId);
-                        hideModal('deleteConfirmationModal');
-                    };
-                    document.getElementById('cancel-delete-btn').onclick = () => hideModal('deleteConfirmationModal');
-                }
-            });
-            
-            // Handle clicks on editor buttons
-            document.querySelectorAll('.editor-toolbar button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const command = button.dataset.command;
-                    const editor = document.getElementById(button.parentElement.dataset.editorTarget);
-                    if (editor) {
-                        editor.focus();
-                        if (command === 'createLink') {
-                            const url = prompt("Ange URL för länken:");
-                            if (!url) return;
-                            let linkText = prompt("Ange länktext (lämna tomt för att visa URL):");
-                            if (!linkText) linkText = url;
-                            
-                            const protocol = url.startsWith('http') ? '' : 'https://';
-                            document.execCommand('insertHTML', false, `<a href="${protocol}${url}" target="_blank">${linkText}</a>`);
-                        } else if (command === 'insertImage') {
-                            // Show the new modal for image insertion
-                            showModal('insertImageModal', '', 'Infoga bild');
-                            const insertBtn = document.getElementById('insert-image-btn');
-                            const cancelBtn = document.getElementById('cancel-image-btn');
-                            const imageUrlInput = document.getElementById('image-url-input');
-                            const imageSizeSelect = document.getElementById('image-size-select');
-
-                            insertBtn.onclick = () => {
-                                const imageUrl = imageUrlInput.value;
-                                const imageSize = imageSizeSelect.value;
-                                if (imageUrl) {
-                                    let style = '';
-                                    let maxWidth = '100%';
-                                    if (imageSize === 'small') {
-                                        maxWidth = '150px';
-                                    } else if (imageSize === 'medium') {
-                                        maxWidth = '400px';
-                                    } else if (imageSize === 'large') {
-                                        maxWidth = '800px';
-                                    }
-                                    style = `style="max-width: ${maxWidth}; height: auto;"`;
-                                    
-                                    document.execCommand('insertHTML', false, `<img src="${imageUrl}" alt="Bild" ${style}>`);
-                                }
-                                hideModal('insertImageModal');
-                            };
-                            cancelBtn.onclick = () => {
-                                hideModal('insertImageModal');
-                            };
-                        } else {
-                            document.execCommand(command, false);
-                        }
-                    }
-                });
-            });
-
-            // Handle active/inactive buttons based on cursor position
-            document.querySelectorAll('.editor-content').forEach(editor => {
-                editor.addEventListener('mouseup', () => updateToolbarButtons(editor));
-                editor.addEventListener('keyup', () => updateToolbarButtons(editor));
-            });
-
-            function updateToolbarButtons(editor) {
-                const toolbar = editor.previousElementSibling;
-                if (!toolbar) return;
-                const boldButton = toolbar.querySelector('[data-command="bold"]');
-                const italicButton = toolbar.querySelector('[data-command="italic"]');
+                const prices = calculatePrice(postcard);
+                const price = prices[size];
                 
-                if (document.queryCommandState('bold')) {
-                    boldButton.classList.add('active');
+                const newItem = {
+                    id: postcardId,
+                    title: postcard.title,
+                    size: size,
+                    price: price,
+                    group: postcard.group,
+                    recipient: {
+                        name: recipientName,
+                        address: recipientAddress,
+                        address2: recipientAddress2,
+                        zip: recipientZip,
+                        city: recipientCity,
+                        country: recipientCountry
+                    },
+                    message: messageText
+                };
+
+                if (cartItemIndex !== "" && parseInt(cartItemIndex) !== -1) {
+                    editCartItem(parseInt(cartItemIndex), newItem);
                 } else {
-                    boldButton.classList.remove('active');
+                    addToCart(newItem);
                 }
                 
-                if (document.queryCommandState('italic')) {
-                    italicButton.classList.add('active');
-                } else {
-                    italicButton.classList.remove('active');
-                }
-            }
+                document.getElementById('postcardModal').classList.remove('active');
+                form.reset();
+            });
 
-            // Function to navigate and update admin status
-            function navigate(hash) {
-                document.querySelectorAll('.page').forEach(page => {
-                    page.classList.remove('active');
-                });
-                const hashParts = hash.split('#');
-                const targetPageId = hashParts[1];
-                const targetElementId = hashParts[2];
-                
-                const targetPage = document.querySelector(`#${targetPageId}`);
-                if (targetPage) {
-                    targetPage.classList.add('active');
-                    if (targetElementId) {
-                        setTimeout(() => {
-                            const targetElement = document.getElementById(targetElementId);
-                            if (targetElement) {
-                                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        }, 100);
-                    } else {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }
-                } else {
-                    document.getElementById('hem').classList.add('active');
-                }
-            }
-
-            // --- MODAL EVENT LISTENERS ---
-            const errorModal = document.getElementById('errorModal');
-            const closeErrorModalBtn = document.getElementById('close-error-modal');
-            if (closeErrorModalBtn) {
-                closeErrorModalBtn.addEventListener('click', () => {
-                    hideModal('errorModal');
-                });
-            }
-            if (errorModal) {
-                errorModal.addEventListener('click', (event) => {
-                    if (event.target === errorModal) {
-                        hideModal('errorModal');
-                    }
-                });
-            }
-
-            const confirmationModal = document.getElementById('confirmationModal');
-            if (confirmationModal) {
-                confirmationModal.addEventListener('click', (event) => {
-                    if (event.target === confirmationModal) {
-                        hideModal('confirmationModal');
-                    }
-                });
-            }
-            
-            const shareModal = document.getElementById('shareModal');
-            if (shareModal) {
-                shareModal.addEventListener('click', (event) => {
-                    if (event.target === shareModal || event.target.closest('#close-share-modal')) {
-                        hideModal('shareModal');
-                    }
-                });
-            }
-
-
-            // Event delegation for news and calendar on home page
-            document.addEventListener('click', (e) => {
-                const calendarPost = e.target.closest('.home-calendar-post');
-                if (calendarPost) {
-                    const id = calendarPost.getAttribute('data-id');
-                    navigate('#kalender');
-                    setTimeout(() => {
-                        const targetEvent = document.getElementById(`event-${id}`);
-                        if (targetEvent) {
-                            targetEvent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            if (targetEvent.getAttribute('data-expanded') === 'false') {
-                                targetEvent.click();
-                            }
-                        }
-                    }, 100);
-                }
-                const newsPost = e.target.closest('.home-news-post');
-                if (newsPost) {
-                    const id = newsPost.getAttribute('data-id');
-                    navigate(`#nyheter#news-${id}`);
-                }
+            document.getElementById('clear-cart-btn').addEventListener('click', clearCart);
+            document.getElementById('checkout-btn').addEventListener('click', () => {
+                document.getElementById('cartModal').classList.remove('active');
+                document.getElementById('checkoutModal').classList.add('active');
+                renderCheckout();
             });
             
-            document.querySelectorAll('nav a').forEach(link => {
-                link.addEventListener('click', (e) => {
+            // Hantera inloggnings- och registreringsformulär
+            document.getElementById('login-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('userModal').classList.add('active');
+            });
+            document.getElementById('close-user-modal').addEventListener('click', () => {
+                document.getElementById('userModal').classList.remove('active');
+            });
+            document.getElementById('register-switch').addEventListener('click', () => {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+                document.getElementById('register-switch').classList.add('hidden');
+                document.getElementById('login-switch').classList.remove('hidden');
+                document.getElementById('user-modal-title').textContent = "Skapa konto";
+            });
+            document.getElementById('login-switch').addEventListener('click', () => {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('register-switch').classList.remove('hidden');
+                document.getElementById('login-switch').classList.add('hidden');
+                document.getElementById('user-modal-title').textContent = "Logga in";
+            });
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            
+            // Hantera utloggning från header
+            document.getElementById('user-status').addEventListener('click', async (e) => {
+                if (e.target.id === 'logout-link') {
                     e.preventDefault();
-                    const hash = e.target.getAttribute('href');
-                    history.pushState(null, '', hash);
-                    navigate(hash);
-                });
-            });
-
-            window.addEventListener('popstate', () => {
-                navigate(window.location.hash || '#hem');
-            });
-            
-            navigate(window.location.hash || '#hem');
-
-            // --- ADMIN PANEL LOGIC ---
-
-            // Toggle for recurring events
-            const isRecurringCheckbox = document.getElementById('is-recurring');
-            const singleEventFields = document.getElementById('single-event-fields');
-            const recurringEventFields = document.getElementById('recurring-event-fields');
-            isRecurringCheckbox.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    singleEventFields.classList.add('hidden');
-                    recurringEventFields.classList.remove('hidden');
-                    document.getElementById('event-date').removeAttribute('required');
-                    document.getElementById('start-date').setAttribute('required', 'required');
-                    document.getElementById('end-date').setAttribute('required', 'required');
-                } else {
-                    singleEventFields.classList.remove('hidden');
-                    recurringEventFields.classList.add('hidden');
-                    document.getElementById('event-date').setAttribute('required', 'required');
-                    document.getElementById('start-date').removeAttribute('required');
-                    document.getElementById('end-date').removeAttribute('removeAttribute');
-                }
-            });
-            
-            // Ny central funktion för att hantera admin-inloggningsstatus
-            function toggleAdminUI(isLoggedIn, username) {
-                isAdminLoggedIn = isLoggedIn;
-                loggedInAdminUsername = isLoggedIn ? username : '';
-                
-                if (isLoggedIn) {
-                    document.getElementById('admin-login-panel').classList.add('hidden');
-                    document.getElementById('admin-panel').classList.remove('hidden');
-                    const adminUserInfo = document.getElementById('admin-user-info');
-                    if (adminUserInfo) {
-                        adminUserInfo.textContent = `Du är inloggad som administratör (Admin: ${loggedInAdminUsername})`;
-                    }
-
-                    // Aktivera alla admin-knappar
-                    if (newsAddBtn) newsAddBtn.disabled = false;
-                    if (newsAddBtn) newsAddBtn.classList.remove('bg-gray-400');
-                    if (newsAddBtn) newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    if (eventAddBtn) eventAddBtn.disabled = false;
-                    if (eventAddBtn) eventAddBtn.classList.remove('bg-gray-400');
-                    if (eventAddBtn) eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    if (historyAddBtn) historyAddBtn.disabled = false;
-                    if (historyAddBtn) historyAddBtn.classList.remove('bg-gray-400');
-                    if (historyAddBtn) historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    if (addImageBtn) addImageBtn.disabled = false;
-                    if (addImageBtn) addImageBtn.classList.remove('bg-gray-400');
-                    if (addImageBtn) addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                } else {
-                    document.getElementById('admin-login-panel').classList.remove('hidden');
-                    document.getElementById('admin-panel').classList.add('hidden');
-
-                    // Inaktivera alla admin-knappar
-                    if (newsAddBtn) newsAddBtn.disabled = true;
-                    if (newsAddBtn) newsAddBtn.classList.add('bg-gray-400');
-                    if (newsAddBtn) newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    if (eventAddBtn) eventAddBtn.disabled = true;
-                    if (eventAddBtn) eventAddBtn.classList.add('bg-gray-400');
-                    if (eventAddBtn) eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    if (historyAddBtn) historyAddBtn.disabled = true;
-                    if (historyAddBtn) historyAddBtn.classList.add('bg-gray-400');
-                    if (historyAddBtn) historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    
-                    if (addImageBtn) addImageBtn.disabled = true;
-                    if (addImageBtn) addImageBtn.classList.add('bg-gray-400');
-                    if (addImageBtn) addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-
-                    // Återställ formulär-titlar till standard
-                    if (historyFormTitle) historyFormTitle.textContent = 'Lägg till Huvudsidposter';
-                    if (imageFormTitle) imageFormTitle.textContent = 'Lägg till Bild';
-                }
-
-                updateUI();
-            }
-
-            loginBtn.addEventListener('click', async () => {
-                const username = adminUsernameInput.value.trim();
-                const password = adminPasswordInput.value.trim();
-                
-                console.log("Attempting login with username:", username);
-                
-                if (!username || !password) {
-                    showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
-                    return;
-                }
-
-                if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
-                    console.error("Firebase database object is not initialized.");
-                    return;
-                }
-
-                try {
-                    // Check for hardcoded admin first
-                    if (username === 'admin' && password === 'admin') {
-                        console.log("Logged in with hardcoded admin credentials.");
-                        toggleAdminUI(true, 'admin');
-                        return;
-                    }
-
-                    // Then, check the database for other admins
-                    console.log("Checking Firestore for admin user...");
-                    const q = query(collection(db, 'admins'), where('username', '==', username));
-                    const querySnapshot = await getDocs(q);
-
-                    if (querySnapshot.empty) {
-                        console.log("Query returned no results. Invalid username.");
-                        showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
-                    } else {
-                        let loginSuccess = false;
-                        querySnapshot.forEach(docSnap => {
-                            const adminData = docSnap.data();
-                            console.log("Found user in Firestore:", adminData.username);
-                            if (adminData.password === password) {
-                                loginSuccess = true;
-                                console.log("Password matches. Login successful.");
-                            } else {
-                                console.log("Password does not match.");
-                            }
-                        });
-                        if (loginSuccess) {
-                            toggleAdminUI(true, username);
-                        } else {
-                            showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
-                            toggleAdminUI(false, null);
-                        }
-                    }
-
-                } catch (err) {
-                    console.error("Fel vid inloggning:", err);
-                    showModal('errorModal', "Ett fel uppstod vid inloggning. Kontrollera dina Firebase Security Rules i konsolen för mer information.", "Fel!");
-                    toggleAdminUI(false, null);
+                    await signOut(auth);
+                    document.getElementById('main-content').classList.remove('hidden');
+                    document.getElementById('checkoutModal').classList.remove('active');
                 }
             });
 
-            logoutBtn.addEventListener('click', () => {
-                toggleAdminUI(false, null);
-                adminUsernameInput.value = '';
-                adminPasswordInput.value = '';
-                navigate('#hem');
-            });
-            
-            // Hantera uppdatering av webbplatsinställningar
-            if (updateSiteSettingsForm) {
-                updateSiteSettingsForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    if (!db) {
-                        showModal('errorModal', "Databasen är inte ansluten.", "Fel!");
-                        return;
-                    }
-                    const logoUrl = logoUrlInput.value;
-                    const siteName = siteNameInput.value;
-                    
-                    try {
-                        const settingsDocRef = doc(db, settingsCollection, 'siteSettings');
-                        await setDoc(settingsDocRef, { logoUrl: logoUrl, siteName: siteName });
-                        showModal('confirmationModal', "Webbplatsinställningarna har uppdaterats!", "Lyckades!");
-                        setTimeout(() => hideModal('confirmationModal'), 2000);
-                    } catch (error) {
-                        console.error("Fel vid uppdatering av webbplatsinställningar:", error);
-                        showModal('errorModal', "Ett fel uppstod när inställningarna skulle uppdateras.", "Fel!");
-                    }
-                });
-            }
-
-
-            addAdminForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten.", "Fel!");
-                    return;
-                }
-                const newAdmin = {
-                    username: newAdminUsernameInput.value,
-                    password: newAdminPasswordInput.value
-                };
-                
-                try {
-                    await addDoc(collection(db, `admins`), newAdmin);
-                    addAdminForm.reset();
-                    showModal('confirmationModal', "Ny admin har lagts till!", "Lyckades!");
-                    setTimeout(() => hideModal('confirmationModal'), 2000);
-                } catch (error) {
-                    console.error("Fel vid tillägg av admin:", error);
-                    showModal('errorModal', "Ett fel uppstod när admin skulle läggas till.", "Fel!");
-                }
-            });
-
-
-            // --- FORMS TO ADD DATA TO FIREBASE ---
-            const addNewsForm = document.getElementById('add-news-form');
-            addNewsForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
-                    return;
-                }
-                
-                const newsTitle = newsTitleInput.value;
-                const newsContent = newsContentEditor.innerHTML;
-                const newsDate = newsDateInput.value;
-                
-                const newsObject = {
-                    title: newsTitle,
-                    content: newsContent,
-                    date: newsDate,
-                    createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
-                    updatedAt: editingNewsId ? serverTimestamp() : null
-                };
-
-                try {
-                    if (editingNewsId) {
-                        // Update existing news
-                        await updateDoc(doc(db, 'news', editingNewsId), newsObject);
-                        console.log("Nyhet uppdaterad!");
-                        showModal('confirmationModal', "Nyhet har uppdaterats!", "Lyckades!");
-                    } else {
-                        // Add new news
-                        await addDoc(collection(db, `news`), newsObject);
-                        console.log("Nyhet tillagd!");
-                        showModal('confirmationModal', "Nyhet har lagts till!", "Lyckades!");
-                    }
-                    
-                    // Reset form and variables
-                    addNewsForm.reset();
-                    newsContentEditor.innerHTML = '';
-                    newsDateInput.value = new Date().toISOString().split('T')[0];
-                    editingNewsId = null;
-                    newsFormTitle.textContent = 'Lägg till Nyhet';
-                    newsAddBtn.textContent = 'Lägg till';
-                    newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    newsAddBtn.classList.add('bg-gray-400');
-                    
-                    setTimeout(() => hideModal('confirmationModal'), 2000);
-                } catch (error) {
-                    console.error("Fel vid hantering av nyhet:", error);
-                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.", "Fel!");
-                }
-            });
-
-            const addHistoryForm = document.getElementById('add-history-form');
-            addHistoryForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
-                    return;
-                }
-                const historyTitle = historyTitleInput.value;
-                const historyContent = historyContentEditor.innerHTML;
-
-                const historyObject = {
-                    title: historyTitle,
-                    content: historyContent,
-                    createdAt: editingHistoryId ? historyData.find(h => h.id === editingHistoryId).createdAt : serverTimestamp(),
-                    updatedAt: editingHistoryId ? serverTimestamp() : null
-                };
-
-                try {
-                    if (editingHistoryId) {
-                        await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
-                        console.log("Historiepost uppdaterad!");
-                        showModal('confirmationModal', "Huvudsidpost har uppdaterats!", "Lyckades!");
-                    } else {
-                        await addDoc(collection(db, 'history'), historyObject);
-                        console.log("Historiepost tillagd!");
-                        showModal('confirmationModal', "Huvudsidpost har lagts till!", "Lyckades!");
-                    }
-
-                    addHistoryForm.reset();
-                    historyContentEditor.innerHTML = '';
-                    editingHistoryId = null;
-                    historyFormTitle.textContent = 'Lägg till Huvudsidposter';
-                    historyAddBtn.textContent = 'Lägg till';
-                    historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    historyAddBtn.classList.add('bg-gray-400');
-
-                    setTimeout(() => hideModal('confirmationModal'), 2000);
-                } catch (error) {
-                    console.error("Fel vid hantering av historiepost:", error);
-                    showModal('errorModal', "Ett fel uppstod. Kontrollera dina Firebase Security Rules.", "Fel!");
-                }
-            });
-
-            const addImageForm = document.getElementById('add-image-form');
-            addImageForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
-                    return;
-                }
-                
-                const imageTitle = imageTitleInput.value;
-                const imageUrl = imageUrlInput.value;
-                const imageYear = parseInt(imageYearInput.value);
-                const imageMonth = parseInt(imageMonthSelect.value);
-                
-                const imageObject = {
-                    title: imageTitle,
-                    url: imageUrl,
-                    year: imageYear,
-                    month: imageMonth,
-                    createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
-                    updatedAt: editingImageId ? serverTimestamp() : null
-                };
-
-                try {
-                    if (editingImageId) {
-                        await updateDoc(doc(db, 'images', editingImageId), imageObject);
-                        console.log("Bild uppdaterad!");
-                        showModal('confirmationModal', "Bilden har uppdaterats!", "Lyckades!");
-                    } else {
-                        await addDoc(collection(db, 'images'), imageObject);
-                        console.log("Bild tillagd!");
-                        showModal('confirmationModal', "Bilden har lagts till!", "Lyckades!");
-                    }
-
-                    addImageForm.reset();
-                    editingImageId = null;
-                    imageFormTitle.textContent = 'Lägg till Bild';
-                    addImageBtn.textContent = 'Lägg till Bild';
-                    addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    addImageBtn.classList.add('bg-gray-400');
-                    
-                    setTimeout(() => hideModal('confirmationModal'), 2000);
-                } catch (error) {
-                    console.error("Fel vid hantering av bild:", error);
-                    showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.", "Fel!");
-                }
-            });
-
-
-            const addEventForm = document.getElementById('add-event-form');
-            addEventForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!db) {
-                    showModal('errorModal', "Databasen är inte ansluten. Vänligen ladda om sidan.", "Fel!");
-                    return;
-                }
-                
-                const eventTitle = eventTitleInput.value;
-                const eventDescription = eventDescriptionEditor.innerHTML;
-                const eventDate = eventDateInput.value;
-
-                const eventObject = {
-                    title: eventTitle,
-                    description: eventDescription,
-                    date: eventDate,
-                    createdAt: editingEventId ? eventsData.find(evt => evt.id === editingEventId).createdAt : serverTimestamp(),
-                    updatedAt: editingEventId ? serverTimestamp() : null
-                };
-
-                const isRecurring = document.getElementById('is-recurring').checked;
-                const eventsCollection = collection(db, `events`);
-
-                if (isRecurring) {
-                    const startDate = document.getElementById('start-date').value;
-                    const endDate = document.getElementById('end-date').value;
-                    const weekday = parseInt(document.getElementById('weekday-select').value, 10);
-                    
-                    if (!startDate || !endDate) {
-                        showModal('errorModal', "Start- och slutdatum måste anges för återkommande händelser.", "Fel!");
-                        return;
-                    }
-
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const seriesId = `series-${Date.now()}`;
-                    const batch = writeBatch(db);
-                    
-                    for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
-                        if (d.getDay() === weekday) {
-                            const newDate = d.toISOString().split('T')[0];
-                            const eventRef = doc(eventsCollection);
-                            batch.set(eventRef, { ...eventObject, date: newDate, seriesId: seriesId });
-                        }
-                    }
-                    
-                    try {
-                        await batch.commit();
-                        console.log("Återkommande händelser tillagda!");
-                        addEventForm.reset();
-                        eventDescriptionEditor.innerHTML = '';
-                        showModal('confirmationModal', "Återkommande händelser har lagts till!", "Lyckades!");
-                        setTimeout(() => hideModal('confirmationModal'), 2000);
-                    } catch (error) {
-                        console.error("Fel vid tillägg av händelse:", error);
-                        showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.", "Fel!");
-                    }
-                } else {
-                    if (!eventDate) {
-                        showModal('errorModal', "Datum måste anges för enskild händelse.", "Fel!");
-                        return;
-                    }
-
-                    try {
-                        if (editingEventId) {
-                            await updateDoc(doc(db, 'events', editingEventId), eventObject);
-                            console.log("Händelse uppdaterad!");
-                            showModal('confirmationModal', "Händelsen har uppdaterats!", "Lyckades!");
-                        } else {
-                            await addDoc(eventsCollection, { ...eventObject, date: eventDate });
-                            console.log("Händelse tillagd!");
-                            showModal('confirmationModal', "Händelse har lagts till!", "Lyckades!");
-                        }
-                        
-                        addEventForm.reset();
-                        eventDescriptionEditor.innerHTML = '';
-                        editingEventId = null;
-                        document.getElementById('add-event-btn').textContent = 'Lägg till';
-                        
-                        setTimeout(() => hideModal('confirmationModal'), 2000);
-                    } catch (error) {
-                        console.error("Fel vid tillägg av händelse:", error);
-                        showModal('errorModal', "Ett fel uppstod när händelsen skulle läggas till. Kontrollera dina Firebase Security Rules.", "Fel!");
-                    }
-                }
+            // Hantera kassan
+            document.getElementById('checkout-login-form').addEventListener('submit', handleCheckoutLogin);
+            document.getElementById('checkout-register-form').addEventListener('submit', handleCheckoutRegister);
+            document.getElementById('close-checkout-modal').addEventListener('click', () => {
+                document.getElementById('checkoutModal').classList.remove('active');
             });
         });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                // Notera: Firebase Authentication använder e-post, men vi kan använda username som e-post för att det ska fungera.
+                await signInWithEmailAndPassword(auth, `${username}@dummy.com`, password);
+                document.getElementById('userModal').classList.remove('active');
+                showConfirmationToast("Inloggad!");
+            } catch (error) {
+                console.error("Login error:", error.code, error.message);
+                alert("Inloggningen misslyckades: " + error.message);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            try {
+                // Skapa användare
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // Spara användardata (utan lösenord) i Firestore
+                await addDoc(collection(db, `artifacts/${appId}/public/data/users`), {
+                    uid: userCredential.user.uid,
+                    username: username
+                });
+                
+                document.getElementById('userModal').classList.remove('active');
+                showConfirmationToast("Konto skapat och inloggad!");
+            } catch (error) {
+                console.error("Registration error:", error.code, error.message);
+                alert("Registrering misslyckades: " + error.message);
+            }
+        }
+
+        async function handleCheckoutLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('checkout-login-username').value;
+            const password = document.getElementById('checkout-login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, `${username}@dummy.com`, password);
+                showConfirmationToast("Inloggad i kassan!");
+                renderCheckout();
+            } catch (error) {
+                console.error("Login error:", error.code, error.message);
+                alert("Inloggningen misslyckades: " + error.message);
+            }
+        }
+        
+        async function handleCheckoutRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('checkout-register-username').value;
+            const email = document.getElementById('checkout-register-email').value;
+            const password = document.getElementById('checkout-register-password').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await addDoc(collection(db, `artifacts/${appId}/public/data/users`), {
+                    uid: userCredential.user.uid,
+                    username: username
+                });
+                showConfirmationToast("Konto skapat och inloggad i kassan!");
+                renderCheckout();
+            } catch (error) {
+                console.error("Registration error:", error.code, error.message);
+                alert("Registrering misslyckades: " + error.message);
+            }
+        }
+
+        function updateUserStatus(isLoggedIn) {
+            const userStatusEl = document.getElementById('user-status');
+            if (isLoggedIn) {
+                const userEmail = auth.currentUser.email;
+                userStatusEl.innerHTML = `<span class="font-bold">Hej, ${userEmail}!</span> | <a href="#" id="logout-link" class="hover:text-gray-300 transition duration-300">Logga ut</a> | <a href="#" id="orders-link" class="hover:text-gray-300 transition duration-300">Mina ordrar</a>`;
+                document.getElementById('orders-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('main-content').classList.add('hidden');
+                    document.getElementById('checkoutModal').classList.add('active');
+                    renderCheckout();
+                });
+            } else {
+                userStatusEl.innerHTML = `<a href="#" id="login-link" class="hover:text-gray-300 transition duration-300">Logga in</a>`;
+                document.getElementById('login-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('userModal').classList.add('active');
+                });
+            }
+        }
+        
+        function renderCheckout() {
+            const userSection = document.getElementById('checkout-user-section');
+            const userStatusText = document.getElementById('checkout-login-message');
+            const loginForms = document.getElementById('checkout-login-forms');
+            const orderHistorySection = document.getElementById('order-history-section');
+            const mainContent = document.getElementById('main-content');
+
+            mainContent.classList.add('hidden');
+
+            if (currentUser) {
+                userStatusText.textContent = `Du är inloggad som ${currentUser.email}.`;
+                loginForms.classList.add('hidden');
+                orderHistorySection.classList.remove('hidden');
+                renderOrderHistory();
+            } else {
+                userStatusText.textContent = `Du måste logga in eller skapa ett konto för att fortsätta.`;
+                loginForms.classList.remove('hidden');
+                orderHistorySection.classList.add('hidden');
+            }
+        }
+
+        async function renderOrderHistory() {
+            if (!currentUser) {
+                console.log("Ingen användare inloggad, kan inte visa orderhistorik.");
+                return;
+            }
+
+            const orderHistoryList = document.getElementById('order-history-list');
+            orderHistoryList.innerHTML = '';
+            
+            const ordersRef = collection(db, `artifacts/${appId}/private/users/${currentUser.uid}/orders`);
+            const q = query(ordersRef, orderBy('timestamp', 'desc'));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                orderHistoryList.innerHTML = '<p class="text-gray-500">Inga tidigare ordrar hittades.</p>';
+                return;
+            }
+            
+            querySnapshot.forEach(doc => {
+                const order = doc.data();
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'p-4 bg-gray-100 rounded-lg shadow-sm';
+                
+                let total = 0;
+                let itemsHtml = order.items.map(item => {
+                    total += item.price;
+                    return `
+                        <p class="text-sm">- ${item.title} (${item.size.charAt(0).toUpperCase() + item.size.slice(1)}): ${item.price.toFixed(2)} kr</p>
+                    `;
+                }).join('');
+                
+                const timestamp = order.timestamp?.toDate ? order.timestamp.toDate().toLocaleString('sv-SE') : 'Okänt datum';
+
+                orderDiv.innerHTML = `
+                    <h4 class="font-bold text-lg">Order ${timestamp}</h4>
+                    <div class="mt-2 space-y-1">${itemsHtml}</div>
+                    <p class="mt-2 font-bold text-right">Summa: ${total.toFixed(2)} kr</p>
+                `;
+                orderHistoryList.appendChild(orderDiv);
+            });
+        }
+
+
+        function loadCart() {
+            try {
+                const storedCart = localStorage.getItem('cart');
+                if (storedCart) {
+                    cart = JSON.parse(storedCart);
+                } else {
+                    cart = [];
+                }
+            } catch (e) {
+                console.error("Kunde inte ladda varukorgen från localStorage:", e);
+                cart = [];
+            }
+            updateCartCount();
+        }
+
+        function checkAndRender() {
+            if (initialDataLoaded.postcards && initialDataLoaded.priceGroups && initialDataLoaded.groups && initialDataLoaded.sales && initialDataLoaded.news) {
+                if (!allDataLoaded) {
+                    renderPostcards();
+                    renderCart();
+                    allDataLoaded = true;
+                }
+            }
+        }
+
+        function startListeners() {
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/postcards`), (snapshot) => {
+                postcardsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                initialDataLoaded.postcards = true;
+                checkAndRender();
+            });
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/priceGroups`), (snapshot) => {
+                priceGroupsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                initialDataLoaded.priceGroups = true;
+                checkAndRender();
+            });
+            onSnapshot(query(collection(db, `artifacts/${appId}/public/data/groups`), orderBy('order')), (snapshot) => {
+                groupsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                populateFilters(); 
+                initialDataLoaded.groups = true;
+                checkAndRender();
+            });
+            onSnapshot(collection(db, `artifacts/${appId}/public/data/sales`), (snapshot) => {
+                salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                initialDataLoaded.sales = true;
+                checkAndRender();
+            });
+            onSnapshot(query(collection(db, `artifacts/${appId}/public/data/news`), orderBy('order')), (snapshot) => {
+                const newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderNews(newsData);
+                initialDataLoaded.news = true;
+                checkAndRender();
+            });
+        }
+        
+        function renderNews(news) {
+            const newsList = document.getElementById('news-list');
+            newsList.innerHTML = '';
+            
+            const now = new Date();
+            const activeNews = news.filter(item => 
+                item.noTimeLimit || (item.startDate && item.endDate && now >= new Date(item.startDate) && now <= new Date(item.endDate))
+            );
+
+            if (activeNews.length === 0) {
+                document.getElementById('news-section').classList.add('hidden');
+                return;
+            } else {
+                document.getElementById('news-section').classList.remove('hidden');
+            }
+
+            activeNews.forEach(item => {
+                const newsItem = document.createElement('div');
+                newsItem.className = 'news-item';
+                newsItem.innerHTML = `
+                    <h3 class="font-bold text-lg mb-1">${item.title}</h3>
+                    <p class="text-sm">${item.text}</p>
+                `;
+                newsList.appendChild(newsItem);
+            });
+        }
+
+
+        function populateFilters() {
+            const groupFilter = document.getElementById('group-filter');
+
+            groupFilter.innerHTML = '<option value="all">Alla Grupper</option>';
+            groupsData.forEach(g => {
+                const option = document.createElement('option');
+                option.value = g.id;
+                option.textContent = g.name;
+                groupFilter.appendChild(option);
+            });
+        }
+
+        function calculatePrice(postcard) {
+            const prices = priceGroupsData.find(pg => pg.id === postcard.priceGroup)?.prices;
+            return prices || { liten: 0, mellan: 0, stor: 0 };
+        }
+
+        function getDiscountedPrice(item) {
+            const postcard = postcardsData.find(p => p.id === item.id);
+            if (!postcard) return item.price;
+            
+            const originalPrice = calculatePrice(postcard)[item.size];
+            let finalPrice = originalPrice;
+
+            const productSale = salesData.find(s => s.targetType === 'product' && s.targetId === item.id);
+            const groupSale = salesData.find(s => s.targetType === 'group' && s.targetId === postcard.group);
+            
+            let appliedSale = null;
+            if (productSale) {
+                appliedSale = productSale;
+            } else if (groupSale) {
+                appliedSale = groupSale;
+            }
+
+            if (appliedSale) {
+                if (appliedSale.type === 'percent') {
+                    finalPrice = originalPrice - (originalPrice * (appliedSale.value / 100));
+                } else if (appliedSale.type === 'summa') {
+                    finalPrice = originalPrice - appliedSale.value;
+                    if (finalPrice < 0) finalPrice = 0;
+                }
+            }
+            return finalPrice;
+        }
+
+        async function renderPostcards() {
+            const postcardsList = document.getElementById('postcards-list');
+            postcardsList.innerHTML = '';
+            
+            const groupsToRender = document.getElementById('group-filter').value === 'all'
+                ? groupsData
+                : groupsData.filter(g => g.id === document.getElementById('group-filter').value);
+            
+            const renderedGroups = new Set();
+            let allGroupsHtml = '';
+
+            for (const group of groupsToRender) {
+                if (renderedGroups.has(group.id)) continue;
+                renderedGroups.add(group.id);
+
+                const postcardsInGroup = postcardsData.filter(p => p.group === group.id);
+                
+                if (postcardsInGroup.length > 0) {
+                    const postcardHtmlPromises = postcardsInGroup.map(p => createPostcardHtml(p));
+                    const postcardHtmls = await Promise.all(postcardHtmlPromises);
+
+                    let groupSectionHtml = `<h2 class="text-3xl font-bold mt-8 mb-4">${group.name}</h2>`;
+                    groupSectionHtml += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">`;
+                    groupSectionHtml += postcardHtmls.join('');
+                    groupSectionHtml += `</div>`;
+                    
+                    allGroupsHtml += groupSectionHtml;
+                }
+            }
+            
+            postcardsList.innerHTML = allGroupsHtml;
+            document.querySelectorAll('.postcard-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const postcardId = e.currentTarget.dataset.id;
+                    openPostcardModal(postcardId);
+                });
+            });
+        }
+        
+        async function createPostcardHtml(p) {
+            const priceGroup = priceGroupsData.find(pg => pg.id === p.priceGroup);
+            
+            let priceHtml = '';
+            let hasSale = false;
+            
+            const applicableSales = salesData.filter(s => {
+                const now = new Date();
+                const isTimeValid = s.noTimeLimit || (s.startDate && s.endDate && now >= new Date(s.startDate) && now <= new Date(s.endDate));
+                
+                const isTargetValid = (s.targetType === 'group' && s.targetId === p.group) || 
+                                      (s.targetType === 'product' && s.targetId === p.id);
+                              
+                return isTimeValid && isTargetValid;
+            });
+            
+            if(applicableSales.length > 0) hasSale = true;
+
+            if (priceGroup) {
+                const sizes = ['liten', 'mellan', 'stor'];
+                sizes.forEach((size, index) => {
+                    const originalPrice = priceGroup.prices[size];
+                    const discountedPrice = getDiscountedPrice({ id: p.id, size: size, price: originalPrice });
+                    
+                    if (originalPrice !== discountedPrice) {
+                        priceHtml += `
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm">
+                                    ${size.charAt(0).toUpperCase() + size.slice(1)}:
+                                    <span class="line-through text-gray-400">${originalPrice} kr</span>
+                                    <span class="text-red-600 font-bold ml-1">${discountedPrice.toFixed(2)} kr</span>
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        priceHtml += `
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm">${size.charAt(0).toUpperCase() + size.slice(1)}: ${originalPrice} kr</span>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            const saleBadge = hasSale ? '<span class="ml-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">REA!</span>' : '';
+
+            const image = new Image();
+            image.src = p.imageURL;
+            await new Promise(resolve => image.onload = resolve);
+            const orientation = image.naturalWidth > image.naturalHeight ? 'landscape' : 'portrait';
+
+            return `
+                <div class="card flex flex-col items-center text-center cursor-pointer postcard-card" data-id="${p.id}">
+                    <div class="postcard-image-wrapper ${orientation} rounded-lg mb-4">
+                        <img src="${p.imageURL}" alt="${p.title}">
+                    </div>
+                    <h2 class="text-xl font-bold mb-2">${p.title}${saleBadge}</h2>
+                    ${priceHtml}
+                </div>
+            `;
+        }
+        
+        function openPostcardModal(postcardId, cartItemIndex = -1) {
+            const postcard = postcardsData.find(p => p.id === postcardId);
+            if (!postcard) {
+                console.error("Vykortet hittades inte:", postcardId);
+                return;
+            }
+
+            document.getElementById('modal-postcard-id').value = postcard.id;
+            document.getElementById('modal-cart-item-index').value = cartItemIndex;
+            document.getElementById('modal-title').textContent = postcard.title;
+            
+            const imageEl = document.getElementById('modal-image');
+            const imageWrapper = document.getElementById('modal-image-wrapper');
+            imageEl.src = postcard.imageURL;
+
+            const image = new Image();
+            image.src = postcard.imageURL;
+            image.onload = () => {
+                const orientation = image.naturalWidth > image.naturalHeight ? 'landscape' : 'portrait';
+                imageWrapper.className = `postcard-image-wrapper ${orientation} rounded-lg mb-4`;
+            };
+
+            const pricesEl = document.getElementById('modal-size-options');
+            pricesEl.innerHTML = '';
+            
+            const priceGroup = priceGroupsData.find(pg => pg.id === postcard.priceGroup);
+            if (priceGroup) {
+                const sizes = ['liten', 'mellan', 'stor'];
+                sizes.forEach((size, index) => {
+                    const originalPrice = priceGroup.prices[size];
+                    const discountedPrice = getDiscountedPrice({ id: postcard.id, size: size, price: originalPrice });
+                    
+                    let priceDisplay = `<span class="font-bold">${discountedPrice.toFixed(2)} kr</span>`;
+                    if (originalPrice !== discountedPrice) {
+                        priceDisplay = `<span class="line-through text-gray-400">${originalPrice.toFixed(2)} kr</span>
+                                        <span class="font-bold ml-1 text-red-600">${discountedPrice.toFixed(2)} kr</span>`;
+                    }
+                    
+                    pricesEl.innerHTML += `
+                        <div class="flex items-center">
+                            <input type="radio" id="size-${size}" name="size" value="${size}" class="mr-2" ${index === 0 ? 'checked' : ''}>
+                            <label for="size-${size}" class="flex-1">${size.charAt(0).toUpperCase() + size.slice(1)} (${priceDisplay})</label>
+                        </div>
+                    `;
+                });
+            }
+
+            if (cartItemIndex !== -1) {
+                const itemToEdit = cart[cartItemIndex];
+                document.getElementById(`size-${itemToEdit.size}`).checked = true;
+                document.getElementById('modal-recipient-name').value = itemToEdit.recipient.name || '';
+                document.getElementById('modal-recipient-address').value = itemToEdit.recipient.address || '';
+                document.getElementById('modal-recipient-address2').value = itemToEdit.recipient.address2 || '';
+                document.getElementById('modal-recipient-zip').value = itemToEdit.recipient.zip || '';
+                document.getElementById('modal-recipient-city').value = itemToEdit.recipient.city || '';
+                document.getElementById('modal-recipient-country').value = itemToEdit.recipient.country || '';
+                document.getElementById('modal-message-text').value = itemToEdit.message || '';
+                document.querySelector('#add-to-cart-form button[type="submit"]').textContent = "Uppdatera i varukorgen";
+            } else {
+                document.getElementById('add-to-cart-form').reset();
+                document.querySelector('#add-to-cart-form button[type="submit"]').textContent = "Lägg i varukorgen";
+            }
+
+            document.getElementById('postcardModal').classList.add('active');
+        }
+
+        function addToCart(item) {
+            cart.push(item);
+            
+            showConfirmationToast();
+            saveCart();
+            renderCart();
+        }
+
+        function editCartItem(index, newItem) {
+            cart[index] = newItem;
+            showConfirmationToast("Vara uppdaterad i varukorgen!");
+            saveCart();
+            renderCart();
+        }
+        
+        function showConfirmationToast(message = "Vara tillagd i varukorgen!") {
+            const toast = document.getElementById('confirmation-toast');
+            if (toast) {
+                toast.textContent = message;
+                toast.classList.add('active');
+                setTimeout(() => {
+                    toast.classList.remove('active');
+                }, 2000);
+            }
+        }
+
+        function saveCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            document.getElementById('cart-count').textContent = cart.length;
+        }
+
+        function calculateCartTotal() {
+            let subtotal = 0;
+            cart.forEach(item => {
+                const discountedPrice = getDiscountedPrice(item);
+                subtotal += discountedPrice;
+            });
+            
+            const applicableSales = salesData.filter(s => {
+                const now = new Date();
+                const isTimeValid = s.noTimeLimit || (s.startDate && s.endDate && now >= new Date(s.startDate) && now <= new Date(s.endDate));
+                const isTargetValid = s.targetType === 'all';
+                return isTimeValid && isTargetValid;
+            });
+            
+            let totalDiscount = 0;
+            let finalTotal = subtotal;
+
+            applicableSales.forEach(s => {
+                if (s.type === 'percent') {
+                    totalDiscount += subtotal * (s.value / 100);
+                } else if (s.type === 'summa') {
+                    totalDiscount += s.value;
+                }
+            });
+
+            finalTotal = subtotal - totalDiscount;
+            if (finalTotal < 0) finalTotal = 0;
+
+            return { subtotal, totalDiscount, finalTotal };
+        }
+
+        function renderCart() {
+            const cartItemsEl = document.getElementById('cart-items');
+            cartItemsEl.innerHTML = '';
+            
+            if (cart.length === 0) {
+                cartItemsEl.innerHTML = '<p class="text-center text-gray-500">Din varukorg är tom.</p>';
+            } else {
+                cart.forEach((item, index) => {
+                    const discountedPrice = getDiscountedPrice(item);
+                    const postcardOriginal = postcardsData.find(p => p.id === item.id);
+                    const originalPrice = postcardOriginal ? calculatePrice(postcardOriginal)[item.size] : item.price;
+                    
+                    let priceDisplay = `<span class="font-bold">${discountedPrice.toFixed(2)} kr</span>`;
+                    
+                    if (originalPrice && originalPrice !== discountedPrice) {
+                        priceDisplay = `<span class="line-through text-gray-400">${originalPrice.toFixed(2)} kr</span>
+                                        <span class="font-bold ml-1 text-red-600">${discountedPrice.toFixed(2)} kr</span>`;
+                    }
+                    
+                    const recipientText = `${item.recipient.name}, ${item.recipient.address}, ${item.recipient.zip} ${item.recipient.city}, ${item.recipient.country}`;
+                    const messageText = item.message.substring(0, 50) + (item.message.length > 50 ? '...' : '');
+
+                    cartItemsEl.innerHTML += `
+                        <div class="flex flex-col p-2 bg-gray-100 rounded-md">
+                            <div class="flex items-center justify-between">
+                                <p class="font-semibold">${item.title} (${item.size.charAt(0).toUpperCase() + item.size.slice(1)})</p>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="openPostcardModal('${item.id}', ${index})" class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600">Ändra</button>
+                                    <button onclick="removeFromCart(${index})" class="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600">Ta bort</button>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-600 cart-item-details">
+                                <strong>Pris:</strong>
+                                <span>${priceDisplay}</span>
+                                <strong>Text:</strong>
+                                <span>${messageText || 'Ingen text'}</span>
+                                <strong>Mottagare:</strong>
+                                <span>${recipientText || 'Ej angiven'}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            const { subtotal, totalDiscount, finalTotal } = calculateCartTotal();
+            document.getElementById('cart-subtotal').textContent = `${subtotal.toFixed(2)} kr`;
+            document.getElementById('cart-total').textContent = `${finalTotal.toFixed(2)} kr`;
+
+            if (totalDiscount > 0) {
+                document.getElementById('cart-total-discount-container').classList.remove('hidden');
+                document.getElementById('cart-total-discount').textContent = `-${totalDiscount.toFixed(2)} kr`;
+            } else {
+                document.getElementById('cart-total-discount-container').classList.add('hidden');
+            }
+            
+            updateCartCount();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            saveCart();
+            renderCart();
+        }
+        
+        function clearCart() {
+            cart = [];
+            saveCart();
+            renderCart();
+        }
+        
+        window.openPostcardModal = openPostcardModal;
+        window.removeFromCart = removeFromCart;
+        window.clearCart = clearCart;
     </script>
 </body>
 </html>
-
-
