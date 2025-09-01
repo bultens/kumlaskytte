@@ -506,22 +506,16 @@
     
     <!-- Firebase SDK-skript -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { updateDoc as updateDocFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    // ... resten av din kod
+    
+    // Importera din konfiguration från den nya filen
+    import { firebaseConfig } from "./firebase-config.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyB52hRH8vfCKFLCAzPCEaQM05lKHgYq-hE",
-            authDomain: "kumlaskytte.firebaseapp.com",
-            projectId: "kumlaskytte",
-            storageBucket: "kumlaskytte.firebasestorage.app",
-            messagingSenderId: "571676149705",
-            appId: "1:571676149705:web:a0ace868f4680298a78a18",
-            measurementId: "G-KSJ9NLNDBX"
-        };
+    // Nu kan du använda firebaseConfig direkt här
+    const appId = firebaseConfig.projectId;
 
         const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey.length > 0;
         let db;
@@ -1962,4 +1956,5 @@
     </script>
 </body>
 </html>
+
 
