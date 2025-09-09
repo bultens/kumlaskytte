@@ -141,7 +141,7 @@
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.56</p>
+                    <p class="text-sm text-gray-300">Ver. 1.58</p>
                 </div>
             </div>
             <nav>
@@ -301,7 +301,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="image-year" class="block mb-2 font-semibold">År</label>
-                            <input type="number" id="image-year" required value="${new Date().getFullYear()}" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                            <input type="number" id="image-year" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         </div>
                         <div>
                             <label for="image-month" class="block mb-2 font-semibold">Månad</label>
@@ -479,7 +479,7 @@
         import { updateDoc as updateDocFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw", // Klistra in din nya API-nyckel här från Firebase-konsolen
             authDomain: "kumlaskytte.firebaseapp.com",
             projectId: "kumlaskytte",
             storageBucket: "kumlaskytte.firebasestorage.app",
@@ -953,16 +953,16 @@
                     statusIndicator.textContent = "Firebase är ansluten.";
                     statusIndicator.classList.add('bg-green-500');
 
-                    await signInAnonymously(auth);
-
-                    auth.onAuthStateChanged((user) => {
-                        if (user) {
-                            currentUserId = user.uid;
-                            console.log("Authenticated with Firebase:", currentUserId);
-                        } else {
-                            console.log("Not authenticated with Firebase.");
-                        }
-                    });
+                    // FIX: Vi försöker fortfarande logga in anonymt för att få ett currentUserId, 
+                    // men vi hanterar felet så att resten av sidan kan laddas ändå.
+                    try {
+                        const userCredential = await signInAnonymously(auth);
+                        currentUserId = userCredential.user.uid;
+                        console.log("Authenticated with Firebase:", currentUserId);
+                    } catch (signInError) {
+                        console.warn("Anonym inloggning misslyckades, fortsätter utan användar-ID. Felet var: ", signInError.message);
+                        currentUserId = null;
+                    }
 
                     // Initial rendering and live listeners
                     const newsRef = collection(db, `news`);
