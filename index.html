@@ -141,7 +141,7 @@
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.52</p>
+                    <p class="text-sm text-gray-300">Ver. 1.53</p>
                 </div>
             </div>
             <nav>
@@ -827,10 +827,10 @@
                 const itemYear = itemDate.getFullYear();
                 const itemMonth = itemDate.toLocaleString('sv-SE', { month: 'long' });
 
-                galleryContainer.innerHTML += `
-                    <h2 class="text-2xl font-bold mt-8 mb-4 col-span-full">${itemMonth} ${itemYear}</h2>
-                    <hr class="col-span-full border-gray-300 mb-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                const galleryGroupHtml = `
+                    <h2 class="text-2xl font-bold mt-8 mb-4">${itemMonth} ${itemYear}</h2>
+                    <hr class="border-gray-300 mb-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
                         ${imagesInGroup.map(item => `
                             <div class="relative group">
                                 <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300">
@@ -847,6 +847,7 @@
                         `).join('')}
                     </div>
                 `;
+                galleryContainer.innerHTML += galleryGroupHtml;
             }
         }
         function renderAdmins() {
