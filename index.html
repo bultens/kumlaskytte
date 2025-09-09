@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">Kumla Skytteförening</title>
-    <!-- Favicon för webbläsarfliken -->
     <link id="favicon-link" rel="icon" type="image/png" href="logo.png">
-    <!-- Använd Tailwind CSS för en snygg och responsiv design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
@@ -134,19 +132,16 @@
 </head>
 <body>
 
-    <!-- Header och navigering -->
     <header class="bg-blue-800 text-white shadow-lg">
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div class="flex items-center space-x-4">
-                <!-- Logotypen har nu klassen logo-large -->
                 <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
                 <div class="flex flex-col items-start">
                     <div class="flex items-center space-x-2">
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
-                        <!-- Visuell indikator för adminläge -->
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.51</p>
+                    <p class="text-sm text-gray-300">Ver. 1.52</p>
                 </div>
             </div>
             <nav>
@@ -161,10 +156,8 @@
         </div>
     </header>
 
-    <!-- Huvudinnehåll -->
     <main class="container">
 
-        <!-- Sida: Hem -->
         <section id="hem" class="page active">
             <div class="bg-blue-100 p-8 rounded-xl text-center mb-8">
                 <h1 class="text-4xl font-extrabold text-blue-900 mb-4">Välkommen till Kumla Skytteförening!</h1>
@@ -173,20 +166,16 @@
             
             <h2 class="text-3xl font-bold mb-4">Senaste Nyheterna</h2>
             <div id="home-news-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Nyheter kommer att renderas här av JavaScript -->
-            </div>
+                </div>
             
             <h2 class="text-3xl font-bold mt-8 mb-4">Kommande Evenemang</h2>
             <div id="home-events-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Kalenderhändelser kommer att renderas här av JavaScript -->
-            </div>
+                </div>
 
             <h2 class="text-3xl font-bold mt-8 mb-4">Klubbens Poster</h2>
             <div id="home-history-container" class="space-y-6">
-                <!-- Historieposter renderas här av JavaScript -->
-            </div>
+                </div>
             
-            <!-- Formulär för Historieposter (Admin) -->
             <div class="card mt-6 hidden" id="history-edit-section">
                 <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Huvudsidposter</h2>
                 <form id="add-history-form">
@@ -208,14 +197,11 @@
             </div>
         </section>
 
-        <!-- Sida: Nyheter -->
         <section id="nyheter" class="page">
             <h1 class="text-4xl font-bold mb-6">Alla Nyheter</h1>
             <div id="all-news-container" class="space-y-6">
-                <!-- Nyheter kommer att renderas här av JavaScript -->
-            </div>
+                </div>
             
-            <!-- Formulär för Nyheter (Admin) -->
             <div class="card mt-6 hidden" id="news-edit-section">
                 <h2 class="text-2xl font-bold mb-4" id="news-form-title">Lägg till Nyhet</h2>
                 <form id="add-news-form">
@@ -240,33 +226,27 @@
             </div>
         </section>
 
-        <!-- Sida: Kalender -->
         <section id="kalender" class="page">
             <h1 class="text-4xl font-bold mb-6">Kalender</h1>
             <div id="calendar-container" class="space-y-6">
-                <!-- Kalenderhändelser kommer att renderas här av JavaScript -->
-            </div>
+                </div>
 
-            <!-- Formulär för Kalenderhändelser (Admin) -->
             <div class="card mt-6 hidden" id="calendar-edit-section">
                 <h2 class="text-2xl font-bold mb-4">Lägg till Kalenderhändelse</h2>
                 <form id="add-event-form">
                     <label for="event-title" class="block mb-2 font-semibold">Titel</label>
                     <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     
-                    <!-- Välj om händelsen är återkommande eller inte -->
                     <div class="flex items-center mb-4">
                         <input type="checkbox" id="is-recurring" class="mr-2">
                         <label for="is-recurring" class="font-semibold">Återkommande händelse</label>
                     </div>
 
-                    <!-- Fält för engångshändelse -->
                     <div id="single-event-fields">
                         <label for="event-date" class="block mb-2 font-semibold">Datum</label>
                         <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     </div>
 
-                    <!-- Fält för återkommande händelse -->
                     <div id="recurring-event-fields" class="hidden">
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
@@ -305,14 +285,11 @@
             </div>
         </section>
 
-        <!-- Sida: Bilder -->
         <section id="bilder" class="page">
             <h1 class="text-4xl font-bold mb-6">Bildgalleri</h1>
             <div id="gallery-container">
-                <!-- Bilder kommer att renderas här av JavaScript -->
-            </div>
+                </div>
 
-            <!-- Formulär för att lägga till bilder (Admin) -->
             <div class="card mt-6 hidden" id="image-edit-section">
                 <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
                 <form id="add-image-form">
@@ -350,7 +327,6 @@
             </div>
         </section>
 
-        <!-- Sida: Admin -->
         <section id="admin" class="page">
             <div id="admin-login-panel" class="card max-w-md mx-auto">
                 <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
@@ -366,7 +342,6 @@
                 </div>
                 <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
                 
-                <!-- Webbplatsinställningar -->
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
                     <form id="update-site-settings-form">
@@ -378,7 +353,6 @@
                     </form>
                 </div>
                 
-                <!-- Adminhantering -->
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
                     <form id="add-admin-form">
@@ -392,15 +366,13 @@
                     <div class="mt-8">
                         <h3 class="text-xl font-bold mb-2">Befintliga administratörer</h3>
                         <div id="admin-list" class="space-y-2">
-                            <!-- Administratörer renderas här -->
-                        </div>
+                            </div>
                     </div>
                 </div>
 
             </div>
         </section>
         
-        <!-- Modal för felmeddelanden -->
         <div id="errorModal" class="modal">
             <div class="modal-content">
                 <span id="close-error-modal" class="modal-close-btn">&times;</span>
@@ -408,14 +380,12 @@
             </div>
         </div>
 
-        <!-- Bekräftelse-modal -->
         <div id="confirmationModal" class="modal">
             <div class="modal-content">
                 <p id="confirmation-message" class="text-lg font-semibold text-green-600"></p>
             </div>
         </div>
         
-        <!-- Raderingsmodal för kalenderhändelser och nyheter -->
         <div id="deleteConfirmationModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-xl font-bold mb-4">Bekräfta borttagning</h3>
@@ -427,7 +397,6 @@
             </div>
         </div>
 
-        <!-- Raderingsmodal för kalenderhändelser -->
         <div id="deleteEventModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-xl font-bold mb-4">Radera händelse</h3>
@@ -440,7 +409,6 @@
             </div>
         </div>
 
-        <!-- Modal för att dela nyhet -->
         <div id="shareModal" class="modal">
             <div class="modal-content">
                 <span id="close-share-modal" class="modal-close-btn">&times;</span>
@@ -463,7 +431,6 @@
             </div>
         </div>
 
-        <!-- Modal för att lägga till bild -->
         <div id="insertImageModal" class="modal">
             <div class="modal-content">
                 <h3 class="text-xl font-bold mb-4">Infoga bild</h3>
@@ -487,7 +454,6 @@
 
     </main>
 
-    <!-- Footer -->
     <footer class="bg-blue-800 text-white text-center py-4 mt-8">
         <div class="container text-sm flex flex-col sm:flex-row justify-between items-center">
             <p class="font-bold">Kumla Skytteförening</p>
@@ -504,18 +470,23 @@
         </div>
     </footer>
     
-    <!-- Firebase SDK-skript -->
     <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    // ... resten av din kod
-    
-    // Importera din konfiguration från den nya filen
-    import { firebaseConfig } from "./firebase-config.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { updateDoc as updateDocFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Nu kan du använda firebaseConfig direkt här
-    const appId = firebaseConfig.projectId;
+        const firebaseConfig = {
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+            authDomain: "kumlaskytte.firebaseapp.com",
+            projectId: "kumlaskytte",
+            storageBucket: "kumlaskytte.firebasestorage.app",
+            messagingSenderId: "571676149705",
+            appId: "1:571676149705:web:a0ace868f4680298a78a18",
+            measurementId: "G-KSJ9NLNDBX"
+        };
 
         const firebaseConfigExists = Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey.length > 0;
         let db;
@@ -825,59 +796,59 @@
             });
         }
 
-        // --- RENDER IMAGES ---
+        // --- RENDER IMAGES (FIXED LOGIC) ---
         function renderImages() {
             const galleryContainer = document.getElementById('gallery-container');
             if (!galleryContainer) return;
 
             galleryContainer.innerHTML = '';
             
-            // Sortera bilder efter år och månad
+            // Sortera bilder efter år och månad (fallande)
             imageData.sort((a, b) => {
                 const dateA = new Date(a.year, a.month - 1);
                 const dateB = new Date(b.year, b.month - 1);
                 return dateB - dateA;
             });
             
-            let currentYear = null;
-            let currentMonth = null;
+            // Gruppera bilder efter år och månad
+            const groupedImages = imageData.reduce((acc, curr) => {
+                const key = `${curr.year}-${curr.month}`;
+                if (!acc[key]) {
+                    acc[key] = [];
+                }
+                acc[key].push(curr);
+                return acc;
+            }, {});
 
-            imageData.forEach(item => {
-                const itemDate = new Date(item.year, item.month - 1);
+            // Gå igenom de grupperade bilderna och rendera dem
+            for (const key in groupedImages) {
+                const imagesInGroup = groupedImages[key];
+                const itemDate = new Date(imagesInGroup[0].year, imagesInGroup[0].month - 1);
                 const itemYear = itemDate.getFullYear();
                 const itemMonth = itemDate.toLocaleString('sv-SE', { month: 'long' });
 
-                if (itemYear !== currentYear || itemMonth !== currentMonth) {
-                    currentYear = itemYear;
-                    currentMonth = itemMonth;
-                    galleryContainer.innerHTML += `
-                        <h2 class="text-2xl font-bold mt-8 mb-4 col-span-full">${currentMonth} ${currentYear}</h2>
-                        <hr class="col-span-full border-gray-300 mb-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 col-span-full" id="image-group-${currentYear}-${item.month}"></div>
-                    `;
-                }
-
-                const imageGroupContainer = document.getElementById(`image-group-${currentYear}-${item.month}`);
-
-                if (imageGroupContainer) {
-                    imageGroupContainer.innerHTML += `
-                        <div class="relative group">
-                            <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300">
-                            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
-                                <h3 class="text-lg font-bold">${item.title}</h3>
-                            </div>
-                            ${isAdminLoggedIn ? `
-                                <div class="absolute top-2 right-2 flex space-x-2">
-                                    <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                                    <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
+                galleryContainer.innerHTML += `
+                    <h2 class="text-2xl font-bold mt-8 mb-4 col-span-full">${itemMonth} ${itemYear}</h2>
+                    <hr class="col-span-full border-gray-300 mb-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                        ${imagesInGroup.map(item => `
+                            <div class="relative group">
+                                <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300">
+                                <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
+                                    <h3 class="text-lg font-bold">${item.title}</h3>
                                 </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }
-            });
+                                ${isAdminLoggedIn ? `
+                                    <div class="absolute top-2 right-2 flex space-x-2">
+                                        <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
         }
-
         function renderAdmins() {
             const admins = adminsData;
             const adminListEl = document.getElementById('admin-list');
@@ -1956,4 +1927,3 @@
     </script>
 </body>
 </html>
-
