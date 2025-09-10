@@ -23,6 +23,7 @@ const historyFormTitle = document.getElementById('history-form-title');
 const newsFormTitle = document.getElementById('news-form-title');
 const imageFormTitle = document.getElementById('image-form-title');
 
+
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message, title) {
     const modal = document.getElementById(modalId);
