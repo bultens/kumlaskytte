@@ -3,7 +3,6 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -15,7 +14,10 @@ let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
 let currentUserId = null;
+
+// Deklarera variablerna för knapparna här så de är tillgängliga globalt
 let newsAddBtn, eventAddBtn, historyAddBtn, addImageBtn, historyFormTitle, newsFormTitle, imageFormTitle;
+
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message, title) {
@@ -311,12 +313,14 @@ function renderImages() {
 
     galleryContainer.innerHTML = '';
     
+    // Sortera bilder efter år och månad (fallande)
     imageData.sort((a, b) => {
         const dateA = new Date(a.year, a.month - 1);
         const dateB = new Date(b.year, b.month - 1);
         return dateB - dateA;
     });
     
+    // Gruppera bilder efter år och månad
     const groupedImages = imageData.reduce((acc, curr) => {
         const key = `${curr.year}-${curr.month}`;
         if (!acc[key]) {
@@ -326,6 +330,7 @@ function renderImages() {
         return acc;
     }, {});
 
+    // Gå igenom de grupperade bilderna och rendera dem
     for (const key in groupedImages) {
         const imagesInGroup = groupedImages[key];
         const itemDate = new Date(imagesInGroup[0].year, imagesInGroup[0].month - 1);
@@ -485,30 +490,13 @@ function navigate(hash) {
                 if (targetElement) {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-            }, 100);
+            }, 500);
         } else {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     } else {
         document.getElementById('hem').classList.add('active');
     }
-}
-
-function getFirstImage(htmlContent) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    const firstImage = tempDiv.querySelector('img');
-    return firstImage ? firstImage.outerHTML : '';
-}
-
-function getFirstLineText(htmlContent) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    const firstChild = tempDiv.firstElementChild;
-    if (firstChild && firstChild.tagName === 'P') {
-        return firstChild.textContent;
-    }
-    return tempDiv.textContent.split('\n')[0].trim();
 }
 
 function handleDeeplink() {
@@ -536,6 +524,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         isAdminLoggedIn = false;
         loggedInAdminUsername = '';
         const profileNavLink = document.getElementById('profile-nav-link');
+        const adminIndicator = document.getElementById('admin-indicator');
 
         if (user) {
             profileNavLink.classList.remove('hidden');
@@ -545,9 +534,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!querySnapshot.empty) {
                 isAdminLoggedIn = true;
                 loggedInAdminUsername = user.email;
+                adminIndicator.classList.remove('hidden');
+            } else {
+                adminIndicator.classList.add('hidden');
             }
         } else {
             profileNavLink.classList.add('hidden');
+            adminIndicator.classList.add('hidden');
         }
         updateUI();
     });
@@ -618,8 +611,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (siteNameInput) siteNameInput.value = data.siteName || '';
         }
     });
-
-    updateUI();
 
     // --- Event Listeners ---
     document.addEventListener('click', (e) => {
@@ -702,6 +693,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setTimeout(() => hideModal('confirmationModal'), 2000);
             } catch (error) {
                 console.error("Fel vid hantering av nyhet:", error);
+                showModal('errorModal', "Ett fel uppstod.", "Fel!");
+            }
+        });
+    }
+
+    const addHistoryForm = document.getElementById('add-history-form');
+    if (addHistoryForm) {
+        addHistoryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const historyTitle = document.getElementById('history-title').value;
+            const historyContent = document.getElementById('history-content-editor').innerHTML;
+
+            const historyObject = {
+                title: historyTitle,
+                content: historyContent,
+                createdAt: editingHistoryId ? historyData.find(h => h.id === editingHistoryId).createdAt : serverTimestamp(),
+                updatedAt: editingHistoryId ? serverTimestamp() : null
+            };
+
+            try {
+                if (editingHistoryId) {
+                    await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
+                    showModal('confirmationModal', "Huvudsidpost har uppdaterats!", "Lyckades!");
+                } else {
+                    await addDoc(collection(db, 'history'), historyObject);
+                    showModal('confirmationModal', "Huvudsidpost har lagts till!", "Lyckades!");
+                }
+
+                addHistoryForm.reset();
+                document.getElementById('history-content-editor').innerHTML = '';
+                editingHistoryId = null;
+                document.getElementById('history-form-title').textContent = 'Lägg till Huvudsidposter';
+                document.getElementById('add-history-btn').textContent = 'Lägg till';
+
+                setTimeout(() => hideModal('confirmationModal'), 2000);
+            } catch (error) {
+                console.error("Fel vid hantering av historiepost:", error);
                 showModal('errorModal', "Ett fel uppstod.", "Fel!");
             }
         });
