@@ -615,6 +615,50 @@ if (addHistoryForm) {
     });
 }
 
+const addImageForm = document.getElementById('add-image-form');
+if (addImageForm) {
+    addImageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const imageTitle = document.getElementById('image-title').value;
+        const imageUrl = document.getElementById('image-url').value;
+        const imageYear = parseInt(document.getElementById('image-year').value);
+        const imageMonth = parseInt(document.getElementById('image-month').value);
+        
+        const imageObject = {
+            title: imageTitle,
+            url: imageUrl,
+            year: imageYear,
+            month: imageMonth,
+            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
+            updatedAt: editingImageId ? serverTimestamp() : null
+        };
+
+        try {
+            if (editingImageId) {
+                await updateDoc(doc(db, 'images', editingImageId), imageObject);
+                showModal('confirmationModal', "Bilden har uppdaterats!", "Lyckades!");
+            } else {
+                await addDoc(collection(db, 'images'), imageObject);
+                showModal('confirmationModal', "Bilden har lagts till!", "Lyckades!");
+            }
+
+            addImageForm.reset();
+            editingImageId = null;
+            document.getElementById('image-form-title').textContent = 'Lägg till Bild';
+            if (addImageBtn) {
+                addImageBtn.textContent = 'Lägg till Bild';
+                addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                addImageBtn.classList.add('bg-gray-400');
+            }
+            setTimeout(() => hideModal('confirmationModal'), 2000);
+        } catch (error) {
+            console.error("Fel vid hantering av bild:", error);
+            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.", "Fel!");
+        }
+    });
+}
+
+
 const loginBtn = document.getElementById('login-btn');
 const adminUsernameInput = document.getElementById('admin-username');
 const adminPasswordInput = document.getElementById('admin-password');
