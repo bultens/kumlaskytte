@@ -19,7 +19,7 @@
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.61</p>
+                    <p class="text-sm text-gray-300">Ver. 1.63</p>
                 </div>
             </div>
             <nav>
@@ -28,6 +28,7 @@
                     <li><a href="#nyheter" class="hover:text-gray-300 transition duration-300">Nyheter</a></li>
                     <li><a href="#kalender" class="hover:text-gray-300 transition duration-300">Kalender</a></li>
                     <li><a href="#bilder" class="hover:text-gray-300 transition duration-300">Bilder</a></li>
+                    <li id="user-nav-link" class="hidden"><a href="#profil" class="hover:text-gray-300 transition duration-300">Logga in</a></li>
                     <li id="profile-nav-link" class="hidden"><a href="#profil" class="hover:text-gray-300 transition duration-300">Min Profil</a></li>
                     <li><a href="#admin" class="hover:text-gray-300 transition duration-300">Admin</a></li>
                 </ul>
@@ -254,7 +255,7 @@
 
         <section id="profil" class="page">
             <h1 class="text-4xl font-bold mb-6">Min Profil</h1>
-            <div id="profile-panel" class="card max-w-md mx-auto">
+            <div id="profile-panel" class="card max-w-md mx-auto hidden">
                 <p>Du är inloggad som: <strong id="profile-email"></strong></p>
                 <div class="mt-4">
                     <button id="logout-profile-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>

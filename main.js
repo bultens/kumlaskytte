@@ -16,7 +16,13 @@ let editingImageId = null;
 let currentUserId = null;
 
 // Deklarera variablerna för knapparna här så de är tillgängliga globalt
-let newsAddBtn, eventAddBtn, historyAddBtn, addImageBtn, historyFormTitle, newsFormTitle, imageFormTitle;
+const newsAddBtn = document.getElementById('add-news-btn');
+const eventAddBtn = document.getElementById('add-event-btn');
+const historyAddBtn = document.getElementById('add-history-btn');
+const addImageBtn = document.getElementById('add-image-btn');
+const historyFormTitle = document.getElementById('history-form-title');
+const newsFormTitle = document.getElementById('news-form-title');
+const imageFormTitle = document.getElementById('image-form-title');
 
 
 // --- MODAL FUNCTIONS ---
@@ -34,6 +40,11 @@ function showModal(modalId, message, title) {
     }
     
     modal.classList.add('active');
+    
+    // Stänger modalen automatiskt efter 4 sekunder om det är ett felmeddelande eller bekräftelse
+    if (modalId === 'errorModal' || modalId === 'confirmationModal') {
+        setTimeout(() => hideModal(modalId), 4000);
+    }
 }
 
 function hideModal(modalId) {
@@ -69,24 +80,42 @@ function updateUI() {
     renderImages();
     renderAdmins();
 
-    // Hantera synligheten för adminindikatorn
     const adminIndicator = document.getElementById('admin-indicator');
-    if (adminIndicator) {
-        if (isAdminLoggedIn) {
-            adminIndicator.classList.remove('hidden');
-            // Visa redigeringssektionerna på de olika sidorna
-            document.getElementById('news-edit-section').classList.remove('hidden');
-            document.getElementById('calendar-edit-section').classList.remove('hidden');
-            document.getElementById('image-edit-section').classList.remove('hidden');
-            document.getElementById('history-edit-section').classList.remove('hidden');
-        } else {
-            adminIndicator.classList.add('hidden');
-            // Dölj redigeringssektionerna
-            document.getElementById('news-edit-section').classList.add('hidden');
-            document.getElementById('calendar-edit-section').classList.add('hidden');
-            document.getElementById('image-edit-section').classList.add('hidden');
-            document.getElementById('history-edit-section').classList.add('hidden');
-        }
+    const profileNavLink = document.getElementById('profile-nav-link');
+    const userNavLink = document.getElementById('user-nav-link');
+    const adminPanel = document.getElementById('admin-panel');
+    const adminLoginPanel = document.getElementById('admin-login-panel');
+    const newsEditSection = document.getElementById('news-edit-section');
+    const calendarEditSection = document.getElementById('calendar-edit-section');
+    const imageEditSection = document.getElementById('image-edit-section');
+    const historyEditSection = document.getElementById('history-edit-section');
+
+    if (currentUserId) {
+        userNavLink.classList.add('hidden');
+        profileNavLink.classList.remove('hidden');
+    } else {
+        userNavLink.classList.remove('hidden');
+        profileNavLink.classList.add('hidden');
+    }
+
+    if (isAdminLoggedIn) {
+        adminIndicator.classList.remove('hidden');
+        if (newsEditSection) newsEditSection.classList.remove('hidden');
+        if (calendarEditSection) calendarEditSection.classList.remove('hidden');
+        if (imageEditSection) imageEditSection.classList.remove('hidden');
+        if (historyEditSection) historyEditSection.classList.remove('hidden');
+
+        if (adminPanel) adminPanel.classList.remove('hidden');
+        if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
+    } else {
+        adminIndicator.classList.add('hidden');
+        if (newsEditSection) newsEditSection.classList.add('hidden');
+        if (calendarEditSection) calendarEditSection.classList.add('hidden');
+        if (imageEditSection) imageEditSection.classList.add('hidden');
+        if (historyEditSection) historyEditSection.classList.add('hidden');
+        
+        if (adminPanel) adminPanel.classList.add('hidden');
+        if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
     }
 }
 
@@ -518,16 +547,162 @@ function handleDeeplink() {
     }
 }
 
+// --- Forms ---
+const addNewsForm = document.getElementById('add-news-form');
+if (addNewsForm) {
+    addNewsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newsTitle = document.getElementById('news-title').value;
+        const newsContent = document.getElementById('news-content-editor').innerHTML;
+        const newsDate = document.getElementById('news-date').value;
+        
+        const newsObject = {
+            title: newsTitle,
+            content: newsContent,
+            date: newsDate,
+            createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
+            updatedAt: editingNewsId ? serverTimestamp() : null
+        };
+
+        try {
+            if (editingNewsId) {
+                await updateDoc(doc(db, 'news', editingNewsId), newsObject);
+                showModal('confirmationModal', "Nyhet har uppdaterats!", "Lyckades!");
+            } else {
+                await addDoc(collection(db, `news`), newsObject);
+                showModal('confirmationModal', "Nyhet har lagts till!", "Lyckades!");
+            }
+            
+            addNewsForm.reset();
+            document.getElementById('news-content-editor').innerHTML = '';
+            document.getElementById('news-date').value = new Date().toISOString().split('T')[0];
+            editingNewsId = null;
+            document.getElementById('news-form-title').textContent = 'Lägg till Nyhet';
+            if (newsAddBtn) {
+                newsAddBtn.textContent = 'Lägg till';
+                newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                newsAddBtn.classList.add('bg-gray-400');
+            }
+            setTimeout(() => hideModal('confirmationModal'), 2000);
+        } catch (error) {
+            console.error("Fel vid hantering av nyhet:", error);
+            showModal('errorModal', "Ett fel uppstod.", "Fel!");
+        }
+    });
+}
+
+const addHistoryForm = document.getElementById('add-history-form');
+if (addHistoryForm) {
+    addHistoryForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const historyTitle = document.getElementById('history-title').value;
+        const historyContent = document.getElementById('history-content-editor').innerHTML;
+
+        const historyObject = {
+            title: historyTitle,
+            content: historyContent,
+            createdAt: editingHistoryId ? historyData.find(h => h.id === editingHistoryId).createdAt : serverTimestamp(),
+            updatedAt: editingHistoryId ? serverTimestamp() : null
+        };
+
+        try {
+            if (editingHistoryId) {
+                await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
+                showModal('confirmationModal', "Huvudsidpost har uppdaterats!", "Lyckades!");
+            } else {
+                await addDoc(collection(db, 'history'), historyObject);
+                showModal('confirmationModal', "Huvudsidpost har lagts till!", "Lyckades!");
+            }
+
+            addHistoryForm.reset();
+            document.getElementById('history-content-editor').innerHTML = '';
+            editingHistoryId = null;
+            document.getElementById('history-form-title').textContent = 'Lägg till Huvudsidposter';
+            if (historyAddBtn) {
+                historyAddBtn.textContent = 'Lägg till';
+                historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                historyAddBtn.classList.add('bg-gray-400');
+            }
+            setTimeout(() => hideModal('confirmationModal'), 2000);
+        } catch (error) {
+            console.error("Fel vid hantering av historiepost:", error);
+            showModal('errorModal', "Ett fel uppstod.", "Fel!");
+        }
+    });
+}
+
+const loginBtn = document.getElementById('login-btn');
+const adminUsernameInput = document.getElementById('admin-username');
+const adminPasswordInput = document.getElementById('admin-password');
+
+if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+        const username = adminUsernameInput.value.trim();
+        const password = adminPasswordInput.value.trim();
+
+        if (!username || !password) {
+            showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
+            return;
+        }
+
+        try {
+            const q = query(collection(db, 'admins'), where('username', '==', username));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+            } else {
+                let loginSuccess = false;
+                querySnapshot.forEach(docSnap => {
+                    const adminData = docSnap.data();
+                    if (adminData.password === password) {
+                        loginSuccess = true;
+                    }
+                });
+                if (loginSuccess) {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            currentUserId = user.uid;
+                            isAdminLoggedIn = true;
+                            loggedInAdminUsername = user.email;
+                            navigate('#hem');
+                            updateUI();
+                            showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
+                        }
+                    });
+                } else {
+                    showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+                }
+            }
+        } catch (err) {
+            console.error("Fel vid inloggning:", err);
+            showModal('errorModal', "Ett fel uppstod vid inloggning. Kontrollera dina Firebase Security Rules i konsolen för mer information.", "Fel!");
+        }
+    });
+}
+
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialisera appen och hämta data
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    
     onAuthStateChanged(auth, async (user) => {
         currentUserId = user ? user.uid : null;
         isAdminLoggedIn = false;
         loggedInAdminUsername = '';
         const profileNavLink = document.getElementById('profile-nav-link');
+        const userNavLink = document.getElementById('user-nav-link');
         const adminIndicator = document.getElementById('admin-indicator');
-
+        const profilePanel = document.getElementById('profile-panel');
+        const userLoginPanel = document.getElementById('user-login-panel');
+        
         if (user) {
             profileNavLink.classList.remove('hidden');
+            userNavLink.classList.add('hidden');
+            profilePanel.classList.remove('hidden');
+            userLoginPanel.classList.add('hidden');
             const adminsRef = collection(db, 'admins');
             const q = query(adminsRef, where('username', '==', user.email));
             const querySnapshot = await getDocs(q);
@@ -540,198 +715,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             profileNavLink.classList.add('hidden');
+            userNavLink.classList.remove('hidden');
+            profilePanel.classList.add('hidden');
+            userLoginPanel.classList.remove('hidden');
             adminIndicator.classList.add('hidden');
         }
         updateUI();
     });
 
-    // --- Data fetching ---
-    const newsRef = collection(db, `news`);
-    onSnapshot(newsRef, (snapshot) => {
-        newsData = [];
-        snapshot.forEach(doc => {
-            newsData.push({ id: doc.id, ...doc.data() });
-        });
-        updateUI();
-    });
-
-    const eventsRef = collection(db, `events`);
-    onSnapshot(eventsRef, (snapshot) => {
-        eventsData = [];
-        snapshot.forEach(doc => {
-            eventsData.push({ id: doc.id, ...doc.data() });
-        });
-        updateUI();
-    });
-
-    const adminsRef = collection(db, `admins`);
-    onSnapshot(adminsRef, (snapshot) => {
-        adminsData = [];
-        snapshot.forEach(doc => {
-            adminsData.push({ id: doc.id, ...doc.data() });
-        });
-        updateUI();
-    });
-
-    const historyRef = collection(db, `history`);
-    onSnapshot(historyRef, (snapshot) => {
-        historyData = [];
-        snapshot.forEach(doc => {
-            historyData.push({ id: doc.id, ...doc.data() });
-        });
-        updateUI();
-    });
-
-    const imageRef = collection(db, `images`);
-    onSnapshot(imageRef, (snapshot) => {
-        imageData = [];
-        snapshot.forEach(doc => {
-            imageData.push({ id: doc.id, ...doc.data() });
-        });
-        updateUI();
-    });
-
-    const settingsCollection = 'settings';
-    const siteSettingsRef = doc(db, settingsCollection, 'siteSettings');
-    onSnapshot(siteSettingsRef, (docSnap) => {
+    // Lyssna på ändringar i databasen
+    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'admins'), (snapshot) => { adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const siteTitleElement = document.getElementById('site-title-display');
         const pageTitleElement = document.getElementById('page-title');
         const faviconLink = document.getElementById('favicon-link');
         const siteLogoElement = document.getElementById('site-logo');
-        const logoUrlInput = document.getElementById('logo-url-input');
-        const siteNameInput = document.getElementById('site-name-input');
-        
         if (docSnap.exists()) {
             const data = docSnap.data();
-            if (siteTitleElement) siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-            if (pageTitleElement) pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-            if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
-            if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
-            if (logoUrlInput) logoUrlInput.value = data.logoUrl || '';
-            if (siteNameInput) siteNameInput.value = data.siteName || '';
+            siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
+            pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
+            siteLogoElement.src = data.logoUrl || "logo.png";
+            faviconLink.href = data.logoUrl || "logo.png";
         }
     });
 
-    // --- Event Listeners ---
-    document.addEventListener('click', (e) => {
-        const likeBtn = e.target.closest('.like-btn');
-        if (likeBtn) {
-            const docId = likeBtn.getAttribute('data-id');
-            const docType = likeBtn.getAttribute('data-type');
-            handleLike(docId, docType);
-        }
-        const deleteBtn = e.target.closest('.delete-btn');
-        if (deleteBtn) {
-            const docId = deleteBtn.getAttribute('data-id');
-            const docType = deleteBtn.getAttribute('data-type');
-            deleteDocument(docId, docType);
-        }
-        const editNewsBtn = e.target.closest('.edit-news-btn');
-        if (editNewsBtn) {
-            const docId = editNewsBtn.getAttribute('data-id');
-            const newsItem = newsData.find(item => item.id === docId);
-            if (newsItem) {
-                document.getElementById('news-form-title').textContent = 'Ändra Nyhet';
-                document.getElementById('news-title').value = newsItem.title;
-                document.getElementById('news-content-editor').innerHTML = newsItem.content;
-                document.getElementById('news-date').value = newsItem.date;
-                editingNewsId = docId;
-                document.getElementById('add-news-btn').textContent = 'Spara ändringar';
-                navigate('#nyheter');
-                document.getElementById('news-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-    });
-
-    document.querySelectorAll('nav a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const hash = e.target.getAttribute('href');
-            history.pushState(null, '', hash);
-            navigate(hash);
-        });
-    });
-
-    window.addEventListener('popstate', () => {
-        navigate(window.location.hash || '#hem');
-    });
-
+    // Eventlyssnare för modal-kryss
+    document.getElementById('close-error-modal').addEventListener('click', () => hideModal('errorModal'));
+    document.getElementById('errorModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
+    document.getElementById('confirmationModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
+    
+    // Hantera djuplänkning när sidan laddas
     handleDeeplink();
-
-    // --- Forms ---
-    const addNewsForm = document.getElementById('add-news-form');
-    if (addNewsForm) {
-        addNewsForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const newsTitle = document.getElementById('news-title').value;
-            const newsContent = document.getElementById('news-content-editor').innerHTML;
-            const newsDate = document.getElementById('news-date').value;
-            
-            const newsObject = {
-                title: newsTitle,
-                content: newsContent,
-                date: newsDate,
-                createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
-                updatedAt: editingNewsId ? serverTimestamp() : null
-            };
-
-            try {
-                if (editingNewsId) {
-                    await updateDoc(doc(db, 'news', editingNewsId), newsObject);
-                    showModal('confirmationModal', "Nyhet har uppdaterats!", "Lyckades!");
-                } else {
-                    await addDoc(collection(db, `news`), newsObject);
-                    showModal('confirmationModal', "Nyhet har lagts till!", "Lyckades!");
-                }
-                
-                addNewsForm.reset();
-                document.getElementById('news-content-editor').innerHTML = '';
-                document.getElementById('news-date').value = new Date().toISOString().split('T')[0];
-                editingNewsId = null;
-                document.getElementById('news-form-title').textContent = 'Lägg till Nyhet';
-                document.getElementById('add-news-btn').textContent = 'Lägg till';
-                setTimeout(() => hideModal('confirmationModal'), 2000);
-            } catch (error) {
-                console.error("Fel vid hantering av nyhet:", error);
-                showModal('errorModal', "Ett fel uppstod.", "Fel!");
-            }
-        });
-    }
-
-    const addHistoryForm = document.getElementById('add-history-form');
-    if (addHistoryForm) {
-        addHistoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const historyTitle = document.getElementById('history-title').value;
-            const historyContent = document.getElementById('history-content-editor').innerHTML;
-
-            const historyObject = {
-                title: historyTitle,
-                content: historyContent,
-                createdAt: editingHistoryId ? historyData.find(h => h.id === editingHistoryId).createdAt : serverTimestamp(),
-                updatedAt: editingHistoryId ? serverTimestamp() : null
-            };
-
-            try {
-                if (editingHistoryId) {
-                    await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
-                    showModal('confirmationModal', "Huvudsidpost har uppdaterats!", "Lyckades!");
-                } else {
-                    await addDoc(collection(db, 'history'), historyObject);
-                    showModal('confirmationModal', "Huvudsidpost har lagts till!", "Lyckades!");
-                }
-
-                addHistoryForm.reset();
-                document.getElementById('history-content-editor').innerHTML = '';
-                editingHistoryId = null;
-                document.getElementById('history-form-title').textContent = 'Lägg till Huvudsidposter';
-                document.getElementById('add-history-btn').textContent = 'Lägg till';
-
-                setTimeout(() => hideModal('confirmationModal'), 2000);
-            } catch (error) {
-                console.error("Fel vid hantering av historiepost:", error);
-                showModal('errorModal', "Ett fel uppstod.", "Fel!");
-            }
-        });
-    }
+    window.addEventListener('hashchange', handleDeeplink);
 });
