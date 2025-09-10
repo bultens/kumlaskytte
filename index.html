@@ -141,7 +141,7 @@
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.58</p>
+                    <p class="text-sm text-gray-300">Ver. 1.59</p>
                 </div>
             </div>
             <nav>
@@ -478,8 +478,9 @@
         import { increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { updateDoc as updateDocFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // IMPORTANT: Replace with your actual Firebase config if you move this to your own server.
         const firebaseConfig = {
-            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw", // Klistra in din nya API-nyckel här från Firebase-konsolen
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw", 
             authDomain: "kumlaskytte.firebaseapp.com",
             projectId: "kumlaskytte",
             storageBucket: "kumlaskytte.firebasestorage.app",
