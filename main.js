@@ -1,6 +1,5 @@
 // main.js
 import { db, auth } from "./firebase-config.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -23,6 +22,7 @@ const addImageBtn = document.getElementById('add-image-btn');
 const historyFormTitle = document.getElementById('history-form-title');
 const newsFormTitle = document.getElementById('news-form-title');
 const imageFormTitle = document.getElementById('image-form-title');
+
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message, title) {
@@ -644,16 +644,13 @@ if (loginBtn) {
                     }
                 });
                 if (loginSuccess) {
-                    onAuthStateChanged(auth, async (user) => {
-                        if (user) {
-                            currentUserId = user.uid;
-                            isAdminLoggedIn = true;
-                            loggedInAdminUsername = user.email;
-                            navigate('#hem');
-                            updateUI();
-                            showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
-                        }
-                    });
+                    // I detta fall, loggar vi inte in med Firebase Auth, utan endast i UI.
+                    // För en riktig app skulle detta ersättas med en säker inloggning.
+                    isAdminLoggedIn = true;
+                    loggedInAdminUsername = username;
+                    navigate('#hem');
+                    updateUI();
+                    showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
                 } else {
                     showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
                 }
@@ -667,25 +664,13 @@ if (loginBtn) {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // FIX: Skapa och initialisera appen här i stället för att förlita sig på en extern fil
-    const firebaseConfig = {
-        apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw", 
-        authDomain: "kumlaskytte.firebaseapp.com",
-        projectId: "kumlaskytte",
-        storageBucket: "kumlaskytte.firebasestorage.app",
-        messagingSenderId: "571676149705",
-        appId: "1:571676149705:web:a0ace868f4680298a78a18",
-        measurementId: "G-KSJ9NLNDBX"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-    
+    // onAuthStateChanged lyssnar på ändringar i auth.js, som hanterar användarinloggning.
+    // Vi lägger logiken för admin-visning här för att den ska vara synkroniserad.
     onAuthStateChanged(auth, async (user) => {
         currentUserId = user ? user.uid : null;
         isAdminLoggedIn = false;
         loggedInAdminUsername = '';
+        
         const profileNavLink = document.getElementById('profile-nav-link');
         const userNavLink = document.getElementById('user-nav-link');
         const adminIndicator = document.getElementById('admin-indicator');
@@ -740,10 +725,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('close-error-modal').addEventListener('click', () => hideModal('errorModal'));
-    document.getElementById('errorModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
-    document.getElementById('confirmationModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
+    // Fix för modal-kryss
+    const closeErrorModal = document.getElementById('close-error-modal');
+    if (closeErrorModal) closeErrorModal.addEventListener('click', () => hideModal('errorModal'));
+    
+    const errorModal = document.getElementById('errorModal');
+    if (errorModal) errorModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
+    
+    const confirmationModal = document.getElementById('confirmationModal');
+    if (confirmationModal) confirmationModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
     
     handleDeeplink();
     window.addEventListener('hashchange', handleDeeplink);
+    
+    document.addEventListener('click', (e) => {
+        const likeBtn = e.target.closest('.like-btn');
+        if (likeBtn) {
+            const docId = likeBtn.getAttribute('data-id');
+            const docType = likeBtn.getAttribute('data-type');
+            handleLike(docId, docType);
+        }
+    });
 });
