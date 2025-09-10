@@ -1,7 +1,7 @@
 // main.js
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -566,6 +566,7 @@ if (addNewsForm) {
                 newsAddBtn.textContent = 'Lägg till';
                 newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 newsAddBtn.classList.add('bg-gray-400');
+                newsAddBtn.disabled = true;
             }
             setTimeout(() => hideModal('confirmationModal'), 2000);
         } catch (error) {
@@ -606,6 +607,7 @@ if (addHistoryForm) {
                 historyAddBtn.textContent = 'Lägg till';
                 historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 historyAddBtn.classList.add('bg-gray-400');
+                historyAddBtn.disabled = true;
             }
             setTimeout(() => hideModal('confirmationModal'), 2000);
         } catch (error) {
@@ -649,6 +651,7 @@ if (addImageForm) {
                 addImageBtn.textContent = 'Lägg till Bild';
                 addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 addImageBtn.classList.add('bg-gray-400');
+                addImageBtn.disabled = true;
             }
             setTimeout(() => hideModal('confirmationModal'), 2000);
         } catch (error) {
@@ -658,9 +661,33 @@ if (addImageForm) {
     });
 }
 
+const addAdminForm = document.getElementById('add-admin-form');
+if (addAdminForm) {
+    addAdminForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('new-admin-username').value;
+        const password = document.getElementById('new-admin-password').value;
+
+        if (!username || !password) {
+            showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'admins'), { username, password });
+            showModal('confirmationModal', "Admin har lagts till!", "Lyckades!");
+            addAdminForm.reset();
+        } catch (error) {
+            console.error("Fel vid tillägg av admin:", error);
+            showModal('errorModal', "Ett fel uppstod när admin skulle läggas till.", "Fel!");
+        }
+    });
+}
+
 const loginBtn = document.getElementById('login-btn');
 const adminUsernameInput = document.getElementById('admin-username');
 const adminPasswordInput = document.getElementById('admin-password');
+const logoutBtn = document.getElementById('logout-btn');
 
 if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
@@ -702,6 +729,16 @@ if (loginBtn) {
         }
     });
 }
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        isAdminLoggedIn = false;
+        loggedInAdminUsername = '';
+        navigate('#hem');
+        updateUI();
+    });
+}
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     onAuthStateChanged(auth, async (user) => {
@@ -816,6 +853,73 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showModal('shareModal', '', 'Dela nyhet');
             }
         }
+        
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+            const docId = deleteBtn.getAttribute('data-id');
+            const docType = deleteBtn.getAttribute('data-type');
+            deleteDocument(docId, docType);
+        }
+
+        const deleteAdminBtn = e.target.closest('.delete-admin-btn');
+        if (deleteAdminBtn) {
+            const adminId = deleteAdminBtn.getAttribute('data-id');
+            deleteAdmin(adminId);
+        }
+
+        const editNewsBtn = e.target.closest('.edit-news-btn');
+        if (editNewsBtn) {
+            const newsId = editNewsBtn.getAttribute('data-id');
+            const newsItem = newsData.find(n => n.id === newsId);
+            if (newsItem) {
+                editingNewsId = newsId;
+                document.getElementById('news-title').value = newsItem.title;
+                document.getElementById('news-content-editor').innerHTML = newsItem.content;
+                document.getElementById('news-date').value = newsItem.date;
+                newsFormTitle.textContent = 'Ändra Nyhet';
+                newsAddBtn.textContent = 'Spara ändring';
+                newsAddBtn.disabled = false;
+                newsAddBtn.classList.remove('bg-gray-400');
+                newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                navigate('#nyheter');
+            }
+        }
+
+        const editHistoryBtn = e.target.closest('.edit-history-btn');
+        if (editHistoryBtn) {
+            const historyId = editHistoryBtn.getAttribute('data-id');
+            const historyItem = historyData.find(h => h.id === historyId);
+            if (historyItem) {
+                editingHistoryId = historyId;
+                document.getElementById('history-title').value = historyItem.title;
+                document.getElementById('history-content-editor').innerHTML = historyItem.content;
+                historyFormTitle.textContent = 'Ändra Huvudsidpost';
+                historyAddBtn.textContent = 'Spara ändring';
+                historyAddBtn.disabled = false;
+                historyAddBtn.classList.remove('bg-gray-400');
+                historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                navigate('#hem');
+            }
+        }
+        
+        const editImageBtn = e.target.closest('.edit-image-btn');
+        if (editImageBtn) {
+            const imageId = editImageBtn.getAttribute('data-id');
+            const imageItem = imageData.find(i => i.id === imageId);
+            if (imageItem) {
+                editingImageId = imageId;
+                document.getElementById('image-title').value = imageItem.title;
+                document.getElementById('image-url').value = imageItem.url;
+                document.getElementById('image-year').value = imageItem.year;
+                document.getElementById('image-month').value = imageItem.month;
+                imageFormTitle.textContent = 'Ändra Bild';
+                addImageBtn.textContent = 'Spara ändring';
+                addImageBtn.disabled = false;
+                addImageBtn.classList.remove('bg-gray-400');
+                addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                navigate('#bilder');
+            }
+        }
     });
     
     document.querySelectorAll('nav a').forEach(link => {
@@ -832,4 +936,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     navigate(window.location.hash || '#hem');
+
+    // Handle form input changes for enabling/disabling submit buttons
+    const newsTitleInput = document.getElementById('news-title');
+    const newsContentEditor = document.getElementById('news-content-editor');
+    const historyTitleInput = document.getElementById('history-title');
+    const historyContentEditor = document.getElementById('history-content-editor');
+    const imageTitleInput = document.getElementById('image-title');
+    const imageUrlInput = document.getElementById('image-url');
+    const imageYearInput = document.getElementById('image-year');
+    const imageMonthInput = document.getElementById('image-month');
+
+    function checkNewsForm() {
+        if (newsTitleInput.value && newsContentEditor.innerHTML.trim()) {
+            newsAddBtn.disabled = false;
+            newsAddBtn.classList.remove('bg-gray-400');
+            newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            newsAddBtn.disabled = true;
+            newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            newsAddBtn.classList.add('bg-gray-400');
+        }
+    }
+    
+    function checkHistoryForm() {
+        if (historyTitleInput.value && historyContentEditor.innerHTML.trim()) {
+            historyAddBtn.disabled = false;
+            historyAddBtn.classList.remove('bg-gray-400');
+            historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            historyAddBtn.disabled = true;
+            historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            historyAddBtn.classList.add('bg-gray-400');
+        }
+    }
+
+    function checkImageForm() {
+        if (imageTitleInput.value && imageUrlInput.value && imageYearInput.value && imageMonthInput.value) {
+            addImageBtn.disabled = false;
+            addImageBtn.classList.remove('bg-gray-400');
+            addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            addImageBtn.disabled = true;
+            addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            addImageBtn.classList.add('bg-gray-400');
+        }
+    }
+
+    if (newsTitleInput) newsTitleInput.addEventListener('input', checkNewsForm);
+    if (newsContentEditor) newsContentEditor.addEventListener('input', checkNewsForm);
+    if (historyTitleInput) historyTitleInput.addEventListener('input', checkHistoryForm);
+    if (historyContentEditor) historyContentEditor.addEventListener('input', checkHistoryForm);
+    if (imageTitleInput) imageTitleInput.addEventListener('input', checkImageForm);
+    if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
+    if (imageYearInput) imageYearInput.addEventListener('input', checkImageForm);
+    if (imageMonthInput) imageMonthInput.addEventListener('input', checkImageForm);
 });
