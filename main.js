@@ -674,7 +674,8 @@ if (addAdminForm) {
         }
 
         try {
-            await addDoc(collection(db, 'admins'), { username, password });
+            const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+            await setDoc(doc(db, 'admins', userCredential.user.uid), { username: username, password: password, isAdmin: true });
             showModal('confirmationModal', "Admin har lagts till!", "Lyckades!");
             addAdminForm.reset();
         } catch (error) {
@@ -882,6 +883,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 newsAddBtn.classList.remove('bg-gray-400');
                 newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 navigate('#nyheter');
+                setTimeout(() => {
+                    document.getElementById('news-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
             }
         }
 
@@ -899,6 +903,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 historyAddBtn.classList.remove('bg-gray-400');
                 historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 navigate('#hem');
+                setTimeout(() => {
+                    document.getElementById('history-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
             }
         }
         
@@ -918,6 +925,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 addImageBtn.classList.remove('bg-gray-400');
                 addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 navigate('#bilder');
+                setTimeout(() => {
+                    document.getElementById('image-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
             }
         }
     });
