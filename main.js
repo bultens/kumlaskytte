@@ -751,6 +751,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const shareMessageTitle = document.getElementById('share-message-title');
             const shareFacebookBtn = document.getElementById('share-facebook-btn');
             const copyLinkBtn = document.getElementById('copy-link-btn');
+            const closeShareModalBtn = document.getElementById('close-share-modal');
             
             if (shareModal && shareMessageTitle && shareFacebookBtn && copyLinkBtn) {
                 shareMessageTitle.textContent = newsTitle;
@@ -763,6 +764,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         showModal('errorModal', "Kunde inte kopiera länken.", "Fel!");
                     });
                 };
+                if (closeShareModalBtn) {
+                    closeShareModalBtn.addEventListener('click', () => hideModal('shareModal'));
+                }
+                shareModal.addEventListener('click', (e) => {
+                    if (e.target === e.currentTarget) hideModal('shareModal');
+                });
                 showModal('shareModal', '', 'Dela nyhet');
             }
         }
