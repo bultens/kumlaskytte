@@ -739,6 +739,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             const docType = likeBtn.getAttribute('data-type');
             handleLike(docId, docType);
         }
+
+        const shareBtn = e.target.closest('.share-btn');
+        if (shareBtn) {
+            const newsId = shareBtn.getAttribute('data-id');
+            const newsTitle = newsData.find(n => n.id === newsId)?.title || 'Nyhet';
+            const pageUrl = window.location.origin + window.location.pathname;
+            const shareUrl = `${pageUrl}#nyheter#news-${newsId}`;
+
+            const shareModal = document.getElementById('shareModal');
+            const shareMessageTitle = document.getElementById('share-message-title');
+            const shareFacebookBtn = document.getElementById('share-facebook-btn');
+            const copyLinkBtn = document.getElementById('copy-link-btn');
+            
+            if (shareModal && shareMessageTitle && shareFacebookBtn && copyLinkBtn) {
+                shareMessageTitle.textContent = newsTitle;
+                shareFacebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                copyLinkBtn.onclick = () => {
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        showModal('confirmationModal', "Länken har kopierats till urklipp!", "Lyckades!");
+                        hideModal('shareModal');
+                    }).catch(err => {
+                        showModal('errorModal', "Kunde inte kopiera länken.", "Fel!");
+                    });
+                };
+                showModal('shareModal', '', 'Dela nyhet');
+            }
+        }
     });
     
     document.querySelectorAll('nav a').forEach(link => {
