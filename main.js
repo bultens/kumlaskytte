@@ -644,8 +644,6 @@ if (loginBtn) {
                     }
                 });
                 if (loginSuccess) {
-                    // I detta fall, loggar vi inte in med Firebase Auth, utan endast i UI.
-                    // För en riktig app skulle detta ersättas med en säker inloggning.
                     isAdminLoggedIn = true;
                     loggedInAdminUsername = username;
                     navigate('#hem');
@@ -725,7 +723,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Fix för modal-kryss
     const closeErrorModal = document.getElementById('close-error-modal');
     if (closeErrorModal) closeErrorModal.addEventListener('click', () => hideModal('errorModal'));
     
@@ -737,7 +734,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     handleDeeplink();
     window.addEventListener('hashchange', handleDeeplink);
-    
+
     document.addEventListener('click', (e) => {
         const likeBtn = e.target.closest('.like-btn');
         if (likeBtn) {
@@ -746,4 +743,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             handleLike(docId, docType);
         }
     });
+    
+    // NY LÖSNING: Hantera klick på navigeringslänkar
+    document.querySelectorAll('nav a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const hash = e.target.getAttribute('href');
+            history.pushState(null, '', hash);
+            navigate(hash);
+        });
+    });
+
+    window.addEventListener('popstate', () => {
+        navigate(window.location.hash || '#hem');
+    });
+
+    // Anropa navigate för att ladda rätt sida vid första besöket
+    navigate(window.location.hash || '#hem');
 });
