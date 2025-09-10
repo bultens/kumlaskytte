@@ -1,5 +1,6 @@
 // main.js
 import { db, auth } from "./firebase-config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -15,7 +16,6 @@ let editingHistoryId = null;
 let editingImageId = null;
 let currentUserId = null;
 
-// Deklarera variablerna för knapparna här så de är tillgängliga globalt
 const newsAddBtn = document.getElementById('add-news-btn');
 const eventAddBtn = document.getElementById('add-event-btn');
 const historyAddBtn = document.getElementById('add-history-btn');
@@ -23,7 +23,6 @@ const addImageBtn = document.getElementById('add-image-btn');
 const historyFormTitle = document.getElementById('history-form-title');
 const newsFormTitle = document.getElementById('news-form-title');
 const imageFormTitle = document.getElementById('image-form-title');
-
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message, title) {
@@ -41,7 +40,6 @@ function showModal(modalId, message, title) {
     
     modal.classList.add('active');
     
-    // Stänger modalen automatiskt efter 4 sekunder om det är ett felmeddelande eller bekräftelse
     if (modalId === 'errorModal' || modalId === 'confirmationModal') {
         setTimeout(() => hideModal(modalId), 4000);
     }
@@ -53,7 +51,6 @@ function hideModal(modalId) {
     modal.classList.remove('active');
 }
 
-// Function to extract the first line of text from HTML content
 function getFirstLineText(htmlContent) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
@@ -64,7 +61,6 @@ function getFirstLineText(htmlContent) {
     return tempDiv.textContent.split('\n')[0].trim();
 }
 
-// Function to extract the first image from HTML content
 function getFirstImage(htmlContent) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
@@ -72,7 +68,6 @@ function getFirstImage(htmlContent) {
     return firstImage ? firstImage.outerHTML : '';
 }
 
-// En central funktion för att uppdatera alla UI-delar som beror på inloggningsstatus
 function updateUI() {
     renderNews();
     renderEvents();
@@ -91,15 +86,15 @@ function updateUI() {
     const historyEditSection = document.getElementById('history-edit-section');
 
     if (currentUserId) {
-        userNavLink.classList.add('hidden');
-        profileNavLink.classList.remove('hidden');
+        if (userNavLink) userNavLink.classList.add('hidden');
+        if (profileNavLink) profileNavLink.classList.remove('hidden');
     } else {
-        userNavLink.classList.remove('hidden');
-        profileNavLink.classList.add('hidden');
+        if (userNavLink) userNavLink.classList.remove('hidden');
+        if (profileNavLink) profileNavLink.classList.add('hidden');
     }
 
     if (isAdminLoggedIn) {
-        adminIndicator.classList.remove('hidden');
+        if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
@@ -108,7 +103,7 @@ function updateUI() {
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
     } else {
-        adminIndicator.classList.add('hidden');
+        if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
         if (imageEditSection) imageEditSection.classList.add('hidden');
@@ -130,14 +125,12 @@ function renderNews() {
     homeNewsContainer.innerHTML = '';
     allNewsContainer.innerHTML = '';
 
-    // Sortera nyheterna efter det angivna datumet
     news.sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
         return dateB - dateA;
     });
     
-    // Render the 2 latest news items on the home page
     news.slice(0, 2).forEach(item => {
         const date = new Date(item.date);
         const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -169,7 +162,6 @@ function renderNews() {
         `;
     });
 
-    // Render all news items on the news page
     news.forEach(item => {
         const date = new Date(item.date);
         const createdAt = item.createdAt?.toDate() || new Date();
@@ -215,13 +207,11 @@ function renderEvents() {
     calendarContainer.innerHTML = '';
     homeEventsContainer.innerHTML = '';
     
-    // Sortera händelser efter datum och filtrera bort gamla händelser
     const today = new Date().toISOString().split('T')[0];
     const upcomingEvents = events.filter(e => e.date >= today);
     
     upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
-    // Rendera de 2 närmaste kommande händelserna på startsidan
     upcomingEvents.slice(0, 2).forEach(item => {
         const eventDate = new Date(item.date);
         const day = eventDate.getDate();
@@ -239,7 +229,6 @@ function renderEvents() {
             </div>
         `;
     });
-
 
     upcomingEvents.forEach(item => {
         const eventDate = new Date(item.date);
@@ -275,7 +264,6 @@ function renderEvents() {
         `;
     });
 
-    // Attach event listeners for calendar posts
     document.querySelectorAll('.calendar-post').forEach(post => {
         post.addEventListener('click', (e) => {
             if (e.target.classList.contains('delete-btn')) {
@@ -342,14 +330,12 @@ function renderImages() {
 
     galleryContainer.innerHTML = '';
     
-    // Sortera bilder efter år och månad (fallande)
     imageData.sort((a, b) => {
         const dateA = new Date(a.year, a.month - 1);
         const dateB = new Date(b.year, b.month - 1);
         return dateB - dateA;
     });
     
-    // Gruppera bilder efter år och månad
     const groupedImages = imageData.reduce((acc, curr) => {
         const key = `${curr.year}-${curr.month}`;
         if (!acc[key]) {
@@ -359,7 +345,6 @@ function renderImages() {
         return acc;
     }, {});
 
-    // Gå igenom de grupperade bilderna och rendera dem
     for (const key in groupedImages) {
         const imagesInGroup = groupedImages[key];
         const itemDate = new Date(imagesInGroup[0].year, imagesInGroup[0].month - 1);
@@ -547,7 +532,6 @@ function handleDeeplink() {
     }
 }
 
-// --- Forms ---
 const addNewsForm = document.getElementById('add-news-form');
 if (addNewsForm) {
     addNewsForm.addEventListener('submit', async (e) => {
@@ -683,7 +667,17 @@ if (loginBtn) {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialisera appen och hämta data
+    // FIX: Skapa och initialisera appen här i stället för att förlita sig på en extern fil
+    const firebaseConfig = {
+        apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw", 
+        authDomain: "kumlaskytte.firebaseapp.com",
+        projectId: "kumlaskytte",
+        storageBucket: "kumlaskytte.firebasestorage.app",
+        messagingSenderId: "571676149705",
+        appId: "1:571676149705:web:a0ace868f4680298a78a18",
+        measurementId: "G-KSJ9NLNDBX"
+    };
+
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
@@ -697,33 +691,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         const adminIndicator = document.getElementById('admin-indicator');
         const profilePanel = document.getElementById('profile-panel');
         const userLoginPanel = document.getElementById('user-login-panel');
+        const registerPanel = document.getElementById('register-panel');
         
         if (user) {
-            profileNavLink.classList.remove('hidden');
-            userNavLink.classList.add('hidden');
-            profilePanel.classList.remove('hidden');
-            userLoginPanel.classList.add('hidden');
+            if (profileNavLink) profileNavLink.classList.remove('hidden');
+            if (userNavLink) userNavLink.classList.add('hidden');
+            if (profilePanel) profilePanel.classList.remove('hidden');
+            if (userLoginPanel) userLoginPanel.classList.add('hidden');
+            if (registerPanel) registerPanel.classList.add('hidden');
+            
             const adminsRef = collection(db, 'admins');
             const q = query(adminsRef, where('username', '==', user.email));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
                 isAdminLoggedIn = true;
                 loggedInAdminUsername = user.email;
-                adminIndicator.classList.remove('hidden');
+                if (adminIndicator) adminIndicator.classList.remove('hidden');
             } else {
-                adminIndicator.classList.add('hidden');
+                if (adminIndicator) adminIndicator.classList.add('hidden');
             }
         } else {
-            profileNavLink.classList.add('hidden');
-            userNavLink.classList.remove('hidden');
-            profilePanel.classList.add('hidden');
-            userLoginPanel.classList.remove('hidden');
-            adminIndicator.classList.add('hidden');
+            if (profileNavLink) profileNavLink.classList.add('hidden');
+            if (userNavLink) userNavLink.classList.remove('hidden');
+            if (profilePanel) profilePanel.classList.add('hidden');
+            if (userLoginPanel) userLoginPanel.classList.remove('hidden');
+            if (registerPanel) registerPanel.classList.add('hidden');
+            if (adminIndicator) adminIndicator.classList.add('hidden');
         }
         updateUI();
     });
 
-    // Lyssna på ändringar i databasen
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'admins'), (snapshot) => { adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
@@ -736,19 +733,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const siteLogoElement = document.getElementById('site-logo');
         if (docSnap.exists()) {
             const data = docSnap.data();
-            siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-            pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-            siteLogoElement.src = data.logoUrl || "logo.png";
-            faviconLink.href = data.logoUrl || "logo.png";
+            if (siteTitleElement) siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
+            if (pageTitleElement) pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
+            if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
+            if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
         }
     });
 
-    // Eventlyssnare för modal-kryss
     document.getElementById('close-error-modal').addEventListener('click', () => hideModal('errorModal'));
     document.getElementById('errorModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
     document.getElementById('confirmationModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
     
-    // Hantera djuplänkning när sidan laddas
     handleDeeplink();
     window.addEventListener('hashchange', handleDeeplink);
 });
