@@ -23,7 +23,6 @@ const historyFormTitle = document.getElementById('history-form-title');
 const newsFormTitle = document.getElementById('news-form-title');
 const imageFormTitle = document.getElementById('image-form-title');
 
-
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message, title) {
     const modal = document.getElementById(modalId);
@@ -646,7 +645,7 @@ if (loginBtn) {
                 if (loginSuccess) {
                     isAdminLoggedIn = true;
                     loggedInAdminUsername = username;
-                    navigate('#hem');
+                    navigate('#admin');
                     updateUI();
                     showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
                 } else {
@@ -662,8 +661,6 @@ if (loginBtn) {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // onAuthStateChanged lyssnar på ändringar i auth.js, som hanterar användarinloggning.
-    // Vi lägger logiken för admin-visning här för att den ska vara synkroniserad.
     onAuthStateChanged(auth, async (user) => {
         currentUserId = user ? user.uid : null;
         isAdminLoggedIn = false;
@@ -744,7 +741,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // NY LÖSNING: Hantera klick på navigeringslänkar
     document.querySelectorAll('nav a').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -758,6 +754,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigate(window.location.hash || '#hem');
     });
 
-    // Anropa navigate för att ladda rätt sida vid första besöket
     navigate(window.location.hash || '#hem');
 });
