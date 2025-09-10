@@ -2,6 +2,7 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { addAdmin } from "./auth.js";
 
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -673,14 +674,12 @@ if (addAdminForm) {
             return;
         }
 
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, username, password);
-            await setDoc(doc(db, 'admins', userCredential.user.uid), { username: username, password: password, isAdmin: true });
-            showModal('confirmationModal', "Admin har lagts till!", "Lyckades!");
+        const result = await addAdmin(username, password);
+        if (result.success) {
+            showModal('confirmationModal', result.message, "Lyckades!");
             addAdminForm.reset();
-        } catch (error) {
-            console.error("Fel vid tillägg av admin:", error);
-            showModal('errorModal', "Ett fel uppstod när admin skulle läggas till.", "Fel!");
+        } else {
+            showModal('errorModal', result.message, "Fel!");
         }
     });
 }

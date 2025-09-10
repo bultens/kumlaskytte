@@ -106,3 +106,14 @@ if (showRegisterLink) {
         registerPanel.classList.remove('hidden');
     });
 }
+
+export async function addAdmin(username, password) {
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+        await setDoc(doc(db, 'admins', userCredential.user.uid), { username: username, password: password });
+        return { success: true, message: 'Admin har lagts till!' };
+    } catch (error) {
+        console.error("Fel vid tillägg av admin:", error);
+        return { success: false, message: "Ett fel uppstod när admin skulle läggas till." };
+    }
+}
