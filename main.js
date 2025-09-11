@@ -86,7 +86,7 @@ function updateUI() {
     const imageEditSection = document.getElementById('image-edit-section');
     const historyEditSection = document.getElementById('history-edit-section');
 
-    if (currentUserId) {
+    if (auth.currentUser) {
         if (userNavLink) userNavLink.classList.add('hidden');
         if (profileNavLink) profileNavLink.classList.remove('hidden');
     } else {
@@ -704,13 +704,14 @@ if (loginBtn) {
             showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
             navigate('#admin');
         } else {
-            showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
+            showModal('errorModal', result.message, "Inloggning misslyckades");
         }
     });
 }
 
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
+        signOut(auth);
         isAdminLoggedIn = false;
         loggedInAdminUsername = '';
         navigate('#hem');
