@@ -1,6 +1,6 @@
 // auth.js
 import { auth } from "./firebase-config.js";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendSignInLinkToEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, getFirestore, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
@@ -107,17 +107,25 @@ if (showRegisterLink) {
     });
 }
 
-export async function addAdmin(email) {
+export async function createAdminUser(username, password) {
+    const email = `${username}@kumlaskytteforening.com`;
     try {
-        const actionCodeSettings = {
-            url: window.location.origin,
-            handleCodeInApp: true
-        };
-        await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-        window.localStorage.setItem('emailForSignIn', email);
-        return { success: true, message: `En inloggningslänk har skickats till ${email}. Instruera den nya admin att logga in via länken.` };
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'admins', userCredential.user.uid), { username: username, password: password });
+        return { success: true, message: "Admin har lagts till!" };
     } catch (error) {
         console.error("Fel vid tillägg av admin:", error);
         return { success: false, message: "Ett fel uppstod när admin skulle läggas till." };
+    }
+}
+
+export async function signInAdmin(username, password) {
+    const email = `${username}@kumlaskytteforening.com`;
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        return { success: true };
+    } catch (error) {
+        console.error("Fel vid inloggning:", error);
+        return { success: false, message: "Fel användarnamn eller lösenord." };
     }
 }

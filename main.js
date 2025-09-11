@@ -2,7 +2,7 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addAdmin } from "./auth.js";
+import { createAdminUser, signInAdmin } from "./auth.js";
 
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -674,7 +674,7 @@ if (addAdminForm) {
             return;
         }
 
-        const result = await addAdmin(username, password);
+        const result = await createAdminUser(username, password);
         if (result.success) {
             showModal('confirmationModal', result.message, "Lyckades!");
             addAdminForm.reset();
@@ -699,33 +699,12 @@ if (loginBtn) {
             return;
         }
 
-        try {
-            const q = query(collection(db, 'admins'), where('username', '==', username));
-            const querySnapshot = await getDocs(q);
-
-            if (querySnapshot.empty) {
-                showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
-            } else {
-                let loginSuccess = false;
-                querySnapshot.forEach(docSnap => {
-                    const adminData = docSnap.data();
-                    if (adminData.password === password) {
-                        loginSuccess = true;
-                    }
-                });
-                if (loginSuccess) {
-                    isAdminLoggedIn = true;
-                    loggedInAdminUsername = username;
-                    navigate('#admin');
-                    updateUI();
-                    showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
-                } else {
-                    showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
-                }
-            }
-        } catch (err) {
-            console.error("Fel vid inloggning:", err);
-            showModal('errorModal', "Ett fel uppstod vid inloggning. Kontrollera dina Firebase Security Rules i konsolen för mer information.", "Fel!");
+        const result = await signInAdmin(username, password);
+        if (result.success) {
+            showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
+            navigate('#admin');
+        } else {
+            showModal('errorModal', "Fel användarnamn eller lösenord.", "Inloggning misslyckades");
         }
     });
 }
