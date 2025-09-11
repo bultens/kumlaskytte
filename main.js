@@ -1,6 +1,6 @@
 // main.js
 import { db, auth } from "./firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { createAdminUser, signInAdmin } from "./auth.js";
 
@@ -740,15 +740,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (userLoginPanel) userLoginPanel.classList.add('hidden');
             if (registerPanel) registerPanel.classList.add('hidden');
             
-            const adminsRef = collection(db, 'admins');
-            const q = query(adminsRef, where('username', '==', user.email));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
+            // Checking if the user is an admin after a successful login
+            const docRef = doc(db, 'admins', user.uid);
+            const docSnap = await getFirestoreDoc(docRef);
+            if (docSnap.exists()) {
                 isAdminLoggedIn = true;
-                loggedInAdminUsername = user.email;
-                if (adminIndicator) adminIndicator.classList.remove('hidden');
+                loggedInAdminUsername = docSnap.data().username;
             } else {
-                if (adminIndicator) adminIndicator.classList.add('hidden');
+                isAdminLoggedIn = false;
+                loggedInAdminUsername = '';
             }
         } else {
             if (profileNavLink) profileNavLink.classList.add('hidden');
