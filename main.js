@@ -14,6 +14,7 @@ let usersData = [];
 let editingNewsId = null; 
 let editingHistoryId = null;
 let editingImageId = null;
+let editingEventId = null;
 let currentUserId = null;
 let currentNews = null;
 let currentHistory = null;
@@ -685,6 +686,109 @@ if (addImageForm) {
     });
 }
 
+const addEventForm = document.getElementById('add-event-form');
+if (addEventForm) {
+    addEventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const eventTitle = document.getElementById('event-title').value;
+        const eventDescription = document.getElementById('event-description-editor').innerHTML;
+        const isRecurring = document.getElementById('is-recurring').checked;
+        
+        let eventObject = {
+            title: eventTitle,
+            description: eventDescription,
+            createdAt: editingEventId ? eventsData.find(evt => evt.id === editingEventId).createdAt : serverTimestamp(),
+            updatedAt: editingEventId ? serverTimestamp() : null
+        };
+
+        if (isRecurring) {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const weekday = document.getElementById('weekday-select').value;
+            
+            if (!startDate || !endDate || !weekday) {
+                showModal('errorModal', "Fyll i alla fält för återkommande evenemang.");
+                return;
+            }
+            
+            const eventsToAdd = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            let currentDate = start;
+            
+            while (currentDate <= end) {
+                if (currentDate.getDay() === parseInt(weekday)) {
+                    eventsToAdd.push({
+                        ...eventObject,
+                        date: currentDate.toISOString().split('T')[0]
+                    });
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            const batch = writeBatch(db);
+            const seriesId = `series-${Date.now()}`;
+            eventsToAdd.forEach(evt => {
+                const newDocRef = doc(collection(db, 'events'));
+                batch.set(newDocRef, { ...evt, seriesId: seriesId });
+            });
+            await batch.commit();
+
+            showModal('confirmationModal', "Återkommande evenemang har lagts till!");
+
+        } else {
+            const eventDate = document.getElementById('event-date').value;
+            if (!eventDate) {
+                showModal('errorModal', "Fyll i datum för enskild händelse.");
+                return;
+            }
+            eventObject.date = eventDate;
+            
+            try {
+                if (editingEventId) {
+                    await updateDoc(doc(db, 'events', editingEventId), eventObject);
+                    showModal('confirmationModal', "Evenemanget har uppdaterats!");
+                } else {
+                    await addDoc(collection(db, 'events'), eventObject);
+                    showModal('confirmationModal', "Evenemanget har lagts till!");
+                }
+            } catch (error) {
+                console.error("Fel vid hantering av evenemang:", error);
+                showModal('errorModal', "Ett fel uppstod när evenemanget skulle hanteras.");
+            }
+        }
+        
+        addEventForm.reset();
+        document.getElementById('event-description-editor').innerHTML = '';
+        document.getElementById('is-recurring').checked = false;
+        document.getElementById('single-event-fields').classList.remove('hidden');
+        document.getElementById('recurring-event-fields').classList.add('hidden');
+        editingEventId = null;
+        if (eventAddBtn) {
+            eventAddBtn.textContent = 'Lägg till';
+            eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            eventAddBtn.classList.add('bg-gray-400');
+            eventAddBtn.disabled = true;
+        }
+    });
+    
+    const isRecurringCheckbox = document.getElementById('is-recurring');
+    if (isRecurringCheckbox) {
+        isRecurringCheckbox.addEventListener('change', () => {
+            const singleFields = document.getElementById('single-event-fields');
+            const recurringFields = document.getElementById('recurring-event-fields');
+            if (isRecurringCheckbox.checked) {
+                singleFields.classList.add('hidden');
+                recurringFields.classList.remove('hidden');
+            } else {
+                singleFields.classList.remove('hidden');
+                recurringFields.classList.add('hidden');
+            }
+            checkEventForm();
+        });
+    }
+}
+
 const logoutBtn = document.getElementById('logout-btn');
 
 if (logoutBtn) {
@@ -702,17 +806,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentUserId = user ? user.uid : null;
         isAdminLoggedIn = false;
         
-        const profileNavLink = document.getElementById('profile-nav-link');
-        const userNavLink = document.getElementById('user-nav-link');
         const adminIndicator = document.getElementById('admin-indicator');
         const adminPanel = document.getElementById('admin-panel');
         const adminLoginPanel = document.getElementById('admin-login-panel');
         const adminUserInfo = document.getElementById('admin-user-info');
         
         if (user) {
-            if (profileNavLink) profileNavLink.classList.remove('hidden');
-            if (userNavLink) userNavLink.classList.add('hidden');
-            
             const docRef = doc(db, 'admins', user.uid);
             const docSnap = await getFirestoreDoc(docRef);
             if (docSnap.exists()) {
@@ -732,8 +831,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             isAdminLoggedIn = false;
             loggedInAdminUsername = '';
-            if (profileNavLink) profileNavLink.classList.add('hidden');
-            if (userNavLink) userNavLink.classList.remove('hidden');
             if (adminIndicator) adminIndicator.classList.add('hidden');
             if (adminPanel) adminPanel.classList.add('hidden');
             if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
@@ -931,6 +1028,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const imageUrlInput = document.getElementById('image-url');
     const imageYearInput = document.getElementById('image-year');
     const imageMonthInput = document.getElementById('image-month');
+    const eventTitleInput = document.getElementById('event-title');
+    const eventDescriptionEditor = document.getElementById('event-description-editor');
+    const eventDateInput = document.getElementById('event-date');
+    const isRecurringCheckbox = document.getElementById('is-recurring');
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const weekdaySelect = document.getElementById('weekday-select');
+
 
     function checkNewsForm() {
         if (newsTitleInput.value && newsContentEditor.innerHTML.trim()) {
@@ -967,6 +1072,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             addImageBtn.classList.add('bg-gray-400');
         }
     }
+    
+    function checkEventForm() {
+        const isRecurring = isRecurringCheckbox.checked;
+        const eventTitle = eventTitleInput.value.trim();
+        const eventDescription = eventDescriptionEditor.innerHTML.trim();
+        let isFormValid = false;
+
+        if (eventTitle && eventDescription) {
+            if (isRecurring) {
+                if (startDateInput.value && endDateInput.value && weekdaySelect.value) {
+                    isFormValid = true;
+                }
+            } else {
+                if (eventDateInput.value) {
+                    isFormValid = true;
+                }
+            }
+        }
+    
+        if (isFormValid) {
+            eventAddBtn.disabled = false;
+            eventAddBtn.classList.remove('bg-gray-400');
+            eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            eventAddBtn.disabled = true;
+            eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            eventAddBtn.classList.add('bg-gray-400');
+        }
+    }
 
     if (newsTitleInput) newsTitleInput.addEventListener('input', checkNewsForm);
     if (newsContentEditor) newsContentEditor.addEventListener('input', checkNewsForm);
@@ -976,4 +1110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
     if (imageYearInput) imageYearInput.addEventListener('input', checkImageForm);
     if (imageMonthInput) imageMonthInput.addEventListener('input', checkImageForm);
+    if (eventTitleInput) eventTitleInput.addEventListener('input', checkEventForm);
+    if (eventDescriptionEditor) eventDescriptionEditor.addEventListener('input', checkEventForm);
+    if (eventDateInput) eventDateInput.addEventListener('input', checkEventForm);
+    if (isRecurringCheckbox) isRecurringCheckbox.addEventListener('change', checkEventForm);
+    if (startDateInput) startDateInput.addEventListener('input', checkEventForm);
+    if (endDateInput) endDateInput.addEventListener('input', checkEventForm);
+    if (weekdaySelect) weekdaySelect.addEventListener('change', checkEventForm);
 });
