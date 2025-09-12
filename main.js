@@ -10,7 +10,8 @@ let newsData = [];
 let eventsData = [];
 let adminsData = [];
 let historyData = [];
-let imageData = []; 
+let imageData = [];
+let usersData = []; 
 let editingNewsId = null; 
 let editingHistoryId = null;
 let editingImageId = null;
@@ -74,7 +75,7 @@ function updateUI() {
     renderEvents();
     renderHistory();
     renderImages();
-    renderAdmins();
+    renderAdminsAndUsers();
 
     const adminIndicator = document.getElementById('admin-indicator');
     const profileNavLink = document.getElementById('profile-nav-link');
@@ -376,21 +377,50 @@ function renderImages() {
     }
 }
 
-function renderAdmins() {
-    const admins = adminsData;
+function renderAdminsAndUsers() {
     const adminListEl = document.getElementById('admin-list');
-    if (!adminListEl) return;
-    
+    const allUsersContainer = document.getElementById('all-users-container');
+    if (!adminListEl || !allUsersContainer) return;
+
     adminListEl.innerHTML = '';
-    admins.forEach(admin => {
-        const adminEl = document.createElement('div');
-        adminEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
-        adminEl.innerHTML = `
-            <span class="font-semibold">${admin.username}</span>
-            ${isAdminLoggedIn && admins.length > 1 && admin.username !== loggedInAdminUsername ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${admin.id}">Ta bort</button>` : ''}
-        `;
-        adminListEl.appendChild(adminEl);
+    
+    // Renders list of all users and provides an 'Add Admin' button for each
+    usersData.forEach(user => {
+        const isUserAdmin = adminsData.some(admin => admin.id === user.id);
+        const userEl = document.createElement('div');
+        userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
+        
+        if (isUserAdmin) {
+            const adminData = adminsData.find(admin => admin.id === user.id);
+            userEl.innerHTML = `
+                <span class="font-semibold">${adminData.username} (Admin)</span>
+                ${isAdminLoggedIn && adminsData.length > 1 && adminData.username !== loggedInAdminUsername ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${adminData.id}">Ta bort</button>` : ''}
+            `;
+            adminListEl.appendChild(userEl);
+        } else {
+            userEl.innerHTML = `
+                <span class="font-semibold">${user.name || user.email}</span>
+                ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}" data-username="${user.email}">Lägg till som Admin</button>` : ''}
+            `;
+            allUsersContainer.appendChild(userEl);
+        }
     });
+
+}
+
+async function addAdminFromUser(userId, username) {
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, 'admins', userId), { username: username });
+        showModal('confirmationModal', "Användaren har lagts till som administratör!", "Lyckades!");
+    } catch (error) {
+        console.error("Fel vid tillägg av admin:", error);
+        showModal('errorModal', "Ett fel uppstod när användaren skulle läggas till som admin.", "Fel!");
+    }
 }
 
 function applyEditorCommand(editor, command, value = null) {
@@ -766,6 +796,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(collection(db, 'admins'), (snapshot) => { adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const siteTitleElement = document.getElementById('site-title-display');
         const pageTitleElement = document.getElementById('page-title');
@@ -908,6 +939,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('image-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 100);
             }
+        }
+        const addAdminFromUserBtn = e.target.closest('.add-admin-btn');
+        if (addAdminFromUserBtn) {
+            const userId = addAdminFromUserBtn.getAttribute('data-id');
+            const username = addAdminFromUserBtn.getAttribute('data-username');
+            addAdminFromUser(userId, username);
         }
     });
     
