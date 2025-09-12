@@ -19,7 +19,7 @@
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.79</p>
+                    <p class="text-sm text-gray-300">Ver. 1.80</p>
                 </div>
             </div>
             <nav>
@@ -224,18 +224,12 @@
                 
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
-                    <form id="add-admin-form">
-                        <label for="new-admin-username" class="block mb-2 font-semibold">Nytt Admin-användarnamn</label>
-                        <input type="text" id="new-admin-username" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <label for="new-admin-password" class="block mb-2 font-semibold">Nytt Admin-lösenord</label>
-                        <input type="password" id="new-admin-password" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <button type="submit" id="add-admin-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300">Lägg till Admin</button>
-                    </form>
-                    
-                    <div class="mt-8">
-                        <h3 class="text-xl font-bold mb-2">Befintliga administratörer</h3>
-                        <div id="admin-list" class="space-y-2">
-                            </div>
+                    <p class="text-gray-600 mb-4">Befintliga administratörer</p>
+                    <div id="admin-list" class="space-y-2">
+                    </div>
+                    <h3 class="text-xl font-bold mt-8 mb-2">Lägg till ny administratör</h3>
+                    <p class="text-gray-600 mb-4">Markera en användare för att ge dem administratörsbehörighet. Observera att detta kräver att användaren har ett konto på webbplatsen.</p>
+                    <div id="all-users-container" class="space-y-2">
                     </div>
                 </div>
 
