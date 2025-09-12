@@ -2,7 +2,6 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { createAdminUser, signInAdmin } from "./auth.js";
 
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -16,6 +15,9 @@ let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
 let currentUserId = null;
+let currentNews = null;
+let currentHistory = null;
+let currentImage = null;
 
 const newsAddBtn = document.getElementById('add-news-btn');
 const eventAddBtn = document.getElementById('add-event-btn');
@@ -24,20 +26,18 @@ const addImageBtn = document.getElementById('add-image-btn');
 const historyFormTitle = document.getElementById('history-form-title');
 const newsFormTitle = document.getElementById('news-form-title');
 const imageFormTitle = document.getElementById('image-form-title');
-
+const deleteConfirmationModal = document.getElementById('deleteConfirmationModal');
+const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 
 // --- MODAL FUNCTIONS ---
-function showModal(modalId, message, title) {
+function showModal(modalId, message) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
     
     const messageEl = modal.querySelector('p');
-    const titleEl = modal.querySelector('h3');
     if (messageEl) {
         messageEl.innerHTML = message;
-    }
-    if (titleEl) {
-        titleEl.textContent = title;
     }
     
     modal.classList.add('active');
@@ -268,7 +268,7 @@ function renderEvents() {
 
     document.querySelectorAll('.calendar-post').forEach(post => {
         post.addEventListener('click', (e) => {
-            if (e.target.classList.contains('delete-btn')) {
+            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn')) {
                 return;
             }
             const isExpanded = post.getAttribute('data-expanded') === 'true';
@@ -383,8 +383,8 @@ function renderAdminsAndUsers() {
     if (!adminListEl || !allUsersContainer) return;
 
     adminListEl.innerHTML = '';
+    allUsersContainer.innerHTML = '';
     
-    // Renders list of all users and provides an 'Add Admin' button for each
     usersData.forEach(user => {
         const isUserAdmin = adminsData.some(admin => admin.id === user.id);
         const userEl = document.createElement('div');
@@ -393,14 +393,14 @@ function renderAdminsAndUsers() {
         if (isUserAdmin) {
             const adminData = adminsData.find(admin => admin.id === user.id);
             userEl.innerHTML = `
-                <span class="font-semibold">${adminData.username} (Admin)</span>
-                ${isAdminLoggedIn && adminsData.length > 1 && adminData.username !== loggedInAdminUsername ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${adminData.id}">Ta bort</button>` : ''}
+                <span class="font-semibold">${adminData.username || adminData.email} (Admin)</span>
+                ${isAdminLoggedIn && adminsData.length > 1 && adminData.email !== auth.currentUser.email ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${adminData.id}">Ta bort</button>` : ''}
             `;
             adminListEl.appendChild(userEl);
         } else {
             userEl.innerHTML = `
                 <span class="font-semibold">${user.name || user.email}</span>
-                ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}" data-username="${user.email}">Lägg till som Admin</button>` : ''}
+                ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}" data-email="${user.email}">Lägg till som Admin</button>` : ''}
             `;
             allUsersContainer.appendChild(userEl);
         }
@@ -408,18 +408,18 @@ function renderAdminsAndUsers() {
 
 }
 
-async function addAdminFromUser(userId, username) {
+async function addAdminFromUser(userId, email) {
     if (!isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
 
     try {
-        await setDoc(doc(db, 'admins', userId), { username: username });
-        showModal('confirmationModal', "Användaren har lagts till som administratör!", "Lyckades!");
+        await setDoc(doc(db, 'admins', userId), { email: email });
+        showModal('confirmationModal', "Användaren har lagts till som administratör!");
     } catch (error) {
         console.error("Fel vid tillägg av admin:", error);
-        showModal('errorModal', "Ett fel uppstod när användaren skulle läggas till som admin.", "Fel!");
+        showModal('errorModal', "Ett fel uppstod när användaren skulle läggas till som admin.");
     }
 }
 
@@ -449,7 +449,7 @@ function updateToolbarButtons(editor) {
 
 async function handleLike(docId, collectionName) {
     if (!currentUserId) {
-        showModal('errorModal', "Du måste vara inloggad för att gilla poster.", "Fel!");
+        showModal('errorModal', "Du måste vara inloggad för att gilla poster.");
         return;
     }
     const docRef = doc(db, collectionName, docId);
@@ -471,50 +471,46 @@ async function handleLike(docId, collectionName) {
         await updateDoc(docRef, { likes: likes });
     } catch (error) {
         console.error("Fel vid uppdatering av likes:", error);
-        showModal('errorModal', "Ett fel uppstod när like-funktionen skulle uppdateras.", "Fel!");
+        showModal('errorModal', "Ett fel uppstod när like-funktionen skulle uppdateras.");
     }
 }
 
 async function deleteDocument(docId, collectionName) {
     if (!db || !isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
     const docRef = doc(db, collectionName, docId);
     try {
         await deleteDoc(docRef);
-        showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`, "Lyckades!");
-        setTimeout(() => hideModal('confirmationModal'), 2000);
-        updateUI();
+        showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`);
     } catch (error) {
         console.error("Fel vid borttagning av post:", error);
-        showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.", "Fel!");
+        showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.");
     }
 }
 
 async function deleteAdmin(adminId) {
     if (!db || !isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.", "Fel!");
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
     if (adminsData.length <= 1) {
-        showModal('errorModal', "Kan inte ta bort den sista administratören.", "Fel!");
+        showModal('errorModal', "Kan inte ta bort den sista administratören.");
         return;
     }
     const adminToDelete = adminsData.find(a => a.id === adminId);
-    if (adminToDelete.username === loggedInAdminUsername) {
-        showModal('errorModal', "Du kan inte ta bort dig själv.", "Fel!");
+    if (adminToDelete.email === auth.currentUser.email) {
+        showModal('errorModal', "Du kan inte ta bort dig själv.");
         return;
     }
     const adminRef = doc(db, 'admins', adminId);
     try {
         await deleteDoc(adminRef);
-        showModal('confirmationModal', "Admin har tagits bort.", "Lyckades!");
-        setTimeout(() => hideModal('confirmationModal'), 2000);
-        updateUI();
+        showModal('confirmationModal', "Admin har tagits bort.");
     } catch (error) {
         console.error("Fel vid borttagning av admin:", error);
-        showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.", "Fel!");
+        showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.");
     }
 }
 
@@ -582,10 +578,10 @@ if (addNewsForm) {
         try {
             if (editingNewsId) {
                 await updateDoc(doc(db, 'news', editingNewsId), newsObject);
-                showModal('confirmationModal', "Nyhet har uppdaterats!", "Lyckades!");
+                showModal('confirmationModal', "Nyhet har uppdaterats!");
             } else {
                 await addDoc(collection(db, `news`), newsObject);
-                showModal('confirmationModal', "Nyhet har lagts till!", "Lyckades!");
+                showModal('confirmationModal', "Nyhet har lagts till!");
             }
             
             addNewsForm.reset();
@@ -599,10 +595,9 @@ if (addNewsForm) {
                 newsAddBtn.classList.add('bg-gray-400');
                 newsAddBtn.disabled = true;
             }
-            setTimeout(() => hideModal('confirmationModal'), 2000);
         } catch (error) {
             console.error("Fel vid hantering av nyhet:", error);
-            showModal('errorModal', "Ett fel uppstod.", "Fel!");
+            showModal('errorModal', "Ett fel uppstod.");
         }
     });
 }
@@ -624,10 +619,10 @@ if (addHistoryForm) {
         try {
             if (editingHistoryId) {
                 await updateDoc(doc(db, 'history', editingHistoryId), historyObject);
-                showModal('confirmationModal', "Huvudsidpost har uppdaterats!", "Lyckades!");
+                showModal('confirmationModal', "Huvudsidpost har uppdaterats!");
             } else {
                 await addDoc(collection(db, 'history'), historyObject);
-                showModal('confirmationModal', "Huvudsidpost har lagts till!", "Lyckades!");
+                showModal('confirmationModal', "Huvudsidpost har lagts till!");
             }
 
             addHistoryForm.reset();
@@ -640,10 +635,9 @@ if (addHistoryForm) {
                 historyAddBtn.classList.add('bg-gray-400');
                 historyAddBtn.disabled = true;
             }
-            setTimeout(() => hideModal('confirmationModal'), 2000);
         } catch (error) {
             console.error("Fel vid hantering av historiepost:", error);
-            showModal('errorModal', "Ett fel uppstod.", "Fel!");
+            showModal('errorModal', "Ett fel uppstod.");
         }
     });
 }
@@ -669,10 +663,10 @@ if (addImageForm) {
         try {
             if (editingImageId) {
                 await updateDoc(doc(db, 'images', editingImageId), imageObject);
-                showModal('confirmationModal', "Bilden har uppdaterats!", "Lyckades!");
+                showModal('confirmationModal', "Bilden har uppdaterats!");
             } else {
                 await addDoc(collection(db, 'images'), imageObject);
-                showModal('confirmationModal', "Bilden har lagts till!", "Lyckades!");
+                showModal('confirmationModal', "Bilden har lagts till!");
             }
 
             addImageForm.reset();
@@ -684,60 +678,14 @@ if (addImageForm) {
                 addImageBtn.classList.add('bg-gray-400');
                 addImageBtn.disabled = true;
             }
-            setTimeout(() => hideModal('confirmationModal'), 2000);
         } catch (error) {
             console.error("Fel vid hantering av bild:", error);
-            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.", "Fel!");
+            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.");
         }
     });
 }
 
-const addAdminForm = document.getElementById('add-admin-form');
-if (addAdminForm) {
-    addAdminForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('new-admin-username').value;
-        const password = document.getElementById('new-admin-password').value;
-
-        if (!username || !password) {
-            showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
-            return;
-        }
-
-        const result = await createAdminUser(username, password);
-        if (result.success) {
-            showModal('confirmationModal', result.message, "Lyckades!");
-            addAdminForm.reset();
-        } else {
-            showModal('errorModal', result.message, "Fel!");
-        }
-    });
-}
-
-const loginBtn = document.getElementById('login-btn');
-const adminUsernameInput = document.getElementById('admin-username');
-const adminPasswordInput = document.getElementById('admin-password');
 const logoutBtn = document.getElementById('logout-btn');
-
-if (loginBtn) {
-    loginBtn.addEventListener('click', async () => {
-        const username = adminUsernameInput.value.trim();
-        const password = adminPasswordInput.value.trim();
-
-        if (!username || !password) {
-            showModal('errorModal', "Fyll i både användarnamn och lösenord.", "Fel!");
-            return;
-        }
-
-        const result = await signInAdmin(username, password);
-        if (result.success) {
-            showModal('confirmationModal', "Admin-inloggning lyckades!", "Välkommen!");
-            navigate('#admin');
-        } else {
-            showModal('errorModal', result.message, "Inloggning misslyckades");
-        }
-    });
-}
 
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
@@ -749,44 +697,46 @@ if (logoutBtn) {
     });
 }
 
-
 document.addEventListener('DOMContentLoaded', async () => {
     onAuthStateChanged(auth, async (user) => {
         currentUserId = user ? user.uid : null;
         isAdminLoggedIn = false;
-        loggedInAdminUsername = '';
         
         const profileNavLink = document.getElementById('profile-nav-link');
         const userNavLink = document.getElementById('user-nav-link');
         const adminIndicator = document.getElementById('admin-indicator');
-        const profilePanel = document.getElementById('profile-panel');
-        const userLoginPanel = document.getElementById('user-login-panel');
-        const registerPanel = document.getElementById('register-panel');
+        const adminPanel = document.getElementById('admin-panel');
+        const adminLoginPanel = document.getElementById('admin-login-panel');
+        const adminUserInfo = document.getElementById('admin-user-info');
         
         if (user) {
             if (profileNavLink) profileNavLink.classList.remove('hidden');
             if (userNavLink) userNavLink.classList.add('hidden');
-            if (profilePanel) profilePanel.classList.remove('hidden');
-            if (userLoginPanel) userLoginPanel.classList.add('hidden');
-            if (registerPanel) registerPanel.classList.add('hidden');
             
-            // Checking if the user is an admin after a successful login
             const docRef = doc(db, 'admins', user.uid);
             const docSnap = await getFirestoreDoc(docRef);
             if (docSnap.exists()) {
                 isAdminLoggedIn = true;
-                loggedInAdminUsername = docSnap.data().username;
+                loggedInAdminUsername = docSnap.data().email;
+                if (adminIndicator) adminIndicator.classList.remove('hidden');
+                if (adminPanel) adminPanel.classList.remove('hidden');
+                if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
+                if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
             } else {
                 isAdminLoggedIn = false;
                 loggedInAdminUsername = '';
+                if (adminIndicator) adminIndicator.classList.add('hidden');
+                if (adminPanel) adminPanel.classList.add('hidden');
+                if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
             }
         } else {
+            isAdminLoggedIn = false;
+            loggedInAdminUsername = '';
             if (profileNavLink) profileNavLink.classList.add('hidden');
             if (userNavLink) userNavLink.classList.remove('hidden');
-            if (profilePanel) profilePanel.classList.add('hidden');
-            if (userLoginPanel) userLoginPanel.classList.remove('hidden');
-            if (registerPanel) registerPanel.classList.add('hidden');
             if (adminIndicator) adminIndicator.classList.add('hidden');
+            if (adminPanel) adminPanel.classList.add('hidden');
+            if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
         }
         updateUI();
     });
@@ -834,7 +784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const shareBtn = e.target.closest('.share-btn');
         if (shareBtn) {
             const newsId = shareBtn.getAttribute('data-id');
-            const newsTitle = newsData.find(n => n.id === newsId)?.title || 'Nyhet';
+            const newsItem = newsData.find(n => n.id === newsId)?.title || 'Nyhet';
             const pageUrl = window.location.origin + window.location.pathname;
             const shareUrl = `${pageUrl}#nyheter#news-${newsId}`;
 
@@ -845,14 +795,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const closeShareModalBtn = document.getElementById('close-share-modal');
             
             if (shareModal && shareMessageTitle && shareFacebookBtn && copyLinkBtn) {
-                shareMessageTitle.textContent = newsTitle;
+                shareMessageTitle.textContent = newsItem;
                 shareFacebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
                 copyLinkBtn.onclick = () => {
                     navigator.clipboard.writeText(shareUrl).then(() => {
-                        showModal('confirmationModal', "Länken har kopierats till urklipp!", "Lyckades!");
+                        showModal('confirmationModal', "Länken har kopierats till urklipp!");
                         hideModal('shareModal');
                     }).catch(err => {
-                        showModal('errorModal', "Kunde inte kopiera länken.", "Fel!");
+                        showModal('errorModal', "Kunde inte kopiera länken.");
                     });
                 };
                 if (closeShareModalBtn) {
@@ -861,7 +811,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 shareModal.addEventListener('click', (e) => {
                     if (e.target === e.currentTarget) hideModal('shareModal');
                 });
-                showModal('shareModal', '', 'Dela nyhet');
+                showModal('shareModal', 'Dela nyhet');
             }
         }
         
@@ -869,7 +819,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (deleteBtn) {
             const docId = deleteBtn.getAttribute('data-id');
             const docType = deleteBtn.getAttribute('data-type');
-            deleteDocument(docId, docType);
+
+            showModal('deleteConfirmationModal', `Är du säker på att du vill ta bort denna post?`);
+
+            confirmDeleteBtn.onclick = () => {
+                deleteDocument(docId, docType);
+                hideModal('deleteConfirmationModal');
+            };
+            cancelDeleteBtn.onclick = () => {
+                hideModal('deleteConfirmationModal');
+            };
         }
 
         const deleteAdminBtn = e.target.closest('.delete-admin-btn');
@@ -943,8 +902,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const addAdminFromUserBtn = e.target.closest('.add-admin-btn');
         if (addAdminFromUserBtn) {
             const userId = addAdminFromUserBtn.getAttribute('data-id');
-            const username = addAdminFromUserBtn.getAttribute('data-username');
-            addAdminFromUser(userId, username);
+            const email = addAdminFromUserBtn.getAttribute('data-email');
+            addAdminFromUser(userId, email);
         }
     });
     
