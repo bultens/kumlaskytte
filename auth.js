@@ -8,12 +8,6 @@ let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 
-const authPanel = document.getElementById('auth-panel');
-const authForm = document.getElementById('auth-form');
-const authEmailInput = document.getElementById('auth-email');
-const authPasswordInput = document.getElementById('auth-password');
-const authSubmitBtn = document.getElementById('auth-submit-btn');
-const logoutProfileBtn = document.getElementById('logout-profile-btn');
 const profilePanel = document.getElementById('profile-panel');
 const profileEmail = document.getElementById('profile-email');
 const userNavLink = document.getElementById('user-nav-link');
@@ -70,7 +64,11 @@ if (registerForm) {
             });
             alert('Konto skapat! Du är nu inloggad.');
         } catch (error) {
-            alert(error.message);
+            if (error.code === 'auth/email-already-in-use') {
+                alert('Denna e-postadress är redan registrerad. Vänligen logga in istället.');
+            } else {
+                alert(error.message);
+            }
         }
     });
 }
@@ -90,6 +88,7 @@ if (userLoginForm) {
     });
 }
 
+const logoutProfileBtn = document.getElementById('logout-profile-btn');
 if (logoutProfileBtn) {
     logoutProfileBtn.addEventListener('click', async () => {
         try {

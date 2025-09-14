@@ -416,7 +416,15 @@ async function addAdminFromUser(userId, email) {
     }
 
     try {
-        await setDoc(doc(db, 'admins', userId), { email: email });
+        const adminRef = doc(db, 'admins', userId);
+        const adminDoc = await getFirestoreDoc(adminRef);
+
+        if (adminDoc.exists()) {
+            await updateDoc(adminRef, { email: email });
+        } else {
+            await setDoc(adminRef, { email: email });
+        }
+        
         showModal('confirmationModal', "Användaren har lagts till som administratör!");
     } catch (error) {
         console.error("Fel vid tillägg av admin:", error);
