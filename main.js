@@ -485,7 +485,7 @@ async function handleLike(docId, collectionName) {
 }
 
 async function deleteDocument(docId, collectionName) {
-    if (!db || !isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -500,7 +500,7 @@ async function deleteDocument(docId, collectionName) {
 }
 
 async function deleteAdmin(adminId) {
-    if (!db || !isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -572,6 +572,10 @@ const addNewsForm = document.getElementById('add-news-form');
 if (addNewsForm) {
     addNewsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+            return;
+        }
         const newsTitle = document.getElementById('news-title').value;
         const newsContent = document.getElementById('news-content-editor').innerHTML;
         const newsDate = document.getElementById('news-date').value;
@@ -615,6 +619,10 @@ const addHistoryForm = document.getElementById('add-history-form');
 if (addHistoryForm) {
     addHistoryForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+            return;
+        }
         const historyTitle = document.getElementById('history-title').value;
         const historyContent = document.getElementById('history-content-editor').innerHTML;
 
@@ -655,6 +663,10 @@ const addImageForm = document.getElementById('add-image-form');
 if (addImageForm) {
     addImageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+            return;
+        }
         const imageTitle = document.getElementById('image-title').value;
         const imageUrl = document.getElementById('image-url').value;
         const imageYear = parseInt(document.getElementById('image-year').value);
@@ -698,6 +710,10 @@ const addEventForm = document.getElementById('add-event-form');
 if (addEventForm) {
     addEventForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+            return;
+        }
         const eventTitle = document.getElementById('event-title').value;
         const eventDescription = document.getElementById('event-description-editor').innerHTML;
         const isRecurring = document.getElementById('is-recurring').checked;
