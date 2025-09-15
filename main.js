@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 2.02
+// Ver. 2.03
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -838,26 +838,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         const adminUserInfo = document.getElementById('admin-user-info');
         
         if (user) {
-            const docRef = doc(db, 'admins', user.uid);
-            const docSnap = await getFirestoreDoc(docRef);
-            if (docSnap.exists()) {
-                isAdminLoggedIn = true;
-                loggedInAdminUsername = docSnap.data().email;
+            try {
+                const docRef = doc(db, 'admins', user.uid);
+                const docSnap = await getFirestoreDoc(docRef);
+                if (docSnap.exists()) {
+                    isAdminLoggedIn = true;
+                    loggedInAdminUsername = docSnap.data().email;
+                }
+            } catch (error) {
+                console.error("Fel vid hämtning av admin-status:", error);
             }
         }
         
-        if (isAdminLoggedIn) {
-            if (adminIndicator) adminIndicator.classList.remove('hidden');
-            if (adminPanel) adminPanel.classList.remove('hidden');
-            if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
-            if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
-        } else {
-            if (adminIndicator) adminIndicator.classList.add('hidden');
-            if (adminPanel) adminPanel.classList.add('hidden');
-            if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
-        }
-
-        updateUI();
+        // Uppdatera UI efter en kort fördröjning för att låta Firebase synkronisera
+        setTimeout(() => {
+            if (isAdminLoggedIn) {
+                if (adminIndicator) adminIndicator.classList.remove('hidden');
+                if (adminPanel) adminPanel.classList.remove('hidden');
+                if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
+                if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
+            } else {
+                if (adminIndicator) adminIndicator.classList.add('hidden');
+                if (adminPanel) adminPanel.classList.add('hidden');
+                if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
+            }
+            updateUI();
+        }, 500); // 500 ms väntetid
     });
 
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
