@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 2.09
+// Ver. 2.10
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -31,6 +31,10 @@ const imageFormTitle = document.getElementById('image-form-title');
 const deleteConfirmationModal = document.getElementById('deleteConfirmationModal');
 const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+const deleteEventModal = document.getElementById('deleteEventModal');
+const deleteSingleEventBtn = document.getElementById('delete-single-event-btn');
+const deleteSeriesEventBtn = document.getElementById('delete-series-event-btn');
+const cancelEventDeleteBtn = document.getElementById('cancel-event-delete-btn');
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message) {
@@ -577,20 +581,8 @@ if (addNewsForm) {
     addNewsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        if (!auth.currentUser) {
-            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
-            return;
-        }
-
-        try {
-            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
-            if (!adminDoc.exists()) {
-                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-                return;
-            }
-        } catch (error) {
-            console.error("Fel vid behörighetskontroll:", error);
-            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
             return;
         }
 
@@ -638,20 +630,8 @@ if (addHistoryForm) {
     addHistoryForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        if (!auth.currentUser) {
-            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
-            return;
-        }
-
-        try {
-            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
-            if (!adminDoc.exists()) {
-                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-                return;
-            }
-        } catch (error) {
-            console.error("Fel vid behörighetskontroll:", error);
-            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
             return;
         }
 
@@ -696,20 +676,8 @@ if (addImageForm) {
     addImageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        if (!auth.currentUser) {
-            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
-            return;
-        }
-
-        try {
-            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
-            if (!adminDoc.exists()) {
-                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-                return;
-            }
-        } catch (error) {
-            console.error("Fel vid behörighetskontroll:", error);
-            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
             return;
         }
 
@@ -757,20 +725,8 @@ if (addEventForm) {
     addEventForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        if (!auth.currentUser) {
-            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
-            return;
-        }
-
-        try {
-            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
-            if (!adminDoc.exists()) {
-                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-                return;
-            }
-        } catch (error) {
-            console.error("Fel vid behörighetskontroll:", error);
-            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
             return;
         }
 
@@ -985,36 +941,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (deleteBtn) {
             const docId = deleteBtn.getAttribute('data-id');
             const docType = deleteBtn.getAttribute('data-type');
+            const seriesId = deleteBtn.getAttribute('data-series-id');
 
-            showModal('deleteConfirmationModal', `Är du säker på att du vill ta bort denna post?`);
+            if (!isAdminLoggedIn) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
 
-            confirmDeleteBtn.onclick = async () => {
-                if (!auth.currentUser) {
-                    showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
+            if (docType === 'events' && seriesId) {
+                showModal('deleteEventModal', `Är du säker på att du vill ta bort detta evenemang? Välj om du vill ta bort enskild händelse eller hela serien.`);
+
+                deleteSingleEventBtn.onclick = async () => {
+                    deleteDocument(docId, docType);
+                    hideModal('deleteEventModal');
+                };
+
+                deleteSeriesEventBtn.onclick = async () => {
+                    const q = query(collection(db, docType), where("seriesId", "==", seriesId));
+                    const querySnapshot = await getDocs(q);
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    showModal('confirmationModal', "Hela evenemangs-serien har tagits bort.");
+                    hideModal('deleteEventModal');
+                };
+                cancelEventDeleteBtn.onclick = () => {
+                    hideModal('deleteEventModal');
+                };
+            } else {
+                showModal('deleteConfirmationModal', `Är du säker på att du vill ta bort denna post?`);
+
+                confirmDeleteBtn.onclick = async () => {
+                    deleteDocument(docId, docType);
                     hideModal('deleteConfirmationModal');
-                    return;
-                }
-        
-                try {
-                    const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
-                    if (!adminDoc.exists()) {
-                        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-                        hideModal('deleteConfirmationModal');
-                        return;
-                    }
-                } catch (error) {
-                    console.error("Fel vid behörighetskontroll:", error);
-                    showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+                };
+                cancelDeleteBtn.onclick = () => {
                     hideModal('deleteConfirmationModal');
-                    return;
-                }
-
-                deleteDocument(docId, docType);
-                hideModal('deleteConfirmationModal');
-            };
-            cancelDeleteBtn.onclick = () => {
-                hideModal('deleteConfirmationModal');
-            };
+                };
+            }
         }
 
         const deleteAdminBtn = e.target.closest('.delete-admin-btn');

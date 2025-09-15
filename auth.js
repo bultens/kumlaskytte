@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 import { doc, getFirestore, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
-// Ver. 1.97
+// Ver. 1.98
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -23,15 +23,15 @@ const userLoginForm = document.getElementById('user-login-form');
 function toggleProfileUI(user) {
     if (user) {
         profilePanel.classList.remove('hidden');
-        registerPanel.classList.add('hidden');
         userLoginPanel.classList.add('hidden');
+        registerPanel.classList.add('hidden');
         profileEmail.textContent = user.email;
         if (profileNavLink) profileNavLink.classList.remove('hidden');
         if (userNavLink) userNavLink.classList.add('hidden');
     } else {
         profilePanel.classList.add('hidden');
-        registerPanel.classList.remove('hidden');
-        userLoginPanel.classList.add('hidden');
+        userLoginPanel.classList.remove('hidden');
+        registerPanel.classList.add('hidden');
         if (profileNavLink) profileNavLink.classList.add('hidden');
         if (userNavLink) userNavLink.classList.remove('hidden');
     }
