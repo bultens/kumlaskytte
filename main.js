@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.97
+// Ver. 1.98
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -826,10 +826,11 @@ if (logoutBtn) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    onAuthStateChanged(auth, async (user) => {
+function handleAuthAndAdminStatus(user) {
+    return new Promise(async (resolve) => {
         currentUserId = user ? user.uid : null;
         isAdminLoggedIn = false;
+        loggedInAdminUsername = '';
         
         const adminIndicator = document.getElementById('admin-indicator');
         const adminPanel = document.getElementById('admin-panel');
@@ -842,24 +843,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (docSnap.exists()) {
                 isAdminLoggedIn = true;
                 loggedInAdminUsername = docSnap.data().email;
-                if (adminIndicator) adminIndicator.classList.remove('hidden');
-                if (adminPanel) adminPanel.classList.remove('hidden');
-                if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
-                if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
-            } else {
-                isAdminLoggedIn = false;
-                loggedInAdminUsername = '';
-                if (adminIndicator) adminIndicator.classList.add('hidden');
-                if (adminPanel) adminPanel.classList.add('hidden');
-                if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
             }
+        }
+        
+        if (isAdminLoggedIn) {
+            if (adminIndicator) adminIndicator.classList.remove('hidden');
+            if (adminPanel) adminPanel.classList.remove('hidden');
+            if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
+            if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
         } else {
-            isAdminLoggedIn = false;
-            loggedInAdminUsername = '';
             if (adminIndicator) adminIndicator.classList.add('hidden');
             if (adminPanel) adminPanel.classList.add('hidden');
             if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
         }
+        
+        resolve();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    onAuthStateChanged(auth, async (user) => {
+        await handleAuthAndAdminStatus(user);
         updateUI();
     });
 
