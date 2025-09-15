@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 2.07
+// Ver. 2.08
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -318,9 +318,15 @@ function renderHistory() {
                     <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="history" data-liked="${userHasLiked}">
                         👍 <span class="like-count">${likeCount}</span>
                     </button>
+                    <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
+                        </svg>
+                        <span class="ml-1 hidden sm:inline">Dela</span>
+                    </button>
                     ${isAdminLoggedIn ? `
-                        <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="history">Ta bort</button>
-                        <button class="edit-history-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                        <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
+                        <button class="edit-news-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
                     ` : ''}
                 </div>
             </div>
@@ -486,10 +492,7 @@ async function handleLike(docId, collectionName) {
 }
 
 async function deleteDocument(docId, collectionName) {
-    if (!isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-        return;
-    }
+    // Denna funktion förutsätter att behörighetskontroll görs innan den anropas
     const docRef = doc(db, collectionName, docId);
     try {
         await deleteDoc(docRef);
@@ -574,7 +577,6 @@ if (addNewsForm) {
     addNewsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Asynkron behörighetskontroll innan operationen utförs
         if (!auth.currentUser) {
             showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
             return;
