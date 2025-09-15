@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 2.03
+// Ver. 2.04
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -174,7 +174,7 @@ function renderNews() {
         const likes = item.likes || {};
         const likeCount = Object.keys(likes).length;
         const userHasLiked = currentUserId && likes[currentUserId];
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedat.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
 
         allNewsContainer.innerHTML += `
             <div class="card" id="news-${item.id}">
@@ -573,10 +573,25 @@ const addNewsForm = document.getElementById('add-news-form');
 if (addNewsForm) {
     addNewsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!isAdminLoggedIn) {
-            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        
+        // Asynkron behörighetskontroll innan operationen utförs
+        if (!auth.currentUser) {
+            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
             return;
         }
+
+        try {
+            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
+            if (!adminDoc.exists()) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
+        } catch (error) {
+            console.error("Fel vid behörighetskontroll:", error);
+            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+            return;
+        }
+
         const newsTitle = document.getElementById('news-title').value;
         const newsContent = document.getElementById('news-content-editor').innerHTML;
         const newsDate = document.getElementById('news-date').value;
@@ -620,10 +635,24 @@ const addHistoryForm = document.getElementById('add-history-form');
 if (addHistoryForm) {
     addHistoryForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!isAdminLoggedIn) {
-            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        
+        if (!auth.currentUser) {
+            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
             return;
         }
+
+        try {
+            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
+            if (!adminDoc.exists()) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
+        } catch (error) {
+            console.error("Fel vid behörighetskontroll:", error);
+            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+            return;
+        }
+
         const historyTitle = document.getElementById('history-title').value;
         const historyContent = document.getElementById('history-content-editor').innerHTML;
 
@@ -664,10 +693,24 @@ const addImageForm = document.getElementById('add-image-form');
 if (addImageForm) {
     addImageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!isAdminLoggedIn) {
-            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+
+        if (!auth.currentUser) {
+            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
             return;
         }
+
+        try {
+            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
+            if (!adminDoc.exists()) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
+        } catch (error) {
+            console.error("Fel vid behörighetskontroll:", error);
+            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+            return;
+        }
+
         const imageTitle = document.getElementById('image-title').value;
         const imageUrl = document.getElementById('image-url').value;
         const imageYear = parseInt(document.getElementById('image-year').value);
@@ -711,10 +754,24 @@ const addEventForm = document.getElementById('add-event-form');
 if (addEventForm) {
     addEventForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!isAdminLoggedIn) {
-            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        
+        if (!auth.currentUser) {
+            showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
             return;
         }
+
+        try {
+            const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
+            if (!adminDoc.exists()) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
+        } catch (error) {
+            console.error("Fel vid behörighetskontroll:", error);
+            showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+            return;
+        }
+
         const eventTitle = document.getElementById('event-title').value;
         const eventDescription = document.getElementById('event-description-editor').innerHTML;
         const isRecurring = document.getElementById('is-recurring').checked;
@@ -796,22 +853,6 @@ if (addEventForm) {
             eventAddBtn.disabled = true;
         }
     });
-    
-    const isRecurringCheckbox = document.getElementById('is-recurring');
-    if (isRecurringCheckbox) {
-        isRecurringCheckbox.addEventListener('change', () => {
-            const singleFields = document.getElementById('single-event-fields');
-            const recurringFields = document.getElementById('recurring-event-fields');
-            if (isRecurringCheckbox.checked) {
-                singleFields.classList.add('hidden');
-                recurringFields.classList.remove('hidden');
-            } else {
-                singleFields.classList.remove('hidden');
-                recurringFields.classList.add('hidden');
-            }
-            checkEventForm();
-        });
-    }
 }
 
 const logoutBtn = document.getElementById('logout-btn');
@@ -850,20 +891,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        // Uppdatera UI efter en kort fördröjning för att låta Firebase synkronisera
-        setTimeout(() => {
-            if (isAdminLoggedIn) {
-                if (adminIndicator) adminIndicator.classList.remove('hidden');
-                if (adminPanel) adminPanel.classList.remove('hidden');
-                if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
-                if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
-            } else {
-                if (adminIndicator) adminIndicator.classList.add('hidden');
-                if (adminPanel) adminPanel.classList.add('hidden');
-                if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
-            }
-            updateUI();
-        }, 500); // 500 ms väntetid
+        if (isAdminLoggedIn) {
+            if (adminIndicator) adminIndicator.classList.remove('hidden');
+            if (adminPanel) adminPanel.classList.remove('hidden');
+            if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
+            if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
+        } else {
+            if (adminIndicator) adminIndicator.classList.add('hidden');
+            if (adminPanel) adminPanel.classList.add('hidden');
+            if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
+        }
+
+        updateUI();
     });
 
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
@@ -947,7 +986,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             showModal('deleteConfirmationModal', `Är du säker på att du vill ta bort denna post?`);
 
-            confirmDeleteBtn.onclick = () => {
+            confirmDeleteBtn.onclick = async () => {
+                if (!auth.currentUser) {
+                    showModal('errorModal', "Du måste vara inloggad för att utföra denna åtgärd.");
+                    hideModal('deleteConfirmationModal');
+                    return;
+                }
+        
+                try {
+                    const adminDoc = await getFirestoreDoc(doc(db, 'admins', auth.currentUser.uid));
+                    if (!adminDoc.exists()) {
+                        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                        hideModal('deleteConfirmationModal');
+                        return;
+                    }
+                } catch (error) {
+                    console.error("Fel vid behörighetskontroll:", error);
+                    showModal('errorModal', "Ett fel uppstod vid behörighetskontroll.");
+                    hideModal('deleteConfirmationModal');
+                    return;
+                }
+
                 deleteDocument(docId, docType);
                 hideModal('deleteConfirmationModal');
             };
