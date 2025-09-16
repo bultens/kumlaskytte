@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.20
+// Ver. 2.21
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -44,6 +44,23 @@ const uploadProgressContainer = document.getElementById('upload-progress-contain
 const uploadProgress = document.getElementById('upload-progress');
 const uploadStatus = document.getElementById('upload-status');
 const imageEditSection = document.getElementById('image-edit-section');
+
+// Calendar specific elements
+const isRecurringCheckbox = document.getElementById('is-recurring');
+const singleEventFields = document.getElementById('single-event-fields');
+const recurringEventFields = document.getElementById('recurring-event-fields');
+
+if (isRecurringCheckbox) {
+    isRecurringCheckbox.addEventListener('change', () => {
+        if (isRecurringCheckbox.checked) {
+            singleEventFields.classList.add('hidden');
+            recurringEventFields.classList.remove('hidden');
+        } else {
+            singleEventFields.classList.remove('hidden');
+            recurringEventFields.classList.add('hidden');
+        }
+    });
+}
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message) {
@@ -759,6 +776,7 @@ if (addImageForm) {
             addImageBtn.disabled = true;
             addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             addImageBtn.classList.add('bg-gray-400');
+            document.getElementById('file-name-display').textContent = 'Ingen fil vald';
 
         } catch (error) {
             console.error("Fel vid hantering av bild:", error);
@@ -1126,7 +1144,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             addAdminFromUser(userId);
         }
         
-        // Handle editor toolbar buttons
         const editorToolbarBtn = e.target.closest('.editor-toolbar button');
         if (editorToolbarBtn) {
             e.preventDefault();
@@ -1179,11 +1196,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const eventTitleInput = document.getElementById('event-title');
     const eventDescriptionEditor = document.getElementById('event-description-editor');
     const eventDateInput = document.getElementById('event-date');
-    const isRecurringCheckbox = document.getElementById('is-recurring');
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     const weekdaySelect = document.getElementById('weekday-select');
     const imageUpload = document.getElementById('image-upload');
+    const fileNameDisplay = document.getElementById('file-name-display');
 
 
     function checkNewsForm() {
@@ -1231,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function checkEventForm() {
         const isRecurring = isRecurringCheckbox.checked;
         const eventTitle = eventTitleInput.value.trim();
-        const eventDescription = eventDescriptionEditor.innerHTML.trim();
+        const eventDescription = document.getElementById('event-description-editor').innerHTML.trim();
         let isFormValid = false;
 
         if (eventTitle && eventDescription) {
@@ -1264,7 +1281,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (imageTitleInput) imageTitleInput.addEventListener('input', checkImageForm);
     if (imageYearInput) imageYearInput.addEventListener('input', checkImageForm);
     if (imageMonthInput) imageMonthInput.addEventListener('input', checkImageForm);
-    if (imageUploadInput) imageUploadInput.addEventListener('change', checkImageForm);
+    if (imageUploadInput) imageUploadInput.addEventListener('change', () => {
+        fileNameDisplay.textContent = imageUploadInput.files.length > 0 ? imageUploadInput.files[0].name : 'Ingen fil vald';
+        checkImageForm();
+    });
     if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
     if (eventTitleInput) eventTitleInput.addEventListener('input', checkEventForm);
     if (eventDescriptionEditor) eventDescriptionEditor.addEventListener('input', checkEventForm);
