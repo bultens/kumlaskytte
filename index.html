@@ -170,7 +170,18 @@
             <h1 class="text-4xl font-bold mb-6">Bildgalleri</h1>
             <div id="gallery-container">
                 </div>
-
+<div class="card mt-6 hidden" id="upload-image-section">
+    <h2 class="text-2xl font-bold mb-4">Ladda upp bild</h2>
+    <form id="upload-image-form">
+        <label for="image-upload" class="block mb-2 font-semibold">Välj bild</label>
+        <input type="file" id="image-upload" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" accept="image/png, image/jpeg">
+        <button type="submit" id="upload-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Ladda upp bild</button>
+        <div id="upload-progress-container" class="mt-4 hidden">
+            <p id="upload-status" class="text-sm"></p>
+            <progress id="upload-progress" class="w-full" value="0" max="100"></progress>
+        </div>
+    </form>
+</div>
             <div class="card mt-6 hidden" id="image-edit-section">
                 <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
                 <form id="add-image-form">

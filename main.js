@@ -2,13 +2,13 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 2.17
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
 let eventsData = [];
-let adminsData = [];
 let historyData = [];
 let imageData = [];
 let usersData = []; 
@@ -17,9 +17,6 @@ let editingHistoryId = null;
 let editingImageId = null;
 let editingEventId = null;
 let currentUserId = null;
-let currentNews = null;
-let currentHistory = null;
-let currentImage = null;
 
 const newsAddBtn = document.getElementById('add-news-btn');
 const eventAddBtn = document.getElementById('add-event-btn');
@@ -35,6 +32,15 @@ const deleteEventModal = document.getElementById('deleteEventModal');
 const deleteSingleEventBtn = document.getElementById('delete-single-event-btn');
 const deleteSeriesEventBtn = document.getElementById('delete-series-event-btn');
 const cancelEventDeleteBtn = document.getElementById('cancel-event-delete-btn');
+
+// Image upload specific elements
+const uploadImageForm = document.getElementById('upload-image-form');
+const imageUploadInput = document.getElementById('image-upload');
+const uploadImageBtn = document.getElementById('upload-image-btn');
+const uploadProgressContainer = document.getElementById('upload-progress-container');
+const uploadProgress = document.getElementById('upload-progress');
+const uploadStatus = document.getElementById('upload-status');
+const uploadSection = document.getElementById('upload-image-section');
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message) {
@@ -107,6 +113,7 @@ function updateUI() {
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
         if (historyEditSection) historyEditSection.classList.remove('hidden');
+        if (uploadSection) uploadSection.classList.remove('hidden');
 
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
@@ -116,6 +123,7 @@ function updateUI() {
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
         if (imageEditSection) imageEditSection.classList.add('hidden');
         if (historyEditSection) historyEditSection.classList.add('hidden');
+        if (uploadSection) uploadSection.classList.add('hidden');
         
         if (adminPanel) adminPanel.classList.add('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
@@ -1105,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     const weekdaySelect = document.getElementById('weekday-select');
+    const imageUpload = document.getElementById('image-upload');
 
 
     function checkNewsForm() {
@@ -1187,4 +1196,78 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (startDateInput) startDateInput.addEventListener('input', checkEventForm);
     if (endDateInput) endDateInput.addEventListener('input', checkEventForm);
     if (weekdaySelect) weekdaySelect.addEventListener('change', checkEventForm);
+
+    if (imageUpload) {
+        imageUpload.addEventListener('change', () => {
+            if (imageUpload.files.length > 0) {
+                uploadImageBtn.disabled = false;
+                uploadImageBtn.classList.remove('bg-gray-400');
+                uploadImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                uploadImageBtn.disabled = true;
+                uploadImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                uploadImageBtn.classList.add('bg-gray-400');
+            }
+        });
+    }
+
+    if (uploadImageForm) {
+        uploadImageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!isAdminLoggedIn) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
+
+            const file = imageUploadInput.files[0];
+            if (!file) {
+                showModal('errorModal', "Vänligen välj en bild att ladda upp.");
+                return;
+            }
+
+            const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+            if (file.size > MAX_IMAGE_SIZE) {
+                showModal('errorModal', "Bilden är för stor. Max tillåten storlek är 5 MB.");
+                return;
+            }
+
+            const storage = getStorage();
+            const storageRef = ref(storage, `images/${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadProgressContainer.classList.remove('hidden');
+            uploadImageBtn.disabled = true;
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    uploadProgress.value = progress;
+                    uploadStatus.textContent = `Laddar upp: ${progress.toFixed(0)}%`;
+                },
+                (error) => {
+                    showModal('errorModal', "Uppladdning misslyckades. Vänligen försök igen.");
+                    console.error("Upload failed:", error);
+                    uploadProgressContainer.classList.add('hidden');
+                    uploadImageBtn.disabled = false;
+                },
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+                        const imageTitle = file.name;
+                        const newImageRef = doc(collection(db, 'images'));
+                        await setDoc(newImageRef, {
+                            title: imageTitle,
+                            url: downloadURL,
+                            createdAt: serverTimestamp()
+                        });
+                        showModal('confirmationModal', "Bilden har laddats upp och sparats!");
+                        uploadImageForm.reset();
+                        uploadProgressContainer.classList.add('hidden');
+                        uploadImageBtn.disabled = true;
+                    });
+                }
+            );
+        });
+    }
+
 });
