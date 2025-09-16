@@ -20,15 +20,17 @@
                         <a id="site-title-display" href="#" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 1.96</p>
+                    <p class="text-sm text-gray-300">Ver. 2.0</p>
                 </div>
             </div>
             <nav>
                 <ul class="flex space-x-4 font-medium">
                     <li><a href="#hem" class="hover:text-gray-300 transition duration-300">Hem</a></li>
+                    <li><a href="#omoss" class="hover:text-gray-300 transition duration-300">Om oss</a></li>
                     <li><a href="#nyheter" class="hover:text-gray-300 transition duration-300">Nyheter</a></li>
                     <li><a href="#kalender" class="hover:text-gray-300 transition duration-300">Kalender</a></li>
                     <li><a href="#bilder" class="hover:text-gray-300 transition duration-300">Bilder</a></li>
+                    <li><a href="#sponsorer" class="hover:text-gray-300 transition duration-300">Sponsorer</a></li>
                     <li id="user-nav-link" class="hidden"><a href="#profil" class="hover:text-gray-300 transition duration-300">Logga in</a></li>
                     <li id="profile-nav-link" class="hidden"><a href="#profil" class="hover:text-gray-300 transition duration-300">Min Profil</a></li>
                     <li><a href="#admin" class="hover:text-gray-300 transition duration-300">Admin</a></li>
@@ -52,13 +54,25 @@
             <h2 class="text-3xl font-bold mt-8 mb-4">Kommande Evenemang</h2>
             <div id="home-events-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 </div>
+        </section>
 
-            <h2 class="text-3xl font-bold mt-8 mb-4">Klubbens Poster</h2>
-            <div id="home-history-container" class="space-y-6">
+        <section id="omoss" class="page">
+            <h1 class="text-4xl font-bold mb-6">Om oss</h1>
+            <div class="card mb-6">
+                <h2 class="text-2xl font-bold mb-4">Kontakt</h2>
+                <div id="contact-info" class="text-gray-700 space-y-2">
+                    <p>Adress: <span id="contact-address"></span></p>
+                    <p>Telefon: <span id="contact-phone"></span></p>
+                    <p>Email: <span id="contact-email"></span></p>
                 </div>
+            </div>
+            
+            <h2 class="text-3xl font-bold mt-8 mb-4">Historik</h2>
+            <div id="home-history-container" class="space-y-6">
+            </div>
             
             <div class="card mt-6 hidden" id="history-edit-section">
-                <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Huvudsidposter</h2>
+                <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Historikpost</h2>
                 <form id="add-history-form">
                     <label for="history-title" class="block mb-2 font-semibold">Titel</label>
                     <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
@@ -225,6 +239,43 @@
             </div>
         </section>
 
+        <section id="sponsorer" class="page">
+            <h1 class="text-4xl font-bold mb-6">Sponsorer</h1>
+            <div id="sponsors-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+
+            <div class="card mt-6 hidden" id="sponsors-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="sponsor-form-title">Lägg till Sponsor</h2>
+                <form id="add-sponsor-form">
+                    <label for="sponsor-name" class="block mb-2 font-semibold">Sponsorns namn</label>
+                    <input type="text" id="sponsor-name" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <label for="sponsor-url" class="block mb-2 font-semibold">Länk till webbplats</label>
+                    <input type="url" id="sponsor-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4">
+                        <label for="sponsor-logo-upload-label" class="block mb-2 font-semibold">Ladda upp logotyp</label>
+                        <label for="sponsor-logo-upload" class="cursor-pointer bg-gray-200 hover:bg-gray-300 transition duration-300 px-4 py-2 rounded-lg inline-block">
+                            Välj fil
+                        </label>
+                        <span id="sponsor-logo-name-display" class="ml-2 text-gray-600">Ingen fil vald</span>
+                        <input type="file" id="sponsor-logo-upload" class="hidden" accept="image/png, image/jpeg">
+                        
+                        <p class="text-sm text-gray-500 my-4 text-center">Eller</p>
+                        
+                        <label for="sponsor-logo-url" class="block mb-2 font-semibold">Länka till extern logotyp (URL)</label>
+                        <input type="url" id="sponsor-logo-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    </div>
+                    
+                    <div id="sponsor-upload-progress-container" class="mt-4 hidden">
+                        <p id="sponsor-upload-status" class="text-sm"></p>
+                        <progress id="sponsor-upload-progress" class="w-full" value="0" max="100"></progress>
+                    </div>
+
+                    <button type="submit" id="add-sponsor-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Sponsor</button>
+                </form>
+            </div>
+        </section>
+
         <section id="admin" class="page">
             <div id="admin-login-panel" class="card max-w-md mx-auto hidden">
                 <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
@@ -237,6 +288,27 @@
                     <button id="logout-btn" class="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
                 </div>
                 <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
+
+                <div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
+                    <form id="settings-form">
+                        <label for="site-name-input" class="block mb-2 font-semibold">Webbplatsens namn</label>
+                        <input type="text" id="site-name-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <label for="logo-url-input" class="block mb-2 font-semibold">Logotyp-URL</label>
+                        <input type="url" id="logo-url-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-2">Kontaktinformation</h3>
+                        <label for="contact-address-input" class="block mb-2 font-semibold">Adress</label>
+                        <input type="text" id="contact-address-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <label for="contact-phone-input" class="block mb-2 font-semibold">Telefon</label>
+                        <input type="text" id="contact-phone-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <label for="contact-email-input" class="block mb-2 font-semibold">E-post</label>
+                        <input type="email" id="contact-email-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <button type="submit" id="save-settings-btn" class="mt-4 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara inställningar</button>
+                    </form>
+                </div>
                 
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
