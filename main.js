@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.19
+// Ver. 2.20
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -468,7 +468,6 @@ async function deleteAdmin(adminId) {
     }
 }
 
-
 function applyEditorCommand(editor, command, value = null) {
     editor.focus();
     document.execCommand(command, false, value);
@@ -673,33 +672,32 @@ if (addHistoryForm) {
     });
 }
 
-if (uploadImageForm) {
-    uploadImageForm.addEventListener('submit', async (e) => {
+const addImageForm = document.getElementById('add-image-form');
+if (addImageForm) {
+    addImageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         if (!isAdminLoggedIn) {
             showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
             return;
         }
 
-        const file = imageUploadInput.files[0];
-        const imageUrl = imageUrlInput.value.trim();
-        const imageTitle = imageTitleInput.value.trim();
-        const imageYear = parseInt(imageYearInput.value);
-        const imageMonth = parseInt(imageMonthInput.value);
-
-        if (!imageTitle || !imageYear || !imageMonth) {
-            showModal('errorModal', "Titel, år och månad måste fyllas i.");
-            return;
-        }
+        const imageTitle = document.getElementById('image-title').value;
+        const imageUrl = document.getElementById('image-url').value;
+        const imageYear = parseInt(document.getElementById('image-year').value);
+        const imageMonth = parseInt(document.getElementById('image-month').value);
+        const file = document.getElementById('image-upload').files[0];
         
-        // Check if either a file is selected or a URL is provided, but not both.
-        if ((file && imageUrl) || (!file && !imageUrl)) {
-            showModal('errorModal', "Vänligen ladda upp en bild eller ange en URL, inte båda.");
-            return;
-        }
-
-        let finalImageUrl;
+        let finalImageUrl = imageUrl;
+        
+        const imageObject = {
+            title: imageTitle,
+            url: finalImageUrl,
+            year: imageYear,
+            month: imageMonth,
+            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
+            updatedAt: editingImageId ? serverTimestamp() : null
+        };
 
         if (file) {
             const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -715,36 +713,34 @@ if (uploadImageForm) {
             uploadProgressContainer.classList.remove('hidden');
             addImageBtn.disabled = true;
 
-            await new Promise((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        uploadProgress.value = progress;
-                        uploadStatus.textContent = `Laddar upp: ${progress.toFixed(0)}%`;
-                    },
-                    (error) => {
-                        reject(error);
-                    },
-                    () => {
-                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                            finalImageUrl = downloadURL;
-                            resolve();
-                        }).catch(reject);
-                    }
-                );
-            });
-        } else {
-            finalImageUrl = imageUrl;
+            try {
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            uploadProgress.value = progress;
+                            uploadStatus.textContent = `Laddar upp: ${progress.toFixed(0)}%`;
+                        },
+                        (error) => {
+                            reject(error);
+                        },
+                        () => {
+                            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                                finalImageUrl = downloadURL;
+                                resolve();
+                            }).catch(reject);
+                        }
+                    );
+                });
+                imageObject.url = finalImageUrl;
+            } catch (error) {
+                console.error("Upload failed:", error);
+                showModal('errorModal', "Uppladdning misslyckades. Vänligen försök igen.");
+                uploadProgressContainer.classList.add('hidden');
+                addImageBtn.disabled = false;
+                return;
+            }
         }
-
-        const imageObject = {
-            title: imageTitle,
-            url: finalImageUrl,
-            year: imageYear,
-            month: imageMonth,
-            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
-            updatedAt: editingImageId ? serverTimestamp() : null
-        };
         
         try {
             if (editingImageId) {
@@ -754,26 +750,22 @@ if (uploadImageForm) {
                 await addDoc(collection(db, 'images'), imageObject);
                 showModal('confirmationModal', "Bilden har lagts till!");
             }
-
-            uploadImageForm.reset();
+            
+            addImageForm.reset();
             uploadProgressContainer.classList.add('hidden');
-            imageTitleInput.value = '';
-            imageUrlInput.value = '';
-            imageYearInput.value = '';
-            imageMonthInput.value = '';
+            editingImageId = null;
+            imageFormTitle.textContent = 'Lägg till Bild';
+            addImageBtn.textContent = 'Lägg till Bild';
             addImageBtn.disabled = true;
             addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             addImageBtn.classList.add('bg-gray-400');
+
         } catch (error) {
             console.error("Fel vid hantering av bild:", error);
-            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras.");
-        } finally {
-            editingImageId = null;
-            imageFormTitle.textContent = 'Lägg till Bild';
+            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.");
         }
     });
 }
-
 
 const addEventForm = document.getElementById('add-event-form');
 if (addEventForm) {
@@ -1132,6 +1124,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (addAdminFromUserBtn) {
             const userId = addAdminFromUserBtn.getAttribute('data-id');
             addAdminFromUser(userId);
+        }
+        
+        // Handle editor toolbar buttons
+        const editorToolbarBtn = e.target.closest('.editor-toolbar button');
+        if (editorToolbarBtn) {
+            e.preventDefault();
+            const command = editorToolbarBtn.dataset.command;
+            const editorTargetId = editorToolbarBtn.closest('.editor-toolbar').dataset.editorTarget;
+            const editorElement = document.getElementById(editorTargetId);
+            
+            if (!editorElement) return;
+
+            if (command === 'createLink') {
+                const url = prompt("Ange länkens URL:");
+                if (url) {
+                    applyEditorCommand(editorElement, command, url);
+                }
+            } else if (command === 'insertImage') {
+                const imageUrl = prompt("Ange bildens URL:");
+                if (imageUrl) {
+                    applyEditorCommand(editorElement, command, imageUrl);
+                }
+            } else {
+                applyEditorCommand(editorElement, command);
+            }
         }
     });
     
