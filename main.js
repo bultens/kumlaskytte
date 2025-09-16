@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.21
+// Ver. 2.22
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -12,19 +12,23 @@ let eventsData = [];
 let historyData = [];
 let imageData = [];
 let usersData = []; 
+let sponsorsData = [];
 let editingNewsId = null; 
 let editingHistoryId = null;
 let editingImageId = null;
 let editingEventId = null;
+let editingSponsorId = null;
 let currentUserId = null;
 
 const newsAddBtn = document.getElementById('add-news-btn');
 const eventAddBtn = document.getElementById('add-event-btn');
 const historyAddBtn = document.getElementById('add-history-btn');
 const addImageBtn = document.getElementById('add-image-btn');
+const addSponsorBtn = document.getElementById('add-sponsor-btn');
 const historyFormTitle = document.getElementById('history-form-title');
 const newsFormTitle = document.getElementById('news-form-title');
 const imageFormTitle = document.getElementById('image-form-title');
+const sponsorFormTitle = document.getElementById('sponsor-form-title');
 const deleteConfirmationModal = document.getElementById('deleteConfirmationModal');
 const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
@@ -107,7 +111,9 @@ function updateUI() {
     renderEvents();
     renderHistory();
     renderImages();
+    renderSponsors();
     renderAdminsAndUsers();
+    renderContactInfo();
 
     const adminIndicator = document.getElementById('admin-indicator');
     const profileNavLink = document.getElementById('profile-nav-link');
@@ -117,6 +123,7 @@ function updateUI() {
     const newsEditSection = document.getElementById('news-edit-section');
     const calendarEditSection = document.getElementById('calendar-edit-section');
     const historyEditSection = document.getElementById('history-edit-section');
+    const sponsorsEditSection = document.getElementById('sponsors-edit-section');
 
     if (auth.currentUser) {
         if (userNavLink) userNavLink.classList.add('hidden');
@@ -132,6 +139,8 @@ function updateUI() {
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
         if (historyEditSection) historyEditSection.classList.remove('hidden');
+        if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
+        if (document.getElementById('history-edit-section')) document.getElementById('history-edit-section').classList.remove('hidden');
 
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
@@ -141,6 +150,7 @@ function updateUI() {
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
         if (imageEditSection) imageEditSection.classList.add('hidden');
         if (historyEditSection) historyEditSection.classList.add('hidden');
+        if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
         
         if (adminPanel) adminPanel.classList.add('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
@@ -324,13 +334,10 @@ function renderHistory() {
     historyContainer.innerHTML = '';
 
     historyData.sort((a, b) => {
-        const dateA = a.createdAt?.toDate() || new Date(a.date);
-        const dateB = b.createdAt?.toDate() || new Date(b.date);
-        return dateB - dateA;
+        return a.priority - b.priority;
     });
     
     historyData.forEach(item => {
-        const date = item.createdAt?.toDate() || new Date(item.date);
         const createdAt = item.createdAt?.toDate() || new Date();
         const updatedAt = item.updatedAt?.toDate() || createdAt;
         const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
@@ -414,6 +421,35 @@ function renderImages() {
     }
 }
 
+function renderSponsors() {
+    const sponsorsContainer = document.getElementById('sponsors-container');
+    if (!sponsorsContainer) return;
+    sponsorsContainer.innerHTML = '';
+    
+    sponsorsData.sort((a, b) => a.priority - b.priority);
+
+    sponsorsData.forEach(sponsor => {
+        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex items-center justify-center">` : '';
+        const closingTag = sponsor.url ? '</a>' : '';
+        
+        const sponsorHtml = `
+            <div class="card p-4 flex flex-col items-center justify-center text-center">
+                ${sponsorLink}
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-24 object-contain mb-2">
+                ${closingTag}
+                <h3 class="text-xl font-semibold">${sponsor.name}</h3>
+                ${isAdminLoggedIn ? `
+                    <div class="flex space-x-2 mt-2">
+                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
+                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        sponsorsContainer.innerHTML += sponsorHtml;
+    });
+}
+
 function renderAdminsAndUsers() {
     const adminListEl = document.getElementById('admin-list');
     const allUsersContainer = document.getElementById('all-users-container');
@@ -442,6 +478,21 @@ function renderAdminsAndUsers() {
         }
     });
 
+}
+
+function renderContactInfo() {
+    const contactAddressEl = document.getElementById('contact-address');
+    const contactPhoneEl = document.getElementById('contact-phone');
+    const contactEmailEl = document.getElementById('contact-email');
+
+    getFirestoreDoc(doc(db, 'settings', 'siteSettings')).then(docSnap => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (contactAddressEl) contactAddressEl.textContent = data.contactAddress || 'Ej angivet';
+            if (contactPhoneEl) contactPhoneEl.textContent = data.contactPhone || 'Ej angivet';
+            if (contactEmailEl) contactEmailEl.textContent = data.contactEmail || 'Ej angivet';
+        }
+    });
 }
 
 async function addAdminFromUser(userId) {
@@ -541,6 +592,18 @@ async function deleteDocument(docId, collectionName) {
     // Denna funktion förutsätter att behörighetskontroll görs innan den anropas
     const docRef = doc(db, collectionName, docId);
     try {
+        if (collectionName === 'images' || collectionName === 'sponsors') {
+            const docSnap = await getFirestoreDoc(docRef);
+            if (docSnap.exists() && docSnap.data().storagePath) {
+                const storage = getStorage();
+                const fileRef = ref(storage, docSnap.data().storagePath);
+                try {
+                    await deleteObject(fileRef);
+                } catch (error) {
+                    console.warn("Kunde inte ta bort filen från Storage, den kan ha tagits bort manuellt eller så är det en extern länk:", error);
+                }
+            }
+        }
         await deleteDoc(docRef);
         showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`);
     } catch (error) {
@@ -655,10 +718,17 @@ if (addHistoryForm) {
 
         const historyTitle = document.getElementById('history-title').value;
         const historyContent = document.getElementById('history-content-editor').innerHTML;
+        const historyPriority = parseInt(document.getElementById('history-priority').value);
+        if (isNaN(historyPriority)) {
+            showModal('errorModal', "Prioritet måste vara ett nummer.");
+            return;
+        }
+
 
         const historyObject = {
             title: historyTitle,
             content: historyContent,
+            priority: historyPriority,
             createdAt: editingHistoryId ? historyData.find(h => h.id === editingHistoryId).createdAt : serverTimestamp(),
             updatedAt: editingHistoryId ? serverTimestamp() : null
         };
@@ -675,7 +745,7 @@ if (addHistoryForm) {
             addHistoryForm.reset();
             document.getElementById('history-content-editor').innerHTML = '';
             editingHistoryId = null;
-            document.getElementById('history-form-title').textContent = 'Lägg till Huvudsidposter';
+            document.getElementById('history-form-title').textContent = 'Lägg till Historikpost';
             if (historyAddBtn) {
                 historyAddBtn.textContent = 'Lägg till';
                 historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
@@ -706,6 +776,7 @@ if (addImageForm) {
         const file = document.getElementById('image-upload').files[0];
         
         let finalImageUrl = imageUrl;
+        let storagePath = null;
         
         const imageObject = {
             title: imageTitle,
@@ -724,7 +795,8 @@ if (addImageForm) {
             }
 
             const storage = getStorage();
-            const storageRef = ref(storage, `images/${file.name}`);
+            storagePath = `images/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, storagePath);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadProgressContainer.classList.remove('hidden');
@@ -750,6 +822,7 @@ if (addImageForm) {
                     );
                 });
                 imageObject.url = finalImageUrl;
+                imageObject.storagePath = storagePath;
             } catch (error) {
                 console.error("Upload failed:", error);
                 showModal('errorModal', "Uppladdning misslyckades. Vänligen försök igen.");
@@ -781,6 +854,109 @@ if (addImageForm) {
         } catch (error) {
             console.error("Fel vid hantering av bild:", error);
             showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.");
+        }
+    });
+}
+
+const addSponsorForm = document.getElementById('add-sponsor-form');
+if (addSponsorForm) {
+    addSponsorForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!isAdminLoggedIn) {
+            showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+            return;
+        }
+
+        const sponsorName = document.getElementById('sponsor-name').value;
+        const sponsorUrl = document.getElementById('sponsor-url').value;
+        const sponsorLogoUrl = document.getElementById('sponsor-logo-url').value;
+        const sponsorPriority = parseInt(document.getElementById('sponsor-priority').value);
+        const file = document.getElementById('sponsor-logo-upload').files[0];
+        
+        if (!sponsorName || (sponsorLogoUrl === "" && !file)) {
+            showModal('errorModal', "Sponsornamn och logotyp krävs.");
+            return;
+        }
+
+        let finalLogoUrl = sponsorLogoUrl;
+        let storagePath = null;
+        
+        if (file) {
+            const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+            if (file.size > MAX_IMAGE_SIZE) {
+                showModal('errorModal', "Logotypen är för stor. Max tillåten storlek är 5 MB.");
+                return;
+            }
+
+            const storage = getStorage();
+            storagePath = `sponsors/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, storagePath);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            document.getElementById('sponsor-upload-progress-container').classList.remove('hidden');
+            addSponsorBtn.disabled = true;
+
+            try {
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            document.getElementById('sponsor-upload-progress').value = progress;
+                            document.getElementById('sponsor-upload-status').textContent = `Laddar upp: ${progress.toFixed(0)}%`;
+                        },
+                        (error) => {
+                            reject(error);
+                        },
+                        () => {
+                            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                                finalLogoUrl = downloadURL;
+                                resolve();
+                            }).catch(reject);
+                        }
+                    );
+                });
+            } catch (error) {
+                console.error("Upload failed:", error);
+                showModal('errorModal', "Uppladdning misslyckades. Vänligen försök igen.");
+                document.getElementById('sponsor-upload-progress-container').classList.add('hidden');
+                addSponsorBtn.disabled = false;
+                return;
+            }
+        }
+        
+        const sponsorObject = {
+            name: sponsorName,
+            url: sponsorUrl,
+            logoUrl: finalLogoUrl,
+            priority: sponsorPriority,
+            storagePath: storagePath,
+            createdAt: editingSponsorId ? sponsorsData.find(s => s.id === editingSponsorId).createdAt : serverTimestamp(),
+            updatedAt: editingSponsorId ? serverTimestamp() : null
+        };
+        
+        try {
+            if (editingSponsorId) {
+                await updateDoc(doc(db, 'sponsors', editingSponsorId), sponsorObject);
+                showModal('confirmationModal', "Sponsorn har uppdaterats!");
+            } else {
+                await addDoc(collection(db, 'sponsors'), sponsorObject);
+                showModal('confirmationModal', "Sponsorn har lagts till!");
+            }
+            
+            addSponsorForm.reset();
+            document.getElementById('sponsor-upload-progress-container').classList.add('hidden');
+            editingSponsorId = null;
+            sponsorFormTitle.textContent = 'Lägg till Sponsor';
+            addSponsorBtn.textContent = 'Lägg till Sponsor';
+            addSponsorBtn.disabled = true;
+            addSponsorBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            addSponsorBtn.classList.add('bg-gray-400');
+            document.getElementById('sponsor-logo-name-display').textContent = 'Ingen fil vald';
+
+        } catch (error) {
+            console.error("Fel vid hantering av sponsor:", error);
+            showModal('errorModal', "Ett fel uppstod när sponsorn skulle hanteras. Kontrollera dina Firebase Security Rules.");
         }
     });
 }
@@ -933,6 +1109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const siteTitleElement = document.getElementById('site-title-display');
         const pageTitleElement = document.getElementById('page-title');
@@ -944,6 +1121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (pageTitleElement) pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
             if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
             if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
+            renderContactInfo();
         }
     });
 
@@ -1082,12 +1260,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 editingHistoryId = historyId;
                 document.getElementById('history-title').value = historyItem.title;
                 document.getElementById('history-content-editor').innerHTML = historyItem.content;
-                historyFormTitle.textContent = 'Ändra Huvudsidpost';
+                document.getElementById('history-priority').value = historyItem.priority;
+                historyFormTitle.textContent = 'Ändra Historikpost';
                 historyAddBtn.textContent = 'Spara ändring';
                 historyAddBtn.disabled = false;
                 historyAddBtn.classList.remove('bg-gray-400');
                 historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                navigate('#hem');
+                navigate('#omoss');
                 setTimeout(() => {
                     document.getElementById('history-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 100);
@@ -1115,6 +1294,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }, 100);
             }
         }
+
+        const editSponsorBtn = e.target.closest('.edit-sponsor-btn');
+        if (editSponsorBtn) {
+            const sponsorId = editSponsorBtn.getAttribute('data-id');
+            const sponsorItem = sponsorsData.find(s => s.id === sponsorId);
+            if (sponsorItem) {
+                editingSponsorId = sponsorId;
+                document.getElementById('sponsor-name').value = sponsorItem.name;
+                document.getElementById('sponsor-url').value = sponsorItem.url;
+                document.getElementById('sponsor-logo-url').value = sponsorItem.logoUrl;
+                document.getElementById('sponsor-priority').value = sponsorItem.priority;
+                sponsorFormTitle.textContent = 'Ändra Sponsor';
+                addSponsorBtn.textContent = 'Spara ändring';
+                addSponsorBtn.disabled = false;
+                addSponsorBtn.classList.remove('bg-gray-400');
+                addSponsorBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                navigate('#sponsorer');
+                setTimeout(() => {
+                    document.getElementById('sponsors-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
         const editEventBtn = e.target.closest('.edit-event-btn');
         if (editEventBtn) {
             const eventId = editEventBtn.getAttribute('data-id');
@@ -1189,10 +1391,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newsContentEditor = document.getElementById('news-content-editor');
     const historyTitleInput = document.getElementById('history-title');
     const historyContentEditor = document.getElementById('history-content-editor');
+    const historyPriorityInput = document.getElementById('history-priority');
     const imageTitleInput = document.getElementById('image-title');
     const imageUrlInput = document.getElementById('image-url');
     const imageYearInput = document.getElementById('image-year');
     const imageMonthInput = document.getElementById('image-month');
+    const sponsorNameInput = document.getElementById('sponsor-name');
+    const sponsorUrlInput = document.getElementById('sponsor-url');
+    const sponsorLogoUrlInput = document.getElementById('sponsor-logo-url');
+    const sponsorLogoUpload = document.getElementById('sponsor-logo-upload');
+    const sponsorPriorityInput = document.getElementById('sponsor-priority');
     const eventTitleInput = document.getElementById('event-title');
     const eventDescriptionEditor = document.getElementById('event-description-editor');
     const eventDateInput = document.getElementById('event-date');
@@ -1201,6 +1409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const weekdaySelect = document.getElementById('weekday-select');
     const imageUpload = document.getElementById('image-upload');
     const fileNameDisplay = document.getElementById('file-name-display');
+    const sponsorFileNameDisplay = document.getElementById('sponsor-logo-name-display');
 
 
     function checkNewsForm() {
@@ -1216,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function checkHistoryForm() {
-        if (historyTitleInput.value && historyContentEditor.innerHTML.trim()) {
+        if (historyTitleInput.value && historyContentEditor.innerHTML.trim() && historyPriorityInput.value) {
             historyAddBtn.disabled = false;
             historyAddBtn.classList.remove('bg-gray-400');
             historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -1242,6 +1451,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             addImageBtn.disabled = true;
             addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             addImageBtn.classList.add('bg-gray-400');
+        }
+    }
+
+    function checkSponsorForm() {
+        const hasName = sponsorNameInput.value.trim();
+        const hasPriority = sponsorPriorityInput.value.trim();
+        const hasLogoFile = sponsorLogoUpload.files.length > 0;
+        const hasLogoUrl = sponsorLogoUrlInput.value.trim();
+
+        if (hasName && hasPriority && (hasLogoFile || hasLogoUrl)) {
+            addSponsorBtn.disabled = false;
+            addSponsorBtn.classList.remove('bg-gray-400');
+            addSponsorBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            addSponsorBtn.disabled = true;
+            addSponsorBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            addSponsorBtn.classList.add('bg-gray-400');
         }
     }
     
@@ -1278,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (newsContentEditor) newsContentEditor.addEventListener('input', checkNewsForm);
     if (historyTitleInput) historyTitleInput.addEventListener('input', checkHistoryForm);
     if (historyContentEditor) historyContentEditor.addEventListener('input', checkHistoryForm);
+    if (historyPriorityInput) historyPriorityInput.addEventListener('input', checkHistoryForm);
     if (imageTitleInput) imageTitleInput.addEventListener('input', checkImageForm);
     if (imageYearInput) imageYearInput.addEventListener('input', checkImageForm);
     if (imageMonthInput) imageMonthInput.addEventListener('input', checkImageForm);
@@ -1286,6 +1513,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         checkImageForm();
     });
     if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
+    if (sponsorNameInput) sponsorNameInput.addEventListener('input', checkSponsorForm);
+    if (sponsorPriorityInput) sponsorPriorityInput.addEventListener('input', checkSponsorForm);
+    if (sponsorLogoUpload) sponsorLogoUpload.addEventListener('change', () => {
+        sponsorFileNameDisplay.textContent = sponsorLogoUpload.files.length > 0 ? sponsorLogoUpload.files[0].name : 'Ingen fil vald';
+        checkSponsorForm();
+    });
+    if (sponsorLogoUrlInput) sponsorLogoUrlInput.addEventListener('input', checkSponsorForm);
     if (eventTitleInput) eventTitleInput.addEventListener('input', checkEventForm);
     if (eventDescriptionEditor) eventDescriptionEditor.addEventListener('input', checkEventForm);
     if (eventDateInput) eventDateInput.addEventListener('input', checkEventForm);
