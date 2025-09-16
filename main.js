@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 2.11
+// Ver. 2.12
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -398,21 +398,20 @@ function renderAdminsAndUsers() {
     allUsersContainer.innerHTML = '';
     
     usersData.forEach(user => {
-        const isUserAdmin = adminsData.some(admin => admin.id === user.id);
+        const isUserAdmin = usersData.find(u => u.id === user.id)?.isAdmin || false;
         const userEl = document.createElement('div');
         userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
         
         if (isUserAdmin) {
-            const adminData = adminsData.find(admin => admin.id === user.id);
             userEl.innerHTML = `
-                <span class="font-semibold">${adminData.username || adminData.email} (Admin)</span>
-                ${isAdminLoggedIn && adminsData.length > 1 && adminData.email !== auth.currentUser.email ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${adminData.id}">Ta bort</button>` : ''}
+                <span class="font-semibold">${user.email} (Admin)</span>
+                ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
             `;
             adminListEl.appendChild(userEl);
         } else {
             userEl.innerHTML = `
-                <span class="font-semibold">${user.name || user.email}</span>
-                ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}" data-email="${user.email}">Lägg till som Admin</button>` : ''}
+                <span class="font-semibold">${user.email}</span>
+                ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
             `;
             allUsersContainer.appendChild(userEl);
         }
@@ -420,28 +419,47 @@ function renderAdminsAndUsers() {
 
 }
 
-async function addAdminFromUser(userId, email) {
+async function addAdminFromUser(userId) {
     if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
 
     try {
-        const adminRef = doc(db, 'admins', userId);
-        const adminDoc = await getFirestoreDoc(adminRef);
-
-        if (adminDoc.exists()) {
-            await updateDoc(adminRef, { email: email });
-        } else {
-            await setDoc(adminRef, { email: email });
-        }
-        
-        showModal('confirmationModal', "Användaren har lagts till som administratör!");
+        await updateDoc(doc(db, 'users', userId), {
+            isAdmin: true
+        });
+        showModal('confirmationModal', "Användaren har nu administratörsrättigheter!");
     } catch (error) {
         console.error("Fel vid tillägg av admin:", error);
         showModal('errorModal', "Ett fel uppstod när användaren skulle läggas till som admin.");
     }
 }
+
+async function deleteAdmin(adminId) {
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
+    if (usersData.filter(u => u.isAdmin).length <= 1) {
+        showModal('errorModal', "Kan inte ta bort den sista administratören.");
+        return;
+    }
+    if (adminId === auth.currentUser.uid) {
+        showModal('errorModal', "Du kan inte ta bort dig själv.");
+        return;
+    }
+    try {
+        await updateDoc(doc(db, 'users', adminId), {
+            isAdmin: false
+        });
+        showModal('confirmationModal', "Admin har tagits bort.");
+    } catch (error) {
+        console.error("Fel vid borttagning av admin:", error);
+        showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.");
+    }
+}
+
 
 function applyEditorCommand(editor, command, value = null) {
     editor.focus();
@@ -504,30 +522,6 @@ async function deleteDocument(docId, collectionName) {
     } catch (error) {
         console.error("Fel vid borttagning av post:", error);
         showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.");
-    }
-}
-
-async function deleteAdmin(adminId) {
-    if (!isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-        return;
-    }
-    if (adminsData.length <= 1) {
-        showModal('errorModal', "Kan inte ta bort den sista administratören.");
-        return;
-    }
-    const adminToDelete = adminsData.find(a => a.id === adminId);
-    if (adminToDelete.email === auth.currentUser.email) {
-        showModal('errorModal', "Du kan inte ta bort dig själv.");
-        return;
-    }
-    const adminRef = doc(db, 'admins', adminId);
-    try {
-        await deleteDoc(adminRef);
-        showModal('confirmationModal', "Admin har tagits bort.");
-    } catch (error) {
-        console.error("Fel vid borttagning av admin:", error);
-        showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.");
     }
 }
 
@@ -838,9 +832,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (user) {
             try {
-                const docRef = doc(db, 'admins', user.uid);
+                const docRef = doc(db, 'users', user.uid);
                 const docSnap = await getFirestoreDoc(docRef);
-                if (docSnap.exists()) {
+                if (docSnap.exists() && docSnap.data().isAdmin) {
                     isAdminLoggedIn = true;
                     loggedInAdminUsername = docSnap.data().email;
                 }
@@ -865,10 +859,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
-    onSnapshot(collection(db, 'admins'), (snapshot) => { adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
+    onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
-    onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); updateUI(); });
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const siteTitleElement = document.getElementById('site-title-display');
         const pageTitleElement = document.getElementById('page-title');
@@ -1054,8 +1047,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const addAdminFromUserBtn = e.target.closest('.add-admin-btn');
         if (addAdminFromUserBtn) {
             const userId = addAdminFromUserBtn.getAttribute('data-id');
-            const email = addAdminFromUserBtn.getAttribute('data-email');
-            addAdminFromUser(userId, email);
+            addAdminFromUser(userId);
         }
     });
     

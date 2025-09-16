@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 import { doc, getFirestore, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
-// Ver. 1.98
+// Ver. 1.99
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -62,7 +62,7 @@ if (registerForm) {
             const user = userCredential.user;
             await setDoc(doc(db, "users", user.uid), {
                 email: email,
-                isAdmin: false // Lägg till isAdmin-fältet som false som standard
+                isAdmin: false
             });
             alert('Konto skapat! Du är nu inloggad.');
         } catch (error) {
