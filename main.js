@@ -3,7 +3,7 @@ import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 2.16
+// Ver. 2.17
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -1044,6 +1044,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }, 100);
             }
         }
+        const editEventBtn = e.target.closest('.edit-event-btn');
+        if (editEventBtn) {
+            const eventId = editEventBtn.getAttribute('data-id');
+            const eventItem = eventsData.find(e => e.id === eventId);
+            if (eventItem) {
+                editingEventId = eventId;
+                document.getElementById('event-title').value = eventItem.title;
+                document.getElementById('event-description-editor').innerHTML = eventItem.description;
+                document.getElementById('event-date').value = eventItem.date;
+                document.getElementById('is-recurring').checked = false;
+                document.getElementById('single-event-fields').classList.remove('hidden');
+                document.getElementById('recurring-event-fields').classList.add('hidden');
+                document.getElementById('add-event-btn').textContent = 'Spara ändring';
+                document.getElementById('add-event-btn').disabled = false;
+                document.getElementById('add-event-btn').classList.remove('bg-gray-400');
+                document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
+                navigate('#kalender');
+                setTimeout(() => {
+                    document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+
         const addAdminFromUserBtn = e.target.closest('.add-admin-btn');
         if (addAdminFromUserBtn) {
             const userId = addAdminFromUserBtn.getAttribute('data-id');
