@@ -170,25 +170,12 @@
             <h1 class="text-4xl font-bold mb-6">Bildgalleri</h1>
             <div id="gallery-container">
                 </div>
-<div class="card mt-6 hidden" id="upload-image-section">
-    <h2 class="text-2xl font-bold mb-4">Ladda upp bild</h2>
-    <form id="upload-image-form">
-        <label for="image-upload" class="block mb-2 font-semibold">Välj bild</label>
-        <input type="file" id="image-upload" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" accept="image/png, image/jpeg">
-        <button type="submit" id="upload-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Ladda upp bild</button>
-        <div id="upload-progress-container" class="mt-4 hidden">
-            <p id="upload-status" class="text-sm"></p>
-            <progress id="upload-progress" class="w-full" value="0" max="100"></progress>
-        </div>
-    </form>
-</div>
+
             <div class="card mt-6 hidden" id="image-edit-section">
                 <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
                 <form id="add-image-form">
                     <label for="image-title" class="block mb-2 font-semibold">Titel/Beskrivning</label>
                     <input type="text" id="image-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                    <label for="image-url" class="block mb-2 font-semibold">Bild-URL</label>
-                    <input type="url" id="image-url" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -212,6 +199,19 @@
                                 <option value="12">December</option>
                             </select>
                         </div>
+                    </div>
+                    
+                    <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4">
+                        <label for="image-upload" class="block mb-2 font-semibold">Ladda upp en bild</label>
+                        <input type="file" id="image-upload" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" accept="image/png, image/jpeg">
+                        <p class="text-sm text-gray-500 mb-4">Eller</p>
+                        <label for="image-url" class="block mb-2 font-semibold">Länka till en extern bild (URL)</label>
+                        <input type="url" id="image-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    </div>
+
+                    <div id="upload-progress-container" class="mt-4 hidden">
+                        <p id="upload-status" class="text-sm"></p>
+                        <progress id="upload-progress" class="w-full" value="0" max="100"></progress>
                     </div>
                     
                     <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Bild</button>

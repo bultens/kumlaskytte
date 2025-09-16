@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.17
+// Ver. 2.19
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -34,13 +34,16 @@ const deleteSeriesEventBtn = document.getElementById('delete-series-event-btn');
 const cancelEventDeleteBtn = document.getElementById('cancel-event-delete-btn');
 
 // Image upload specific elements
-const uploadImageForm = document.getElementById('upload-image-form');
+const uploadImageForm = document.getElementById('add-image-form');
 const imageUploadInput = document.getElementById('image-upload');
-const uploadImageBtn = document.getElementById('upload-image-btn');
+const imageUrlInput = document.getElementById('image-url');
+const imageTitleInput = document.getElementById('image-title');
+const imageYearInput = document.getElementById('image-year');
+const imageMonthInput = document.getElementById('image-month');
 const uploadProgressContainer = document.getElementById('upload-progress-container');
 const uploadProgress = document.getElementById('upload-progress');
 const uploadStatus = document.getElementById('upload-status');
-const uploadSection = document.getElementById('upload-image-section');
+const imageEditSection = document.getElementById('image-edit-section');
 
 // --- MODAL FUNCTIONS ---
 function showModal(modalId, message) {
@@ -96,7 +99,6 @@ function updateUI() {
     const adminLoginPanel = document.getElementById('admin-login-panel');
     const newsEditSection = document.getElementById('news-edit-section');
     const calendarEditSection = document.getElementById('calendar-edit-section');
-    const imageEditSection = document.getElementById('image-edit-section');
     const historyEditSection = document.getElementById('history-edit-section');
 
     if (auth.currentUser) {
@@ -113,7 +115,6 @@ function updateUI() {
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
         if (historyEditSection) historyEditSection.classList.remove('hidden');
-        if (uploadSection) uploadSection.classList.remove('hidden');
 
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
@@ -123,7 +124,6 @@ function updateUI() {
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
         if (imageEditSection) imageEditSection.classList.add('hidden');
         if (historyEditSection) historyEditSection.classList.add('hidden');
-        if (uploadSection) uploadSection.classList.add('hidden');
         
         if (adminPanel) adminPanel.classList.add('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
@@ -673,30 +673,79 @@ if (addHistoryForm) {
     });
 }
 
-const addImageForm = document.getElementById('add-image-form');
-if (addImageForm) {
-    addImageForm.addEventListener('submit', async (e) => {
+if (uploadImageForm) {
+    uploadImageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
+        
         if (!isAdminLoggedIn) {
             showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
             return;
         }
 
-        const imageTitle = document.getElementById('image-title').value;
-        const imageUrl = document.getElementById('image-url').value;
-        const imageYear = parseInt(document.getElementById('image-year').value);
-        const imageMonth = parseInt(document.getElementById('image-month').value);
+        const file = imageUploadInput.files[0];
+        const imageUrl = imageUrlInput.value.trim();
+        const imageTitle = imageTitleInput.value.trim();
+        const imageYear = parseInt(imageYearInput.value);
+        const imageMonth = parseInt(imageMonthInput.value);
+
+        if (!imageTitle || !imageYear || !imageMonth) {
+            showModal('errorModal', "Titel, år och månad måste fyllas i.");
+            return;
+        }
         
+        // Check if either a file is selected or a URL is provided, but not both.
+        if ((file && imageUrl) || (!file && !imageUrl)) {
+            showModal('errorModal', "Vänligen ladda upp en bild eller ange en URL, inte båda.");
+            return;
+        }
+
+        let finalImageUrl;
+
+        if (file) {
+            const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+            if (file.size > MAX_IMAGE_SIZE) {
+                showModal('errorModal', "Bilden är för stor. Max tillåten storlek är 5 MB.");
+                return;
+            }
+
+            const storage = getStorage();
+            const storageRef = ref(storage, `images/${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadProgressContainer.classList.remove('hidden');
+            addImageBtn.disabled = true;
+
+            await new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        uploadProgress.value = progress;
+                        uploadStatus.textContent = `Laddar upp: ${progress.toFixed(0)}%`;
+                    },
+                    (error) => {
+                        reject(error);
+                    },
+                    () => {
+                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                            finalImageUrl = downloadURL;
+                            resolve();
+                        }).catch(reject);
+                    }
+                );
+            });
+        } else {
+            finalImageUrl = imageUrl;
+        }
+
         const imageObject = {
             title: imageTitle,
-            url: imageUrl,
+            url: finalImageUrl,
             year: imageYear,
             month: imageMonth,
             createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
             updatedAt: editingImageId ? serverTimestamp() : null
         };
-
+        
         try {
             if (editingImageId) {
                 await updateDoc(doc(db, 'images', editingImageId), imageObject);
@@ -706,21 +755,25 @@ if (addImageForm) {
                 showModal('confirmationModal', "Bilden har lagts till!");
             }
 
-            addImageForm.reset();
-            editingImageId = null;
-            document.getElementById('image-form-title').textContent = 'Lägg till Bild';
-            if (addImageBtn) {
-                addImageBtn.textContent = 'Lägg till Bild';
-                addImageBtn.classList.remove('bg-gray-400');
-                addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                addImageBtn.disabled = true;
-            }
+            uploadImageForm.reset();
+            uploadProgressContainer.classList.add('hidden');
+            imageTitleInput.value = '';
+            imageUrlInput.value = '';
+            imageYearInput.value = '';
+            imageMonthInput.value = '';
+            addImageBtn.disabled = true;
+            addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            addImageBtn.classList.add('bg-gray-400');
         } catch (error) {
             console.error("Fel vid hantering av bild:", error);
-            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras. Kontrollera dina Firebase Security Rules.");
+            showModal('errorModal', "Ett fel uppstod när bilden skulle hanteras.");
+        } finally {
+            editingImageId = null;
+            imageFormTitle.textContent = 'Lägg till Bild';
         }
     });
 }
+
 
 const addEventForm = document.getElementById('add-event-form');
 if (addEventForm) {
@@ -1141,7 +1194,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function checkImageForm() {
-        if (imageTitleInput.value && imageUrlInput.value && imageYearInput.value && imageMonthInput.value) {
+        const hasTitle = imageTitleInput.value.trim();
+        const hasYear = imageYearInput.value.trim();
+        const hasMonth = imageMonthInput.value.trim();
+        const hasFile = imageUploadInput.files.length > 0;
+        const hasUrl = imageUrlInput.value.trim();
+    
+        if (hasTitle && hasYear && hasMonth && (hasFile || hasUrl)) {
             addImageBtn.disabled = false;
             addImageBtn.classList.remove('bg-gray-400');
             addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -1186,9 +1245,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (historyTitleInput) historyTitleInput.addEventListener('input', checkHistoryForm);
     if (historyContentEditor) historyContentEditor.addEventListener('input', checkHistoryForm);
     if (imageTitleInput) imageTitleInput.addEventListener('input', checkImageForm);
-    if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
     if (imageYearInput) imageYearInput.addEventListener('input', checkImageForm);
     if (imageMonthInput) imageMonthInput.addEventListener('input', checkImageForm);
+    if (imageUploadInput) imageUploadInput.addEventListener('change', checkImageForm);
+    if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
     if (eventTitleInput) eventTitleInput.addEventListener('input', checkEventForm);
     if (eventDescriptionEditor) eventDescriptionEditor.addEventListener('input', checkEventForm);
     if (eventDateInput) eventDateInput.addEventListener('input', checkEventForm);
@@ -1196,78 +1256,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (startDateInput) startDateInput.addEventListener('input', checkEventForm);
     if (endDateInput) endDateInput.addEventListener('input', checkEventForm);
     if (weekdaySelect) weekdaySelect.addEventListener('change', checkEventForm);
-
-    if (imageUpload) {
-        imageUpload.addEventListener('change', () => {
-            if (imageUpload.files.length > 0) {
-                uploadImageBtn.disabled = false;
-                uploadImageBtn.classList.remove('bg-gray-400');
-                uploadImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            } else {
-                uploadImageBtn.disabled = true;
-                uploadImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                uploadImageBtn.classList.add('bg-gray-400');
-            }
-        });
-    }
-
-    if (uploadImageForm) {
-        uploadImageForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            if (!isAdminLoggedIn) {
-                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
-                return;
-            }
-
-            const file = imageUploadInput.files[0];
-            if (!file) {
-                showModal('errorModal', "Vänligen välj en bild att ladda upp.");
-                return;
-            }
-
-            const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
-            if (file.size > MAX_IMAGE_SIZE) {
-                showModal('errorModal', "Bilden är för stor. Max tillåten storlek är 5 MB.");
-                return;
-            }
-
-            const storage = getStorage();
-            const storageRef = ref(storage, `images/${file.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
-
-            uploadProgressContainer.classList.remove('hidden');
-            uploadImageBtn.disabled = true;
-
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    uploadProgress.value = progress;
-                    uploadStatus.textContent = `Laddar upp: ${progress.toFixed(0)}%`;
-                },
-                (error) => {
-                    showModal('errorModal', "Uppladdning misslyckades. Vänligen försök igen.");
-                    console.error("Upload failed:", error);
-                    uploadProgressContainer.classList.add('hidden');
-                    uploadImageBtn.disabled = false;
-                },
-                () => {
-                    getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-                        const imageTitle = file.name;
-                        const newImageRef = doc(collection(db, 'images'));
-                        await setDoc(newImageRef, {
-                            title: imageTitle,
-                            url: downloadURL,
-                            createdAt: serverTimestamp()
-                        });
-                        showModal('confirmationModal', "Bilden har laddats upp och sparats!");
-                        uploadImageForm.reset();
-                        uploadProgressContainer.classList.add('hidden');
-                        uploadImageBtn.disabled = true;
-                    });
-                }
-            );
-        });
-    }
-
 });
