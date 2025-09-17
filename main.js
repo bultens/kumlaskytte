@@ -4,8 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-
-// Ver. 2.27
+// Ver. 2.28
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -439,86 +438,48 @@ function renderSponsors() {
     if (!sponsorsContainer) return;
     sponsorsContainer.innerHTML = '';
     
-    sponsorsData.sort((a, b) => a.priority - b.priority);
+    // Sort by size first, then by priority
+    const sizeOrder = {'1/1': 1, '1/2': 2, '1/4': 3};
+    sponsorsData.sort((a, b) => {
+        const sizeDiff = sizeOrder[a.size] - sizeOrder[b.size];
+        if (sizeDiff !== 0) {
+            return sizeDiff;
+        }
+        return a.priority - b.priority;
+    });
 
     // Group sponsors by size
+    const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
     const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
     const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
-    const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
 
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="sponsors-by-4"></div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container grid grid-cols-1 md:grid-cols-2 gap-6" id="sponsors-by-2"></div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container grid grid-cols-1 gap-6" id="sponsors-by-1"></div>`;
+    const renderSponsorGroup = (group, className) => {
+        return group.map(sponsor => {
+            const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
+            const closingTag = sponsor.url ? '</a>' : '';
+            
+            const sponsorHtml = `
+                <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
+                    ${sponsorLink}
+                        <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
+                        <h3 class="text-xl font-semibold">${sponsor.name}</h3>
+                        ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
+                    ${closingTag}
+                    ${isAdminLoggedIn ? `
+                        <div class="flex space-x-2 mt-2">
+                            <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
+                            <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            return sponsorHtml;
+        }).join('');
+    };
 
-    const container4 = document.getElementById('sponsors-by-4');
-    const container2 = document.getElementById('sponsors-by-2');
-    const container1 = document.getElementById('sponsors-by-1');
-
-    sponsorsByQuarter.forEach(sponsor => {
-        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
-        const closingTag = sponsor.url ? '</a>' : '';
-        
-        const sponsorHtml = `
-            <div class="card p-4 flex flex-col items-center justify-center text-center">
-                ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo-small object-contain mb-2">
-                    <h3 class="text-xl font-semibold">${sponsor.name}</h3>
-                    ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
-                ${closingTag}
-                ${isAdminLoggedIn ? `
-                    <div class="flex space-x-2 mt-2">
-                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
-                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-        container4.innerHTML += sponsorHtml;
-    });
-
-    sponsorsByHalf.forEach(sponsor => {
-        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
-        const closingTag = sponsor.url ? '</a>' : '';
-        
-        const sponsorHtml = `
-            <div class="card p-4 flex flex-col items-center justify-center text-center">
-                ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo-medium object-contain mb-2">
-                    <h3 class="text-xl font-semibold">${sponsor.name}</h3>
-                    ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
-                ${closingTag}
-                ${isAdminLoggedIn ? `
-                    <div class="flex space-x-2 mt-2">
-                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
-                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-        container2.innerHTML += sponsorHtml;
-    });
-
-    sponsorsByFull.forEach(sponsor => {
-        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
-        const closingTag = sponsor.url ? '</a>' : '';
-        
-        const sponsorHtml = `
-            <div class="card p-4 flex flex-col items-center justify-center text-center">
-                ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo-large object-contain mb-2">
-                    <h3 class="text-2xl font-semibold">${sponsor.name}</h3>
-                    ${sponsor.extraText ? `<p class="text-base text-gray-500">${sponsor.extraText}</p>` : ''}
-                ${closingTag}
-                ${isAdminLoggedIn ? `
-                    <div class="flex space-x-2 mt-2">
-                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
-                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-        container1.innerHTML += sponsorHtml;
-    });
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByFull, 'sponsor-card-1-1')}</div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByHalf, 'sponsor-card-1-2')}</div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
 }
 
 function renderAdminsAndUsers() {
