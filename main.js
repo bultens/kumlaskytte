@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.23
+// Ver. 2.24
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -625,6 +625,10 @@ function navigate(hash) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
     });
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
     const hashParts = hash.split('#');
     const targetPageId = hashParts[1];
     const targetElementId = hashParts[2];
@@ -632,6 +636,10 @@ function navigate(hash) {
     const targetPage = document.querySelector(`#${targetPageId}`);
     if (targetPage) {
         targetPage.classList.add('active');
+        const correspondingNavLink = document.querySelector(`a[href="#${targetPageId}"]`);
+        if (correspondingNavLink) {
+            correspondingNavLink.classList.add('active');
+        }
         if (targetElementId) {
             setTimeout(() => {
                 const targetElement = document.getElementById(targetElementId);
@@ -1146,7 +1154,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirmationModal) confirmationModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
     
     handleDeeplink();
-    window.addEventListener('hashchange', handleDeeplink);
+    window.addEventListener('hashchange', () => {
+        navigate(window.location.hash || '#hem');
+    });
+
+    // Initial navigation based on URL hash
+    navigate(window.location.hash || '#hem');
 
     document.addEventListener('click', (e) => {
         const likeBtn = e.target.closest('.like-btn');
@@ -1390,13 +1403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             navigate(hash);
         });
     });
-
-    window.addEventListener('popstate', () => {
-        navigate(window.location.hash || '#hem');
-    });
-
-    navigate(window.location.hash || '#hem');
-
+    
     // Handle form input changes for enabling/disabling submit buttons
     const newsTitleInput = document.getElementById('news-title');
     const newsContentEditor = document.getElementById('news-content-editor');

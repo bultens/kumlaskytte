@@ -23,6 +23,9 @@ body {
     padding: 2rem;
     margin-bottom: 1.5rem;
 }
+.nav-link.active {
+    border-bottom: 2px solid #ffffff;
+}
 /* Modal-styling för felmeddelanden och bekräftelse */
 .modal {
     position: fixed;
@@ -117,6 +120,6 @@ body {
 }
 /* Specialklass för större logo-storlek */
 .logo-large {
-    height: 72px;
-    width: 72px;
+    height: 96px;
+    width: 96px;
 }

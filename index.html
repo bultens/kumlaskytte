@@ -19,22 +19,24 @@
                 </a>
                 <div class="flex flex-col items-start">
                     <div class="flex items-center space-x-2">
-                        <a id="site-title-display" href="#hem" class="text-3xl font-bold tracking-tight">Kumla Skytteförening</a>
+                        <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 2.0</p>
+                    <p class="text-sm text-gray-300">Ver. 2.1</p>
                 </div>
             </div>
-            <nav>
-                <ul class="flex space-x-4 font-medium">
-                    <li><a href="#omoss" class="hover:text-gray-300 transition duration-300">Om oss</a></li>
-                    <li><a href="#nyheter" class="hover:text-gray-300 transition duration-300">Nyheter</a></li>
-                    <li><a href="#kalender" class="hover:text-gray-300 transition duration-300">Kalender</a></li>
-                    <li><a href="#bilder" class="hover:text-gray-300 transition duration-300">Bilder</a></li>
-                    <li><a href="#sponsorer" class="hover:text-gray-300 transition duration-300">Sponsorer</a></li>
-                    <li id="user-nav-link" class="hidden"><a href="#profil" class="hover:text-gray-300 transition duration-300">Logga in</a></li>
-                    <li id="profile-nav-link" class="hidden"><a href="#profil" class="hover:text-gray-300 transition duration-300">Min Profil</a></li>
-                    <li><a href="#admin" class="hover:text-gray-300 transition duration-300">Admin</a></li>
+        </div>
+        <div class="bg-blue-700 shadow">
+            <nav class="container">
+                <ul class="flex space-x-8 font-medium">
+                    <li><a href="#nyheter" class="nav-link py-3 hover:text-gray-300 transition duration-300">Nyheter</a></li>
+                    <li><a href="#kalender" class="nav-link py-3 hover:text-gray-300 transition duration-300">Kalender</a></li>
+                    <li><a href="#omoss" class="nav-link py-3 hover:text-gray-300 transition duration-300">Om oss</a></li>
+                    <li><a href="#bilder" class="nav-link py-3 hover:text-gray-300 transition duration-300">Bilder</a></li>
+                    <li><a href="#sponsorer" class="nav-link py-3 hover:text-gray-300 transition duration-300">Sponsorer</a></li>
+                    <li id="user-nav-link" class="hidden"><a href="#profil" class="nav-link py-3 hover:text-gray-300 transition duration-300">Logga in</a></li>
+                    <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link py-3 hover:text-gray-300 transition duration-300">Min Profil</a></li>
+                    <li><a href="#admin" class="nav-link py-3 hover:text-gray-300 transition duration-300">Admin</a></li>
                 </ul>
             </nav>
         </div>
@@ -77,6 +79,9 @@
                 <form id="add-history-form">
                     <label for="history-title" class="block mb-2 font-semibold">Titel</label>
                     <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <label for="history-priority" class="block mb-2 font-semibold">Prioritet (lägre nummer visas först)</label>
+                    <input type="number" id="history-priority" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" value="10">
                     
                     <label for="history-content" class="block mb-2 font-semibold">Innehåll</label>
                     <div class="editor-toolbar" data-editor-target="history-content-editor">
