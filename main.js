@@ -1250,6 +1250,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
         } else {
             if (adminIndicator) adminIndicator.classList.add('hidden');
+            if (newsEditSection) newsEditSection.classList.add('hidden');
+            if (calendarEditSection) calendarEditSection.classList.add('hidden');
+            if (imageEditSection) imageEditSection.classList.add('hidden');
+            if (historyEditSection) historyEditSection.classList.add('hidden');
+            if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
+            
             if (adminPanel) adminPanel.classList.add('hidden');
             if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
         }
