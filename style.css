@@ -120,8 +120,8 @@ body {
 }
 /* Specialklass för större logo-storlek */
 .logo-large {
-    height: 96px;
-    width: 96px;
+    height: 150px;
+    width: 150px;
 }
 /* Flex-box-layout för sponsorer */
 .sponsors-grid-container {
