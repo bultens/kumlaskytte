@@ -120,8 +120,8 @@ body {
 }
 /* Specialklass för större logo-storlek */
 .logo-large {
-    height: 150px;
-    width: 150px;
+    height: 96px;
+    width: 96px;
 }
 /* Flex-box-layout för sponsorer */
 .sponsors-grid-container {
@@ -141,17 +141,20 @@ body {
 
 .sponsor-card-1-1 {
     width: 100%;
+    max-width: 100%;
     flex: 1 0 100%;
     padding: 2rem;
 }
 
 .sponsor-card-1-2 {
     width: calc(50% - 12px);
+    max-width: 600px;
     flex: 1 0 calc(50% - 12px);
 }
 
 .sponsor-card-1-4 {
     width: calc(25% - 18px);
+    max-width: 300px;
     flex: 1 0 calc(25% - 18px);
 }
 
@@ -172,10 +175,10 @@ body {
     max-height: 90px;
 }
 
-
 @media (max-width: 768px) {
     .sponsor-card-1-2, .sponsor-card-1-4 {
         width: 100%;
         flex: 1 0 100%;
+        max-width: none;
     }
 }
