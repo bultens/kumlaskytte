@@ -4,7 +4,8 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.24
+
+// Ver. 2.26
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -56,6 +57,9 @@ const sponsorLogoNameDisplay = document.getElementById('sponsor-logo-name-displa
 const clearSponsorLogoUpload = document.getElementById('clear-sponsor-logo-upload');
 const clearImageUpload = document.getElementById('clear-image-upload');
 const fileNameDisplay = document.getElementById('file-name-display');
+const sponsorsContainer = document.getElementById('sponsors-container');
+const sponsorExtraTextInput = document.getElementById('sponsor-extra-text');
+const sponsorSizeSelect = document.getElementById('sponsor-size');
 
 
 // Calendar specific elements
@@ -431,22 +435,35 @@ function renderImages() {
 }
 
 function renderSponsors() {
-    const sponsorsContainer = document.getElementById('sponsors-container');
     if (!sponsorsContainer) return;
     sponsorsContainer.innerHTML = '';
     
     sponsorsData.sort((a, b) => a.priority - b.priority);
 
-    sponsorsData.forEach(sponsor => {
-        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex items-center justify-center">` : '';
+    // Group sponsors by size
+    const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
+    const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
+    const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
+
+    sponsorsContainer.innerHTML += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="sponsors-by-4"></div>`;
+    sponsorsContainer.innerHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="sponsors-by-2"></div>`;
+    sponsorsContainer.innerHTML += `<div class="grid grid-cols-1 gap-6" id="sponsors-by-1"></div>`;
+
+    const container4 = document.getElementById('sponsors-by-4');
+    const container2 = document.getElementById('sponsors-by-2');
+    const container1 = document.getElementById('sponsors-by-1');
+
+    sponsorsByQuarter.forEach(sponsor => {
+        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
         const closingTag = sponsor.url ? '</a>' : '';
         
         const sponsorHtml = `
             <div class="card p-4 flex flex-col items-center justify-center text-center">
                 ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-24 object-contain mb-2">
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-16 object-contain mb-2">
+                    <h3 class="text-xl font-semibold">${sponsor.name}</h3>
+                    ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
                 ${closingTag}
-                <h3 class="text-xl font-semibold">${sponsor.name}</h3>
                 ${isAdminLoggedIn ? `
                     <div class="flex space-x-2 mt-2">
                         <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
@@ -455,7 +472,51 @@ function renderSponsors() {
                 ` : ''}
             </div>
         `;
-        sponsorsContainer.innerHTML += sponsorHtml;
+        container4.innerHTML += sponsorHtml;
+    });
+
+    sponsorsByHalf.forEach(sponsor => {
+        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
+        const closingTag = sponsor.url ? '</a>' : '';
+        
+        const sponsorHtml = `
+            <div class="card p-4 flex flex-col items-center justify-center text-center">
+                ${sponsorLink}
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-24 object-contain mb-2">
+                    <h3 class="text-xl font-semibold">${sponsor.name}</h3>
+                    ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
+                ${closingTag}
+                ${isAdminLoggedIn ? `
+                    <div class="flex space-x-2 mt-2">
+                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
+                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        container2.innerHTML += sponsorHtml;
+    });
+
+    sponsorsByFull.forEach(sponsor => {
+        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
+        const closingTag = sponsor.url ? '</a>' : '';
+        
+        const sponsorHtml = `
+            <div class="card p-4 flex flex-col items-center justify-center text-center">
+                ${sponsorLink}
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-32 object-contain mb-2">
+                    <h3 class="text-2xl font-semibold">${sponsor.name}</h3>
+                    ${sponsor.extraText ? `<p class="text-base text-gray-500">${sponsor.extraText}</p>` : ''}
+                ${closingTag}
+                ${isAdminLoggedIn ? `
+                    <div class="flex space-x-2 mt-2">
+                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
+                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        container1.innerHTML += sponsorHtml;
     });
 }
 
@@ -630,28 +691,37 @@ function navigate(hash) {
     });
 
     const hashParts = hash.split('#');
-    const targetPageId = hashParts[1];
+    let targetPageId = hashParts[1];
     const targetElementId = hashParts[2];
     
-    const targetPage = document.querySelector(`#${targetPageId}`);
-    if (targetPage) {
-        targetPage.classList.add('active');
-        const correspondingNavLink = document.querySelector(`a[href="#${targetPageId}"]`);
-        if (correspondingNavLink) {
-            correspondingNavLink.classList.add('active');
-        }
-        if (targetElementId) {
-            setTimeout(() => {
-                const targetElement = document.getElementById(targetElementId);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 500);
-        } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+    if (!targetPageId || targetPageId === 'hem') {
+        targetPageId = 'hem';
+        document.getElementById(targetPageId).classList.add('active');
     } else {
-        document.getElementById('hem').classList.add('active');
+        const targetPage = document.querySelector(`#${targetPageId}`);
+        if (targetPage) {
+            targetPage.classList.add('active');
+        } else {
+            // Fallback to home if the page ID is not found
+            targetPageId = 'hem';
+            document.getElementById('hem').classList.add('active');
+        }
+    }
+
+    const correspondingNavLink = document.querySelector(`a[href="#${targetPageId}"]`);
+    if (correspondingNavLink) {
+        correspondingNavLink.classList.add('active');
+    }
+
+    if (targetElementId) {
+        setTimeout(() => {
+            const targetElement = document.getElementById(targetElementId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 500);
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
@@ -887,9 +957,11 @@ if (addSponsorForm) {
         }
 
         const sponsorName = document.getElementById('sponsor-name').value;
+        const sponsorExtraText = document.getElementById('sponsor-extra-text').value;
         const sponsorUrl = document.getElementById('sponsor-url').value;
         const sponsorLogoUrl = document.getElementById('sponsor-logo-url').value;
         const sponsorPriority = parseInt(document.getElementById('sponsor-priority').value);
+        const sponsorSize = document.getElementById('sponsor-size').value;
         const file = document.getElementById('sponsor-logo-upload').files[0];
         
         if (!sponsorName || isNaN(sponsorPriority) || (sponsorLogoUrl === "" && !file)) {
@@ -945,9 +1017,11 @@ if (addSponsorForm) {
         
         const sponsorObject = {
             name: sponsorName,
+            extraText: sponsorExtraText,
             url: sponsorUrl,
             logoUrl: finalLogoUrl,
             priority: sponsorPriority,
+            size: sponsorSize,
             storagePath: storagePath,
             createdAt: editingSponsorId ? sponsorsData.find(s => s.id === editingSponsorId).createdAt : serverTimestamp(),
             updatedAt: editingSponsorId ? serverTimestamp() : null
@@ -1326,9 +1400,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (sponsorItem) {
                 editingSponsorId = sponsorId;
                 document.getElementById('sponsor-name').value = sponsorItem.name;
+                document.getElementById('sponsor-extra-text').value = sponsorItem.extraText || '';
                 document.getElementById('sponsor-url').value = sponsorItem.url;
                 document.getElementById('sponsor-logo-url').value = sponsorItem.logoUrl;
                 document.getElementById('sponsor-priority').value = sponsorItem.priority;
+                document.getElementById('sponsor-size').value = sponsorItem.size || '1/4';
                 sponsorFormTitle.textContent = 'Ändra Sponsor';
                 addSponsorBtn.textContent = 'Spara ändring';
                 addSponsorBtn.disabled = false;
@@ -1415,10 +1491,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const imageYearInput = document.getElementById('image-year');
     const imageMonthInput = document.getElementById('image-month');
     const sponsorNameInput = document.getElementById('sponsor-name');
+    const sponsorExtraText = document.getElementById('sponsor-extra-text');
     const sponsorUrlInput = document.getElementById('sponsor-url');
     const sponsorLogoUrlInput = document.getElementById('sponsor-logo-url');
     const sponsorLogoUpload = document.getElementById('sponsor-logo-upload');
     const sponsorPriorityInput = document.getElementById('sponsor-priority');
+    const sponsorSizeInput = document.getElementById('sponsor-size');
     const eventTitleInput = document.getElementById('event-title');
     const eventDescriptionEditor = document.getElementById('event-description-editor');
     const eventDateInput = document.getElementById('event-date');
@@ -1560,6 +1638,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         checkImageForm();
     });
     if (sponsorNameInput) sponsorNameInput.addEventListener('input', checkSponsorForm);
+    if (sponsorExtraText) sponsorExtraText.addEventListener('input', checkSponsorForm);
     if (sponsorPriorityInput) sponsorPriorityInput.addEventListener('input', checkSponsorForm);
     if (sponsorLogoUpload) sponsorLogoUpload.addEventListener('change', () => {
         sponsorLogoNameDisplay.textContent = sponsorLogoUpload.files.length > 0 ? sponsorLogoUpload.files[0].name : 'Ingen fil vald';
@@ -1584,4 +1663,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (startDateInput) startDateInput.addEventListener('input', checkEventForm);
     if (endDateInput) endDateInput.addEventListener('input', checkEventForm);
     if (weekdaySelect) weekdaySelect.addEventListener('change', checkEventForm);
+    if (sponsorSizeSelect) sponsorSizeSelect.addEventListener('change', checkSponsorForm);
 });

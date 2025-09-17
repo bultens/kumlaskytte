@@ -22,21 +22,21 @@
                         <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 2.1</p>
+                    <p class="text-sm text-gray-300">Ver. 2.2</p>
                 </div>
             </div>
         </div>
-        <div class="bg-blue-700 shadow">
+        <div class="bg-white text-black shadow">
             <nav class="container">
                 <ul class="flex space-x-8 font-medium">
-                    <li><a href="#nyheter" class="nav-link py-3 hover:text-gray-300 transition duration-300">Nyheter</a></li>
-                    <li><a href="#kalender" class="nav-link py-3 hover:text-gray-300 transition duration-300">Kalender</a></li>
-                    <li><a href="#omoss" class="nav-link py-3 hover:text-gray-300 transition duration-300">Om oss</a></li>
-                    <li><a href="#bilder" class="nav-link py-3 hover:text-gray-300 transition duration-300">Bilder</a></li>
-                    <li><a href="#sponsorer" class="nav-link py-3 hover:text-gray-300 transition duration-300">Sponsorer</a></li>
-                    <li id="user-nav-link" class="hidden"><a href="#profil" class="nav-link py-3 hover:text-gray-300 transition duration-300">Logga in</a></li>
-                    <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link py-3 hover:text-gray-300 transition duration-300">Min Profil</a></li>
-                    <li><a href="#admin" class="nav-link py-3 hover:text-gray-300 transition duration-300">Admin</a></li>
+                    <li><a href="#nyheter" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Nyheter</a></li>
+                    <li><a href="#kalender" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Kalender</a></li>
+                    <li><a href="#omoss" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Om oss</a></li>
+                    <li><a href="#bilder" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Bilder</a></li>
+                    <li><a href="#sponsorer" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Sponsorer</a></li>
+                    <li id="user-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Logga in</a></li>
+                    <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Min Profil</a></li>
+                    <li><a href="#admin" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Admin</a></li>
                 </ul>
             </nav>
         </div>
@@ -257,11 +257,22 @@
                 <form id="add-sponsor-form">
                     <label for="sponsor-name" class="block mb-2 font-semibold">Sponsorns namn</label>
                     <input type="text" id="sponsor-name" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="sponsor-extra-text" class="block mb-2 font-semibold">Extra text (valfritt)</label>
+                    <input type="text" id="sponsor-extra-text" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
                     <label for="sponsor-url" class="block mb-2 font-semibold">Länk till webbplats</label>
                     <input type="url" id="sponsor-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     
                     <label for="sponsor-priority" class="block mb-2 font-semibold">Prioritet (lägre nummer visas först)</label>
                     <input type="number" id="sponsor-priority" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" value="10">
+
+                    <label for="sponsor-size" class="block mb-2 font-semibold">Sponsorns storlek (visuell bredd)</label>
+                    <select id="sponsor-size" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <option value="1/1">Full bredd (1 per rad)</option>
+                        <option value="1/2">Halv bredd (2 per rad)</option>
+                        <option value="1/4">Fjärdedels bredd (4 per rad)</option>
+                    </select>
                     
                     <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4">
                         <label for="sponsor-logo-upload-label" class="block mb-2 font-semibold">Ladda upp logotyp</label>
@@ -422,7 +433,7 @@
                     </a>
                     <button id="copy-link-btn" class="flex items-center justify-center px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
+                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042-1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
                         </svg>
                         <span class="ml-2">Kopiera länk</span>
                     </button>
