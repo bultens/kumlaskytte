@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.30
+// Ver. 2.31
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -74,6 +74,7 @@ const profileAddressInput = document.getElementById('profile-address-input');
 const profilePhoneInput = document.getElementById('profile-phone-input');
 const profileBirthyearInput = document.getElementById('profile-birthyear-input');
 const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+const profileWelcomeMessage = document.getElementById('profile-welcome-message');
 
 
 if (isRecurringCheckbox) {
@@ -110,6 +111,39 @@ function hideModal(modalId) {
     if (!modal) return;
     modal.classList.remove('active');
 }
+
+function showUserInfoModal(user) {
+    const modal = document.getElementById('userInfoModal');
+    if (!modal) return;
+    
+    const content = `
+        <h3 class="text-xl font-bold mb-4">Användarinformation</h3>
+        <p><strong>E-post:</strong> ${user.email}</p>
+        <p><strong>Namn:</strong> ${user.name || 'Ej angivet'}</p>
+        <p><strong>Adress:</strong> ${user.address || 'Ej angivet'}</p>
+        <p><strong>Telefon:</strong> ${user.phone || 'Ej angivet'}</p>
+        <p><strong>Födelseår:</strong> ${user.birthyear || 'Ej angivet'}</p>
+        <p><strong>Vill ha utskick:</strong> ${user.mailingList ? 'Ja' : 'Nej'}</p>
+        <p class="text-sm text-gray-500 mt-4">ID: ${user.id}</p>
+    `;
+
+    const messageEl = modal.querySelector('.modal-content p');
+    if (messageEl) {
+        messageEl.innerHTML = content;
+    }
+
+    modal.classList.add('active');
+    
+    const closeBtn = modal.querySelector('.modal-close-btn');
+    if (closeBtn) {
+        closeBtn.onclick = () => hideModal('userInfoModal');
+    }
+
+    modal.onclick = (e) => {
+        if (e.target === modal) hideModal('userInfoModal');
+    };
+}
+
 
 function getFirstLineText(htmlContent) {
     const tempDiv = document.createElement('div');
@@ -507,13 +541,19 @@ function renderAdminsAndUsers() {
         if (isUserAdmin) {
             userEl.innerHTML = `
                 <span class="font-semibold">${user.email} (Admin)</span>
-                ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
+                <div class="flex space-x-2">
+                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
+                </div>
             `;
             adminListEl.appendChild(userEl);
         } else {
             userEl.innerHTML = `
                 <span class="font-semibold">${user.email}</span>
-                ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
+                <div class="flex space-x-2">
+                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
+                </div>
             `;
             allUsersContainer.appendChild(userEl);
         }
@@ -1194,6 +1234,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     loggedInAdminUsername = docSnap.data().email;
                 }
                 renderProfileInfo(docSnap);
+                if (profileWelcomeMessage) {
+                    profileWelcomeMessage.textContent = `Välkommen, ${user.email}`;
+                }
+
             } catch (error) {
                 console.error("Fel vid hämtning av admin-status:", error);
             }
@@ -1258,6 +1302,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const docType = likeBtn.getAttribute('data-type');
             handleLike(docId, docType);
         }
+
+        const showUserInfoBtn = e.target.closest('.show-user-info-btn');
+        if (showUserInfoBtn) {
+            const userId = showUserInfoBtn.getAttribute('data-id');
+            const user = usersData.find(u => u.id === userId);
+            if (user) {
+                showUserInfoModal(user);
+            }
+        }
+
 
         const shareBtn = e.target.closest('.share-btn');
         if (shareBtn) {
