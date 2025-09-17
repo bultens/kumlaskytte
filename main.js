@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.22
+// Ver. 2.23
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -48,6 +48,15 @@ const uploadProgressContainer = document.getElementById('upload-progress-contain
 const uploadProgress = document.getElementById('upload-progress');
 const uploadStatus = document.getElementById('upload-status');
 const imageEditSection = document.getElementById('image-edit-section');
+
+// Sponsor upload specific elements
+const sponsorLogoUpload = document.getElementById('sponsor-logo-upload');
+const sponsorLogoUrlInput = document.getElementById('sponsor-logo-url');
+const sponsorLogoNameDisplay = document.getElementById('sponsor-logo-name-display');
+const clearSponsorLogoUpload = document.getElementById('clear-sponsor-logo-upload');
+const clearImageUpload = document.getElementById('clear-image-upload');
+const fileNameDisplay = document.getElementById('file-name-display');
+
 
 // Calendar specific elements
 const isRecurringCheckbox = document.getElementById('is-recurring');
@@ -850,6 +859,7 @@ if (addImageForm) {
             addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             addImageBtn.classList.add('bg-gray-400');
             document.getElementById('file-name-display').textContent = 'Ingen fil vald';
+            clearImageUpload.classList.add('hidden');
 
         } catch (error) {
             console.error("Fel vid hantering av bild:", error);
@@ -874,8 +884,8 @@ if (addSponsorForm) {
         const sponsorPriority = parseInt(document.getElementById('sponsor-priority').value);
         const file = document.getElementById('sponsor-logo-upload').files[0];
         
-        if (!sponsorName || (sponsorLogoUrl === "" && !file)) {
-            showModal('errorModal', "Sponsornamn och logotyp krävs.");
+        if (!sponsorName || isNaN(sponsorPriority) || (sponsorLogoUrl === "" && !file)) {
+            showModal('errorModal', "Sponsornamn, prioritet och logotyp krävs.");
             return;
         }
 
@@ -953,6 +963,7 @@ if (addSponsorForm) {
             addSponsorBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             addSponsorBtn.classList.add('bg-gray-400');
             document.getElementById('sponsor-logo-name-display').textContent = 'Ingen fil vald';
+            clearSponsorLogoUpload.classList.add('hidden');
 
         } catch (error) {
             console.error("Fel vid hantering av sponsor:", error);
@@ -1442,7 +1453,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hasMonth = imageMonthInput.value.trim();
         const hasFile = imageUploadInput.files.length > 0;
         const hasUrl = imageUrlInput.value.trim();
+        const isEditMode = !!editingImageId;
     
+        if (isEditMode) {
+            addImageBtn.disabled = false;
+            addImageBtn.classList.remove('bg-gray-400');
+            addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            return;
+        }
+
         if (hasTitle && hasYear && hasMonth && (hasFile || hasUrl)) {
             addImageBtn.disabled = false;
             addImageBtn.classList.remove('bg-gray-400');
@@ -1456,10 +1475,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function checkSponsorForm() {
         const hasName = sponsorNameInput.value.trim();
-        const hasPriority = sponsorPriorityInput.value.trim();
+        const hasPriority = sponsorPriorityInput.value.trim() !== '' && !isNaN(parseInt(sponsorPriorityInput.value));
         const hasLogoFile = sponsorLogoUpload.files.length > 0;
         const hasLogoUrl = sponsorLogoUrlInput.value.trim();
+        const isEditMode = !!editingSponsorId;
 
+        if (isEditMode) {
+            addSponsorBtn.disabled = false;
+            addSponsorBtn.classList.remove('bg-gray-400');
+            addSponsorBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            return;
+        }
+    
         if (hasName && hasPriority && (hasLogoFile || hasLogoUrl)) {
             addSponsorBtn.disabled = false;
             addSponsorBtn.classList.remove('bg-gray-400');
@@ -1499,7 +1526,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             eventAddBtn.classList.add('bg-gray-400');
         }
     }
-
+    
+    // Event listeners
     if (newsTitleInput) newsTitleInput.addEventListener('input', checkNewsForm);
     if (newsContentEditor) newsContentEditor.addEventListener('input', checkNewsForm);
     if (historyTitleInput) historyTitleInput.addEventListener('input', checkHistoryForm);
@@ -1510,16 +1538,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (imageMonthInput) imageMonthInput.addEventListener('input', checkImageForm);
     if (imageUploadInput) imageUploadInput.addEventListener('change', () => {
         fileNameDisplay.textContent = imageUploadInput.files.length > 0 ? imageUploadInput.files[0].name : 'Ingen fil vald';
+        if (imageUploadInput.files.length > 0) {
+            clearImageUpload.classList.remove('hidden');
+        } else {
+            clearImageUpload.classList.add('hidden');
+        }
         checkImageForm();
     });
     if (imageUrlInput) imageUrlInput.addEventListener('input', checkImageForm);
+    if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
+        imageUploadInput.value = '';
+        fileNameDisplay.textContent = 'Ingen fil vald';
+        clearImageUpload.classList.add('hidden');
+        checkImageForm();
+    });
     if (sponsorNameInput) sponsorNameInput.addEventListener('input', checkSponsorForm);
     if (sponsorPriorityInput) sponsorPriorityInput.addEventListener('input', checkSponsorForm);
     if (sponsorLogoUpload) sponsorLogoUpload.addEventListener('change', () => {
-        sponsorFileNameDisplay.textContent = sponsorLogoUpload.files.length > 0 ? sponsorLogoUpload.files[0].name : 'Ingen fil vald';
+        sponsorLogoNameDisplay.textContent = sponsorLogoUpload.files.length > 0 ? sponsorLogoUpload.files[0].name : 'Ingen fil vald';
+        if (sponsorLogoUpload.files.length > 0) {
+            clearSponsorLogoUpload.classList.remove('hidden');
+        } else {
+            clearSponsorLogoUpload.classList.add('hidden');
+        }
         checkSponsorForm();
     });
     if (sponsorLogoUrlInput) sponsorLogoUrlInput.addEventListener('input', checkSponsorForm);
+    if (clearSponsorLogoUpload) clearSponsorLogoUpload.addEventListener('click', () => {
+        sponsorLogoUpload.value = '';
+        sponsorLogoNameDisplay.textContent = 'Ingen fil vald';
+        clearSponsorLogoUpload.classList.add('hidden');
+        checkSponsorForm();
+    });
     if (eventTitleInput) eventTitleInput.addEventListener('input', checkEventForm);
     if (eventDescriptionEditor) eventDescriptionEditor.addEventListener('input', checkEventForm);
     if (eventDateInput) eventDateInput.addEventListener('input', checkEventForm);
