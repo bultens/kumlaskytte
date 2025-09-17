@@ -354,7 +354,7 @@
         <section id="profil" class="page">
             <h1 class="text-4xl font-bold mb-6">Min Profil</h1>
             <div id="profile-panel" class="card max-w-md mx-auto hidden">
-                <p>Du är inloggad som: <strong id="profile-email"></strong></p>
+                <p id="profile-welcome-message" class="mb-4 text-gray-700"></p>
                 
                 <h2 class="text-2xl font-bold mt-6 mb-4">Din information</h2>
                 <form id="profile-form">
@@ -465,7 +465,14 @@
                     </button>
                 </div>
             </div>
-        </section>
+        </dix>
+
+        <div id="userInfoModal" class="modal">
+            <div class="modal-content">
+                <span id="close-user-info-modal" class="modal-close-btn">&times;</span>
+                <p></p>
+            </div>
+        </div>
 
     </main>
 
