@@ -5,7 +5,7 @@ import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, 
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 
-// Ver. 2.26
+// Ver. 2.27
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -60,6 +60,7 @@ const fileNameDisplay = document.getElementById('file-name-display');
 const sponsorsContainer = document.getElementById('sponsors-container');
 const sponsorExtraTextInput = document.getElementById('sponsor-extra-text');
 const sponsorSizeSelect = document.getElementById('sponsor-size');
+const settingsForm = document.getElementById('settings-form');
 
 
 // Calendar specific elements
@@ -445,9 +446,9 @@ function renderSponsors() {
     const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
     const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
 
-    sponsorsContainer.innerHTML += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="sponsors-by-4"></div>`;
-    sponsorsContainer.innerHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="sponsors-by-2"></div>`;
-    sponsorsContainer.innerHTML += `<div class="grid grid-cols-1 gap-6" id="sponsors-by-1"></div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="sponsors-by-4"></div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container grid grid-cols-1 md:grid-cols-2 gap-6" id="sponsors-by-2"></div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container grid grid-cols-1 gap-6" id="sponsors-by-1"></div>`;
 
     const container4 = document.getElementById('sponsors-by-4');
     const container2 = document.getElementById('sponsors-by-2');
@@ -460,7 +461,7 @@ function renderSponsors() {
         const sponsorHtml = `
             <div class="card p-4 flex flex-col items-center justify-center text-center">
                 ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-16 object-contain mb-2">
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo-small object-contain mb-2">
                     <h3 class="text-xl font-semibold">${sponsor.name}</h3>
                     ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
                 ${closingTag}
@@ -482,7 +483,7 @@ function renderSponsors() {
         const sponsorHtml = `
             <div class="card p-4 flex flex-col items-center justify-center text-center">
                 ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-24 object-contain mb-2">
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo-medium object-contain mb-2">
                     <h3 class="text-xl font-semibold">${sponsor.name}</h3>
                     ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
                 ${closingTag}
@@ -504,7 +505,7 @@ function renderSponsors() {
         const sponsorHtml = `
             <div class="card p-4 flex flex-col items-center justify-center text-center">
                 ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="max-h-32 object-contain mb-2">
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo-large object-contain mb-2">
                     <h3 class="text-2xl font-semibold">${sponsor.name}</h3>
                     ${sponsor.extraText ? `<p class="text-base text-gray-500">${sponsor.extraText}</p>` : ''}
                 ${closingTag}
@@ -1611,6 +1612,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             eventAddBtn.classList.add('bg-gray-400');
         }
     }
+
+    const siteNameInput = document.getElementById('site-name-input');
+    const logoUrlInput = document.getElementById('logo-url-input');
+    const contactAddressInput = document.getElementById('contact-address-input');
+    const contactPhoneInput = document.getElementById('contact-phone-input');
+    const contactEmailInput = document.getElementById('contact-email-input');
+
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isAdminLoggedIn) {
+                showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+                return;
+            }
+
+            try {
+                await setDoc(doc(db, 'settings', 'siteSettings'), {
+                    siteName: siteNameInput.value,
+                    logoUrl: logoUrlInput.value,
+                    contactAddress: contactAddressInput.value,
+                    contactPhone: contactPhoneInput.value,
+                    contactEmail: contactEmailInput.value
+                });
+                showModal('confirmationModal', "Inställningarna har sparats!");
+            } catch (error) {
+                console.error("Fel vid sparande av inställningar:", error);
+                showModal('errorModal', "Ett fel uppstod när inställningarna skulle sparas.");
+            }
+        });
+    }
+
+    getFirestoreDoc(doc(db, 'settings', 'siteSettings')).then(docSnap => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (siteNameInput) siteNameInput.value = data.siteName || '';
+            if (logoUrlInput) logoUrlInput.value = data.logoUrl || '';
+            if (contactAddressInput) contactAddressInput.value = data.contactAddress || '';
+            if (contactPhoneInput) contactPhoneInput.value = data.contactPhone || '';
+            if (contactEmailInput) contactEmailInput.value = data.contactEmail || '';
+        }
+    });
     
     // Event listeners
     if (newsTitleInput) newsTitleInput.addEventListener('input', checkNewsForm);
