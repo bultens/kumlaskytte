@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.29
+// Ver. 2.30
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -66,6 +66,15 @@ const settingsForm = document.getElementById('settings-form');
 const isRecurringCheckbox = document.getElementById('is-recurring');
 const singleEventFields = document.getElementById('single-event-fields');
 const recurringEventFields = document.getElementById('recurring-event-fields');
+
+// Profile specific elements
+const profileForm = document.getElementById('profile-form');
+const profileNameInput = document.getElementById('profile-name-input');
+const profileAddressInput = document.getElementById('profile-address-input');
+const profilePhoneInput = document.getElementById('profile-phone-input');
+const profileBirthyearInput = document.getElementById('profile-birthyear-input');
+const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+
 
 if (isRecurringCheckbox) {
     isRecurringCheckbox.addEventListener('change', () => {
@@ -525,6 +534,23 @@ function renderContactInfo() {
             if (contactEmailEl) contactEmailEl.textContent = data.contactEmail || 'Ej angivet';
         }
     });
+}
+
+function renderProfileInfo(userDoc) {
+    if (!userDoc || !userDoc.exists()) {
+        profileNameInput.value = '';
+        profileAddressInput.value = '';
+        profilePhoneInput.value = '';
+        profileBirthyearInput.value = '';
+        profileMailingListCheckbox.checked = false;
+        return;
+    }
+    const data = userDoc.data();
+    profileNameInput.value = data.name || '';
+    profileAddressInput.value = data.address || '';
+    profilePhoneInput.value = data.phone || '';
+    profileBirthyearInput.value = data.birthyear || '';
+    profileMailingListCheckbox.checked = data.mailingList || false;
 }
 
 async function addAdminFromUser(userId) {
@@ -1121,6 +1147,33 @@ if (logoutBtn) {
     });
 }
 
+if (profileForm) {
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!auth.currentUser) {
+            showModal('errorModal', "Du måste vara inloggad för att spara din profil.");
+            return;
+        }
+
+        const profileData = {
+            name: profileNameInput.value,
+            address: profileAddressInput.value,
+            phone: profilePhoneInput.value,
+            birthyear: profileBirthyearInput.value,
+            mailingList: profileMailingListCheckbox.checked
+        };
+        
+        try {
+            await updateDoc(doc(db, 'users', auth.currentUser.uid), profileData);
+            showModal('confirmationModal', "Din profil har sparats!");
+        } catch (error) {
+            console.error("Fel vid sparande av profil:", error);
+            showModal('errorModal', "Ett fel uppstod när din profil skulle sparas.");
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     onAuthStateChanged(auth, async (user) => {
         currentUserId = user ? user.uid : null;
@@ -1140,6 +1193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     isAdminLoggedIn = true;
                     loggedInAdminUsername = docSnap.data().email;
                 }
+                renderProfileInfo(docSnap);
             } catch (error) {
                 console.error("Fel vid hämtning av admin-status:", error);
             }

@@ -22,7 +22,7 @@
                         <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
                         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
                     </div>
-                    <p class="text-sm text-gray-300">Ver. 2.4</p>
+                    <p class="text-sm text-gray-300">Ver. 2.5</p>
                 </div>
             </div>
         </div>
@@ -355,6 +355,29 @@
             <h1 class="text-4xl font-bold mb-6">Min Profil</h1>
             <div id="profile-panel" class="card max-w-md mx-auto hidden">
                 <p>Du är inloggad som: <strong id="profile-email"></strong></p>
+                
+                <h2 class="text-2xl font-bold mt-6 mb-4">Din information</h2>
+                <form id="profile-form">
+                    <label for="profile-name-input" class="block mb-2 font-semibold">Namn</label>
+                    <input type="text" id="profile-name-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="profile-address-input" class="block mb-2 font-semibold">Adress</label>
+                    <input type="text" id="profile-address-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <label for="profile-phone-input" class="block mb-2 font-semibold">Telefonnummer</label>
+                    <input type="tel" id="profile-phone-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="profile-birthyear-input" class="block mb-2 font-semibold">Födelseår</label>
+                    <input type="number" id="profile-birthyear-input" min="1900" max="2100" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="profile-mailing-list-checkbox" class="mr-2">
+                        <label for="profile-mailing-list-checkbox" class="font-semibold">Ja, jag vill ha utskick</label>
+                    </div>
+
+                    <button type="submit" id="save-profile-btn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara profil</button>
+                </form>
+
                 <div class="mt-4">
                     <button id="logout-profile-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
                 </div>
