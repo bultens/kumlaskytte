@@ -4,13 +4,13 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 import { doc, getFirestore, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
-// Ver. 1.99
+// Ver. 2.0
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 
 const profilePanel = document.getElementById('profile-panel');
-const profileEmail = document.getElementById('profile-email');
+const profileWelcomeMessage = document.getElementById('profile-welcome-message');
 const userNavLink = document.getElementById('user-nav-link');
 const profileNavLink = document.getElementById('profile-nav-link');
 const showLoginLink = document.getElementById('show-login-link');
@@ -25,7 +25,6 @@ function toggleProfileUI(user) {
         profilePanel.classList.remove('hidden');
         userLoginPanel.classList.add('hidden');
         registerPanel.classList.add('hidden');
-        profileEmail.textContent = user.email;
         if (profileNavLink) profileNavLink.classList.remove('hidden');
         if (userNavLink) userNavLink.classList.add('hidden');
     } else {
@@ -44,7 +43,10 @@ onAuthStateChanged(auth, async (user) => {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             const userData = docSnap.data();
-            console.log("User data from Firestore:", userData);
+            const name = userData.name || userData.email;
+            if (profileWelcomeMessage) {
+                profileWelcomeMessage.textContent = `Välkommen, ${name}`;
+            }
         }
     }
     toggleProfileUI(user);

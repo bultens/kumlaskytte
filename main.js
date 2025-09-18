@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.31
+// Ver. 2.32
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -170,6 +170,7 @@ function updateUI() {
     renderSponsors();
     renderAdminsAndUsers();
     renderContactInfo();
+    renderUserReport();
 
     const adminIndicator = document.getElementById('admin-indicator');
     const profileNavLink = document.getElementById('profile-nav-link');
@@ -560,6 +561,42 @@ function renderAdminsAndUsers() {
     });
 
 }
+
+function renderUserReport() {
+    const userListContainer = document.getElementById('user-report-list');
+    const mailingListContainer = document.getElementById('mailing-list-report');
+    if (!userListContainer || !mailingListContainer) return;
+    
+    userListContainer.innerHTML = '';
+    mailingListContainer.innerHTML = '';
+
+    const sortedUsers = usersData.sort((a, b) => a.email.localeCompare(b.email));
+
+    sortedUsers.forEach(user => {
+        const userHtml = `
+            <div class="p-2 border-b border-gray-200 last:border-0">
+                <p><strong>E-post:</strong> ${user.email}</p>
+                <p><strong>Namn:</strong> ${user.name || 'Ej angivet'}</p>
+                <p><strong>Adress:</strong> ${user.address || 'Ej angivet'}</p>
+                <p><strong>Telefon:</strong> ${user.phone || 'Ej angivet'}</p>
+                <p><strong>Födelseår:</strong> ${user.birthyear || 'Ej angivet'}</p>
+                <p><strong>Admin:</strong> ${user.isAdmin ? 'Ja' : 'Nej'}</p>
+                <p><strong>Vill ha utskick:</strong> ${user.mailingList ? 'Ja' : 'Nej'}</p>
+            </div>
+        `;
+        userListContainer.innerHTML += userHtml;
+    });
+
+    const mailingListUsers = sortedUsers.filter(user => user.mailingList);
+    mailingListUsers.forEach(user => {
+        mailingListContainer.innerHTML += `
+            <div class="p-2 border-b border-gray-200 last:border-0">
+                <p><strong>E-post:</strong> ${user.email}</p>
+            </div>
+        `;
+    });
+}
+
 
 function renderContactInfo() {
     const contactAddressEl = document.getElementById('contact-address');
@@ -1229,15 +1266,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const docRef = doc(db, 'users', user.uid);
                 const docSnap = await getFirestoreDoc(docRef);
-                if (docSnap.exists() && docSnap.data().isAdmin) {
-                    isAdminLoggedIn = true;
-                    loggedInAdminUsername = docSnap.data().email;
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    if (userData.isAdmin) {
+                        isAdminLoggedIn = true;
+                        loggedInAdminUsername = userData.email;
+                    }
+                    renderProfileInfo(docSnap);
+                    if (profileWelcomeMessage) {
+                        const name = userData.name || userData.email;
+                        profileWelcomeMessage.textContent = `Välkommen, ${name}`;
+                    }
                 }
-                renderProfileInfo(docSnap);
-                if (profileWelcomeMessage) {
-                    profileWelcomeMessage.textContent = `Välkommen, ${user.email}`;
-                }
-
             } catch (error) {
                 console.error("Fel vid hämtning av admin-status:", error);
             }
