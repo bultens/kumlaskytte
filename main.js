@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.32
+// Ver. 2.33
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -940,6 +940,11 @@ if (addImageForm) {
         };
 
         if (file) {
+            if (!auth.currentUser) {
+                showModal('errorModal', "Du måste vara inloggad som administratör för att ladda upp en fil.");
+                return;
+            }
+
             const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
             if (file.size > MAX_IMAGE_SIZE) {
                 showModal('errorModal', "Bilden är för stor. Max tillåten storlek är 5 MB.");
@@ -1038,6 +1043,11 @@ if (addSponsorForm) {
         let storagePath = null;
         
         if (file) {
+            if (!auth.currentUser) {
+                showModal('errorModal', "Du måste vara inloggad som administratör för att ladda upp en fil.");
+                return;
+            }
+
             const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
             if (file.size > MAX_IMAGE_SIZE) {
                 showModal('errorModal', "Logotypen är för stor. Max tillåten storlek är 5 MB.");
