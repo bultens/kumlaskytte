@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.33
+// Ver. 2.34
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -171,36 +171,29 @@ function updateUI() {
     renderAdminsAndUsers();
     renderContactInfo();
     renderUserReport();
+}
 
+function handleAdminUI(isAdmin) {
     const adminIndicator = document.getElementById('admin-indicator');
-    const profileNavLink = document.getElementById('profile-nav-link');
-    const userNavLink = document.getElementById('user-nav-link');
-    const adminPanel = document.getElementById('admin-panel');
-    const adminLoginPanel = document.getElementById('admin-login-panel');
     const newsEditSection = document.getElementById('news-edit-section');
     const calendarEditSection = document.getElementById('calendar-edit-section');
+    const imageEditSection = document.getElementById('image-edit-section');
     const historyEditSection = document.getElementById('history-edit-section');
     const sponsorsEditSection = document.getElementById('sponsors-edit-section');
-
-    if (auth.currentUser) {
-        if (userNavLink) userNavLink.classList.add('hidden');
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
-    } else {
-        if (userNavLink) userNavLink.classList.remove('hidden');
-        if (profileNavLink) profileNavLink.classList.add('hidden');
-    }
-
-    if (isAdminLoggedIn) {
+    const adminPanel = document.getElementById('admin-panel');
+    const adminLoginPanel = document.getElementById('admin-login-panel');
+    const adminUserInfo = document.getElementById('admin-user-info');
+    
+    if (isAdmin) {
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
         if (historyEditSection) historyEditSection.classList.remove('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
-        if (document.getElementById('history-edit-section')) document.getElementById('history-edit-section').classList.remove('hidden');
-
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
+        if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
     } else {
         if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
@@ -208,11 +201,11 @@ function updateUI() {
         if (imageEditSection) imageEditSection.classList.add('hidden');
         if (historyEditSection) historyEditSection.classList.add('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
-        
         if (adminPanel) adminPanel.classList.add('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
     }
 }
+
 
 // --- CONTENT RENDERING ---
 function renderNews() {
@@ -1230,7 +1223,7 @@ if (logoutBtn) {
         isAdminLoggedIn = false;
         loggedInAdminUsername = '';
         navigate('#hem');
-        updateUI();
+        handleAdminUI(false);
     });
 }
 
@@ -1267,11 +1260,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         isAdminLoggedIn = false;
         loggedInAdminUsername = '';
 
-        const adminIndicator = document.getElementById('admin-indicator');
-        const adminPanel = document.getElementById('admin-panel');
-        const adminLoginPanel = document.getElementById('admin-login-panel');
-        const adminUserInfo = document.getElementById('admin-user-info');
-        
         if (user) {
             try {
                 const docRef = doc(db, 'users', user.uid);
@@ -1293,23 +1281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        if (isAdminLoggedIn) {
-            if (adminIndicator) adminIndicator.classList.remove('hidden');
-            if (adminPanel) adminPanel.classList.remove('hidden');
-            if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
-            if (adminUserInfo) adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
-        } else {
-            if (adminIndicator) adminIndicator.classList.add('hidden');
-            if (newsEditSection) newsEditSection.classList.add('hidden');
-            if (calendarEditSection) calendarEditSection.classList.add('hidden');
-            if (imageEditSection) imageEditSection.classList.add('hidden');
-            if (historyEditSection) historyEditSection.classList.add('hidden');
-            if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
-            
-            if (adminPanel) adminPanel.classList.add('hidden');
-            if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
-        }
-
+        handleAdminUI(isAdminLoggedIn);
         updateUI();
     });
 
