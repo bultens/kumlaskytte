@@ -1,10 +1,9 @@
 // ui-handler.js
-import { auth, firebaseSignOut as signOut } from "./main.js";
+import { auth, db } from "./main.js";
 import { usersData } from "./data-service.js";
 import { getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { db } from "./firebase-config.js";
 
-// Ver. 1.01
+// Ver. 1.02
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 

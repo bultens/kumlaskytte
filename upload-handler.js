@@ -2,10 +2,10 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { addOrUpdateDocument } from "./data-service.js";
-import { auth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { auth } from "./main.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.0
+// Ver. 1.01
 export async function handleImageUpload(e) {
     if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
@@ -180,7 +180,7 @@ export async function handleSponsorUpload(e) {
         } catch (error) {
             console.error("Upload failed:", error);
             showModal('errorModal', "Uppladdning misslyckades. Vänligen försök igen.");
-            uploadProgressContainer.classList.add('hidden');
+            document.getElementById('sponsor-upload-progress-container').classList.add('hidden');
             addSponsorBtn.disabled = false;
             return;
         }
