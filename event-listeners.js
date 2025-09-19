@@ -4,8 +4,9 @@ import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings,
 import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { serverTimestamp, writeBatch, collection, doc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.04
+// Ver. 1.05
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
