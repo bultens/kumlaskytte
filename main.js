@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.34
+// Ver. 2.35
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -1726,11 +1726,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 await setDoc(doc(db, 'settings', 'siteSettings'), {
-                    siteName: siteNameInput.value,
-                    logoUrl: logoUrlInput.value,
-                    contactAddress: contactAddressInput.value,
-                    contactPhone: contactPhoneInput.value,
-                    contactEmail: contactEmailInput.value
+                    siteName: siteName.value,
+                    logoUrl: logoUrl.value,
+                    contactAddress: contactAddress.value,
+                    contactPhone: contactPhone.value,
+                    contactEmail: contactEmail.value
                 });
                 showModal('confirmationModal', "Inställningarna har sparats!");
             } catch (error) {
