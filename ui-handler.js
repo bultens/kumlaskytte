@@ -1,9 +1,8 @@
 // ui-handler.js
-import { auth, db } from "./main.js";
+import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
-import { getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.04
+// Ver. 1.05
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 

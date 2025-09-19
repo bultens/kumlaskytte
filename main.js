@@ -6,7 +6,7 @@ import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal } from
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 3.04
+// Ver. 3.05
 export let isAdminLoggedIn = false;
 export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc };
