@@ -1,12 +1,11 @@
 // event-listeners.js
-import { auth, signOut, isAdminLoggedIn, db } from "./main.js";
+import { auth, signOut, isAdminLoggedIn, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
 import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
-import { serverTimestamp, writeBatch, collection, doc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.06
+// Ver. 1.08
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -56,7 +55,7 @@ export function setupEventListeners() {
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     const weekdaySelect = document.getElementById('weekday-select');
-    const imageUpload = document.getElementById('image-upload');
+    const imageUploadInput = document.getElementById('image-upload');
     const fileNameDisplay = document.getElementById('file-name-display');
     const sponsorFileNameDisplay = document.getElementById('sponsor-logo-name-display');
     const clearImageUpload = document.getElementById('clear-image-upload');
@@ -415,8 +414,9 @@ export function setupEventListeners() {
                 'sponsor-name': checkSponsorForm, 'sponsor-extra-text': checkSponsorForm, 'sponsor-priority': checkSponsorForm, 'sponsor-logo-upload': checkSponsorForm, 'sponsor-logo-url': checkSponsorForm, 'sponsor-size': checkSponsorForm,
                 'event-title': checkEventForm, 'event-description-editor': checkEventForm, 'event-date': checkEventForm, 'is-recurring': checkEventForm, 'start-date': checkEventForm, 'end-date': checkEventForm, 'weekday-select': checkEventForm
             };
-            element.addEventListener('input', formCheckers[element.id]);
-            element.addEventListener('change', formCheckers[element.id]);
+            const eventType = element.id.includes('editor') || element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'number' || element.type === 'url' || element.type === 'date') ? 'input' : 'change';
+            
+            element.addEventListener(eventType, formCheckers[element.id]);
         }
     });
     

@@ -1,5 +1,5 @@
 // form-validation.js
-// Ver. 1.0
+// Ver. 1.01
 export function checkNewsForm() {
     const newsTitleInput = document.getElementById('news-title');
     const newsContentEditor = document.getElementById('news-content-editor');
