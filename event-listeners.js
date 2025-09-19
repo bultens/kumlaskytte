@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand }
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.08
+// Ver. 1.09
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -400,7 +400,7 @@ export function setupEventListeners() {
     const inputElements = [
         newsTitleInput, newsContentEditor,
         historyTitleInput, historyContentEditor, historyPriorityInput,
-        imageTitleInput, imageYearInput.value, imageMonthInput.value, imageUploadInput, imageUrlInput,
+        imageTitleInput, imageYearInput, imageMonthInput, imageUploadInput, imageUrlInput,
         sponsorNameInput, sponsorExtraText, sponsorPriorityInput, sponsorLogoUpload, sponsorLogoUrlInput, sponsorSizeInput,
         eventTitleInput, eventDescriptionEditor, eventDateInput, isRecurringCheckbox, startDateInput, endDateInput, weekdaySelect
     ];
