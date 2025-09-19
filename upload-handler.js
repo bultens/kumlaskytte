@@ -5,7 +5,18 @@ import { addOrUpdateDocument } from "./data-service.js";
 import { auth } from "./main.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.03
+// Ver. 1.04
+export let editingImageId = null;
+export let editingSponsorId = null;
+
+export function setEditingImageId(id) {
+    editingImageId = id;
+}
+
+export function setEditingSponsorId(id) {
+    editingSponsorId = id;
+}
+
 export async function handleImageUpload(e) {
     if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
@@ -18,7 +29,7 @@ export async function handleImageUpload(e) {
     const imageMonth = parseInt(document.getElementById('image-month').value);
     const file = document.getElementById('image-upload').files[0];
 
-    if (!imageTitle || (!file && !imageUrl)) {
+    if (!editingImageId && (!imageTitle || (!file && !imageUrl) || !imageYear || !imageMonth)) {
         showModal('errorModal', "Titel, år, månad och antingen en fil eller en URL krävs.");
         return;
     }
@@ -31,8 +42,8 @@ export async function handleImageUpload(e) {
         url: finalImageUrl,
         year: imageYear,
         month: imageMonth,
-        createdAt: serverTimestamp(),
-        updatedAt: null
+        createdAt: editingImageId ? null : serverTimestamp(),
+        updatedAt: editingImageId ? serverTimestamp() : null
     };
 
     if (file) {
@@ -85,7 +96,7 @@ export async function handleImageUpload(e) {
         }
     }
     
-    await addOrUpdateDocument('images', null, imageObject, "Bilden har lagts till!", "Ett fel uppstod när bilden skulle hanteras.");
+    await addOrUpdateDocument('images', editingImageId, imageObject, "Bilden har lagts till!", "Ett fel uppstod när bilden skulle hanteras.");
     
     // Reset form after successful upload
     const addImageForm = document.getElementById('add-image-form');
@@ -100,6 +111,8 @@ export async function handleImageUpload(e) {
         document.getElementById('file-name-display').textContent = 'Ingen fil vald';
         document.getElementById('clear-image-upload').classList.add('hidden');
     }
+
+    editingImageId = null;
 }
 
 export async function handleSponsorUpload(e) {
@@ -116,7 +129,7 @@ export async function handleSponsorUpload(e) {
     const sponsorSize = document.getElementById('sponsor-size').value;
     const file = document.getElementById('sponsor-logo-upload').files[0];
     
-    if (!sponsorName || isNaN(sponsorPriority) || (sponsorLogoUrl === "" && !file)) {
+    if (!editingSponsorId && (!sponsorName || isNaN(sponsorPriority) || (sponsorLogoUrl === "" && !file))) {
         showModal('errorModal', "Sponsornamn, prioritet och logotyp krävs.");
         return;
     }
@@ -132,8 +145,8 @@ export async function handleSponsorUpload(e) {
         priority: sponsorPriority,
         size: sponsorSize,
         storagePath: storagePath,
-        createdAt: serverTimestamp(),
-        updatedAt: null
+        createdAt: editingSponsorId ? null : serverTimestamp(),
+        updatedAt: editingSponsorId ? serverTimestamp() : null
     };
     
     if (file) {
@@ -186,7 +199,7 @@ export async function handleSponsorUpload(e) {
         }
     }
     
-    await addOrUpdateDocument('sponsors', null, sponsorObject, "Sponsorn har lagts till!", "Ett fel uppstod när sponsorn skulle hanteras.");
+    await addOrUpdateDocument('sponsors', editingSponsorId, sponsorObject, "Sponsorn har lagts till!", "Ett fel uppstod när sponsorn skulle hanteras.");
 
     // Reset form after successful upload
     const addSponsorForm = document.getElementById('add-sponsor-form');
@@ -201,4 +214,6 @@ export async function handleSponsorUpload(e) {
         document.getElementById('sponsor-logo-name-display').textContent = 'Ingen fil vald';
         document.getElementById('clear-sponsor-logo-upload').classList.add('hidden');
     }
+
+    editingSponsorId = null;
 }
