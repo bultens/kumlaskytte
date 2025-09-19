@@ -2,13 +2,14 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { initializeDataListeners } from "./data-service.js";
-import { handleAdminUI, navigate, renderProfileInfo, showModal } from "./ui-handler.js";
+import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal } from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 3.0
+// Ver. 3.01
 export let isAdminLoggedIn = false;
 export let currentUserId = null;
+export { auth, db };
 
 async function checkAdminStatus(user) {
     if (user) {
@@ -33,7 +34,7 @@ function initializeAuthListener() {
     onAuthStateChanged(auth, async (user) => {
         const isAdmin = await checkAdminStatus(user);
         handleAdminUI(isAdmin);
-        initializeDataListeners(isAdmin);
+        initializeDataListeners();
         if (user) {
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getFirestoreDoc(docRef);

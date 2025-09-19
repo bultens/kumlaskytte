@@ -1,12 +1,11 @@
 // event-listeners.js
-import { auth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { auth, signOut } from "./main.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
-import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand } from "./ui-handler.js";
+import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand, isAdminLoggedIn } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
-import { isAdminLoggedIn, initializeAppLogic } from "./main.js";
+import { serverTimestamp, writeBatch, collection, doc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.0
+// Ver. 1.01
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -161,14 +160,14 @@ export function setupEventListeners() {
     if (addImageForm) {
         addImageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            handleImageUpload(e);
+            await handleImageUpload(e);
         });
     }
 
     if (addSponsorForm) {
         addSponsorForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            handleSponsorUpload(e);
+            await handleSponsorUpload(e);
         });
     }
 
@@ -396,119 +395,6 @@ export function setupEventListeners() {
             }
         }
     });
-
-    document.querySelectorAll('nav a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const hash = e.target.getAttribute('href');
-            history.pushState(null, '', hash);
-            navigate(hash);
-        });
-    });
-
-    function checkNewsForm() {
-        if (newsTitleInput.value && newsContentEditor.innerHTML.trim()) {
-            newsAddBtn.disabled = false;
-            newsAddBtn.classList.remove('bg-gray-400');
-            newsAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        } else {
-            newsAddBtn.disabled = true;
-            newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            newsAddBtn.classList.add('bg-gray-400');
-        }
-    }
-    
-    function checkHistoryForm() {
-        if (historyTitleInput.value && historyContentEditor.innerHTML.trim() && historyPriorityInput.value) {
-            historyAddBtn.disabled = false;
-            historyAddBtn.classList.remove('bg-gray-400');
-            historyAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        } else {
-            historyAddBtn.disabled = true;
-            historyAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            historyAddBtn.classList.add('bg-gray-400');
-        }
-    }
-
-    function checkImageForm() {
-        const hasTitle = imageTitleInput.value.trim();
-        const hasYear = imageYearInput.value.trim();
-        const hasMonth = imageMonthInput.value.trim();
-        const hasFile = imageUploadInput.files.length > 0;
-        const hasUrl = imageUrlInput.value.trim();
-        const isEditMode = !!editingImageId;
-    
-        if (isEditMode) {
-            addImageBtn.disabled = false;
-            addImageBtn.classList.remove('bg-gray-400');
-            addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            return;
-        }
-
-        if (hasTitle && hasYear && hasMonth && (hasFile || hasUrl)) {
-            addImageBtn.disabled = false;
-            addImageBtn.classList.remove('bg-gray-400');
-            addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        } else {
-            addImageBtn.disabled = true;
-            addImageBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            addImageBtn.classList.add('bg-gray-400');
-        }
-    }
-
-    function checkSponsorForm() {
-        const hasName = sponsorNameInput.value.trim();
-        const hasPriority = sponsorPriorityInput.value.trim() !== '' && !isNaN(parseInt(sponsorPriorityInput.value));
-        const hasLogoFile = sponsorLogoUpload.files.length > 0;
-        const hasLogoUrl = sponsorLogoUrlInput.value.trim();
-        const isEditMode = !!editingSponsorId;
-
-        if (isEditMode) {
-            addSponsorBtn.disabled = false;
-            addSponsorBtn.classList.remove('bg-gray-400');
-            addSponsorBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            return;
-        }
-    
-        if (hasName && hasPriority && (hasLogoFile || hasLogoUrl)) {
-            addSponsorBtn.disabled = false;
-            addSponsorBtn.classList.remove('bg-gray-400');
-            addSponsorBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        } else {
-            addSponsorBtn.disabled = true;
-            addSponsorBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            addSponsorBtn.classList.add('bg-gray-400');
-        }
-    }
-    
-    function checkEventForm() {
-        const isRecurring = isRecurringCheckbox.checked;
-        const eventTitle = eventTitleInput.value.trim();
-        const eventDescription = document.getElementById('event-description-editor').innerHTML.trim();
-        let isFormValid = false;
-
-        if (eventTitle && eventDescription) {
-            if (isRecurring) {
-                if (startDateInput.value && endDateInput.value && weekdaySelect.value) {
-                    isFormValid = true;
-                }
-            } else {
-                if (eventDateInput.value) {
-                    isFormValid = true;
-                }
-            }
-        }
-    
-        if (isFormValid) {
-            eventAddBtn.disabled = false;
-            eventAddBtn.classList.remove('bg-gray-400');
-            eventAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        } else {
-            eventAddBtn.disabled = true;
-            eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            eventAddBtn.classList.add('bg-gray-400');
-        }
-    }
 
     // Input listeners
     if (newsTitleInput) newsTitleInput.addEventListener('input', checkNewsForm);
