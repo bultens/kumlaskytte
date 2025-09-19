@@ -1,11 +1,11 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js";
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, renderProfileInfo, showModal } from "./ui-handler.js";
-import { isAdminLoggedIn, currentUserId } from "./main.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, renderProfileInfo, showModal, isAdminLoggedIn } from "./ui-handler.js";
+import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.01
+// Ver. 1.02
 export let newsData = [];
 export let eventsData = [];
 export let historyData = [];

@@ -1,11 +1,11 @@
 // event-listeners.js
-import { auth, signOut, isAdminLoggedIn, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
+import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
-import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand } from "./ui-handler.js";
+import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand, isAdminLoggedIn } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.09
+// Ver. 1.10
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
