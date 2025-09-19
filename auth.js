@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, on
 import { doc, getFirestore, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
-// Ver. 2.02
+// Ver. 2.03
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';

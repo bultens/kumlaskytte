@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.35
+// Ver. 2.36
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -922,22 +922,8 @@ if (addImageForm) {
         
         let finalImageUrl = imageUrl;
         let storagePath = null;
-        
-        const imageObject = {
-            title: imageTitle,
-            url: finalImageUrl,
-            year: imageYear,
-            month: imageMonth,
-            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
-            updatedAt: editingImageId ? serverTimestamp() : null
-        };
 
         if (file) {
-            if (!auth.currentUser) {
-                showModal('errorModal', "Du måste vara inloggad som administratör för att ladda upp en fil.");
-                return;
-            }
-
             const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
             if (file.size > MAX_IMAGE_SIZE) {
                 showModal('errorModal', "Bilden är för stor. Max tillåten storlek är 5 MB.");
@@ -981,6 +967,15 @@ if (addImageForm) {
                 return;
             }
         }
+        
+        const imageObject = {
+            title: imageTitle,
+            url: finalImageUrl,
+            year: imageYear,
+            month: imageMonth,
+            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
+            updatedAt: editingImageId ? serverTimestamp() : null
+        };
         
         try {
             if (editingImageId) {
@@ -1036,11 +1031,6 @@ if (addSponsorForm) {
         let storagePath = null;
         
         if (file) {
-            if (!auth.currentUser) {
-                showModal('errorModal', "Du måste vara inloggad som administratör för att ladda upp en fil.");
-                return;
-            }
-
             const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
             if (file.size > MAX_IMAGE_SIZE) {
                 showModal('errorModal', "Logotypen är för stor. Max tillåten storlek är 5 MB.");
