@@ -400,7 +400,7 @@ export function setupEventListeners() {
     const inputElements = [
         newsTitleInput, newsContentEditor,
         historyTitleInput, historyContentEditor, historyPriorityInput,
-        imageTitleInput, imageYearInput, imageMonthInput, imageUploadInput, imageUrlInput,
+        imageTitleInput, imageYearInput.value, imageMonthInput.value, imageUploadInput, imageUrlInput,
         sponsorNameInput, sponsorExtraText, sponsorPriorityInput, sponsorLogoUpload, sponsorLogoUrlInput, sponsorSizeInput,
         eventTitleInput, eventDescriptionEditor, eventDateInput, isRecurringCheckbox, startDateInput, endDateInput, weekdaySelect
     ];

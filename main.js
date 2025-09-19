@@ -4,12 +4,12 @@ import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gsta
 import { initializeDataListeners } from "./data-service.js";
 import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal } from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
-import { getDoc as getFirestoreDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 3.06
+// Ver. 3.07
 export let isAdminLoggedIn = false;
 export let currentUserId = null;
-export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc };
+export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
 async function checkAdminStatus(user) {
     if (user) {
