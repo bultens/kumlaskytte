@@ -47,9 +47,7 @@ export function checkImageForm() {
     const hasFile = imageUploadInput.files.length > 0;
     const hasUrl = imageUrlInput.value.trim();
 
-    // isEditMode needs to be handled on a higher level or passed as a parameter
-    // assuming it's not edit mode for this check
-    const isEditMode = false;
+    const isEditMode = false; // Denna logik hanteras i event-listeners
 
     if (isEditMode) {
         addImageBtn.disabled = false;
@@ -81,9 +79,7 @@ export function checkSponsorForm() {
     const hasLogoFile = sponsorLogoUpload.files.length > 0;
     const hasLogoUrl = sponsorLogoUrlInput.value.trim();
 
-    // isEditMode needs to be handled on a higher level or passed as a parameter
-    // assuming it's not edit mode for this check
-    const isEditMode = false;
+    const isEditMode = false; // Denna logik hanteras i event-listeners
 
     if (isEditMode) {
         addSponsorBtn.disabled = false;
