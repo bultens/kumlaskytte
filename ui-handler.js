@@ -1,10 +1,10 @@
 // ui-handler.js
-import { auth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { auth, firebaseSignOut as signOut } from "./main.js";
 import { usersData } from "./data-service.js";
 import { getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
-// Ver. 1.0
+// Ver. 1.01
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -519,6 +519,12 @@ export function renderContactInfo() {
 
 export function renderProfileInfo(userDoc) {
     if (!userDoc || !userDoc.exists()) {
+        const profileNameInput = document.getElementById('profile-name-input');
+        const profileAddressInput = document.getElementById('profile-address-input');
+        const profilePhoneInput = document.getElementById('profile-phone-input');
+        const profileBirthyearInput = document.getElementById('profile-birthyear-input');
+        const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+
         profileNameInput.value = '';
         profileAddressInput.value = '';
         profilePhoneInput.value = '';
@@ -527,6 +533,12 @@ export function renderProfileInfo(userDoc) {
         return;
     }
     const data = userDoc.data();
+    const profileNameInput = document.getElementById('profile-name-input');
+    const profileAddressInput = document.getElementById('profile-address-input');
+    const profilePhoneInput = document.getElementById('profile-phone-input');
+    const profileBirthyearInput = document.getElementById('profile-birthyear-input');
+    const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+
     profileNameInput.value = data.name || '';
     profileAddressInput.value = data.address || '';
     profilePhoneInput.value = data.phone || '';

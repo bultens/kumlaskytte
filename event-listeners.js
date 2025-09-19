@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand, 
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { serverTimestamp, writeBatch, collection, doc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.01
+// Ver. 1.02
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
