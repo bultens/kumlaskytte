@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { collection, onSnapshot, serverTimestamp, deleteDoc, doc, query, where, getDocs, writeBatch, updateDoc, setDoc, getDoc as getFirestoreDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 2.36
+// Ver. 2.37
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
 let newsData = [];
@@ -34,7 +34,7 @@ const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 const deleteEventModal = document.getElementById('deleteEventModal');
 const deleteSingleEventBtn = document.getElementById('delete-single-event-btn');
-const deleteSeriesEventBtn = document.getElementById('delete-series-event-btn');
+const deleteSeriesEventBtn = document = document.getElementById('delete-series-event-btn');
 const cancelEventDeleteBtn = document.getElementById('cancel-event-delete-btn');
 
 // Image upload specific elements
@@ -922,6 +922,15 @@ if (addImageForm) {
         
         let finalImageUrl = imageUrl;
         let storagePath = null;
+        
+        const imageObject = {
+            title: imageTitle,
+            url: finalImageUrl,
+            year: imageYear,
+            month: imageMonth,
+            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
+            updatedAt: editingImageId ? serverTimestamp() : null
+        };
 
         if (file) {
             const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -967,15 +976,6 @@ if (addImageForm) {
                 return;
             }
         }
-        
-        const imageObject = {
-            title: imageTitle,
-            url: finalImageUrl,
-            year: imageYear,
-            month: imageMonth,
-            createdAt: editingImageId ? imageData.find(i => i.id === editingImageId).createdAt : serverTimestamp(),
-            updatedAt: editingImageId ? serverTimestamp() : null
-        };
         
         try {
             if (editingImageId) {
