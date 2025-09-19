@@ -6,22 +6,33 @@ import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdm
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 3.08
+// Ver. 3.09
 export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
 async function checkAdminStatus(user) {
     if (user) {
         currentUserId = user.uid;
+        console.log("Inloggad användare:", user.uid, user.email);
         try {
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getFirestoreDoc(docRef);
-            if (docSnap.exists() && docSnap.data().isAdmin) {
-                return true;
+            if (docSnap.exists()) {
+                console.log("User document data:", docSnap.data());
+                if (docSnap.data().isAdmin) {
+                    console.log("✅ Användaren är admin");
+                    return true;
+                } else {
+                    console.log("❌ Användaren är INTE admin");
+                }
+            } else {
+                console.log("❌ Inget user-dokument hittades i Firestore");
             }
         } catch (error) {
             console.error("Fel vid hämtning av admin-status:", error);
         }
+    } else {
+        console.log("Ingen användare är inloggad.");
     }
     currentUserId = null;
     return false;
