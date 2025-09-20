@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.12
+// Ver. 1.13
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;

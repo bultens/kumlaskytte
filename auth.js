@@ -5,7 +5,7 @@ import { doc, getFirestore, setDoc, getDoc, deleteDoc } from "https://www.gstati
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.06
+// Ver. 2.07
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
