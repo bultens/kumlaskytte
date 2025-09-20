@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.14
+// Ver. 1.15
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -370,6 +370,7 @@ export function setupEventListeners() {
                 document.getElementById('image-url').value = imageItem.url;
                 document.getElementById('image-year').value = imageItem.year;
                 document.getElementById('image-month').value = imageItem.month;
+                document.getElementById('image-priority').value = imageItem.priority || 10;
                 document.getElementById('image-form-title').textContent = 'Ändra Bild';
                 addImageBtn.textContent = 'Spara ändring';
                 addImageBtn.disabled = false;
