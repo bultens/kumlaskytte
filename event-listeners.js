@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.13
+// Ver. 1.14
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -521,9 +521,6 @@ export function setupEventListeners() {
             hideModal('editUserModal');
         });
     }
-    
-    const imageUploadInput = document.getElementById('image-upload');
-    const fileNameDisplay = document.getElementById('file-name-display');
     
     if (imageUploadInput && fileNameDisplay) {
         imageUploadInput.addEventListener('change', (e) => {
