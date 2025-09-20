@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.12
+// Ver. 1.13
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -96,6 +96,23 @@ export function showEditUserModal(user) {
     modal.classList.add('active');
 }
 
+export function updateHeaderColor(color) {
+    const header = document.getElementById('site-header');
+    if (header && color) {
+        header.style.backgroundColor = color;
+    }
+}
+
+export function toggleSponsorsNavLink(isVisible) {
+    const sponsorsLink = document.getElementById('sponsors-nav-link');
+    if (sponsorsLink) {
+        if (isVisible) {
+            sponsorsLink.classList.remove('hidden');
+        } else {
+            sponsorsLink.classList.add('hidden');
+        }
+    }
+}
 
 export function handleAdminUI(isAdmin) {
     const adminIndicator = document.getElementById('admin-indicator');
