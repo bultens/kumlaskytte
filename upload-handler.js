@@ -5,7 +5,7 @@ import { addOrUpdateDocument } from "./data-service.js";
 import { auth } from "./main.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.05
+// Ver. 1.06
 export let editingImageId = null;
 export let editingSponsorId = null;
 
@@ -98,7 +98,9 @@ export async function handleImageUpload(e) {
         }
     }
     
-    await addOrUpdateDocument('images', editingImageId, imageObject, "Bilden har lagts till!", "Ett fel uppstod när bilden skulle hanteras.");
+    // Använd rätt meddelande beroende på om det är en uppdatering eller ny bild
+    const successMessage = editingImageId ? "Bilden har uppdaterats!" : "Bilden har lagts till!";
+    await addOrUpdateDocument('images', editingImageId, imageObject, successMessage, "Ett fel uppstod när bilden skulle hanteras.");
     
     // Reset form after successful upload
     const addImageForm = document.getElementById('add-image-form');
