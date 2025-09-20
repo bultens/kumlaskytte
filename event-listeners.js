@@ -521,4 +521,17 @@ export function setupEventListeners() {
             hideModal('editUserModal');
         });
     }
+    
+    const imageUploadInput = document.getElementById('image-upload');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    
+    if (imageUploadInput && fileNameDisplay) {
+        imageUploadInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = e.target.files[0].name;
+            } else {
+                fileNameDisplay.textContent = 'Ingen fil vald';
+            }
+        });
+    }
 }
