@@ -5,7 +5,7 @@ import { doc, getFirestore, setDoc, getDoc, deleteDoc } from "https://www.gstati
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.05
+// Ver. 2.06
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -89,7 +89,11 @@ if (userLoginForm) {
             await signInWithEmailAndPassword(auth, email, password);
             showModal('confirmationModal', 'Inloggning lyckades!');
         } catch (error) {
-            showModal('errorModal', error.message);
+            let userMessage = 'Ett fel uppstod vid inloggning. Vänligen försök igen.';
+            if (error.code === 'auth/invalid-credential') {
+                userMessage = 'E-post eller lösenord är felaktigt.';
+            }
+            showModal('errorModal', userMessage);
         }
     });
 }
