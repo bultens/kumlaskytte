@@ -1,10 +1,11 @@
 // auth.js
 import { auth } from "./firebase-config.js";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, getFirestore, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { doc, getFirestore, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
+import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.04
+// Ver. 2.05
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -19,6 +20,7 @@ const registerPanel = document.getElementById('register-panel');
 const userLoginPanel = document.getElementById('user-login-panel');
 const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
+const deleteAccountBtn = document.getElementById('delete-account-btn');
 
 function toggleProfileUI(user) {
     if (user) {
@@ -66,12 +68,12 @@ if (registerForm) {
                 email: email,
                 isAdmin: false
             });
-            alert('Konto skapat! Du är nu inloggad.');
+            showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') {
-                alert('Denna e-postadress är redan registrerad. Vänligen logga in istället.');
+                showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
             } else {
-                alert(error.message);
+                showModal('errorModal', error.message);
             }
         }
     });
@@ -85,9 +87,9 @@ if (userLoginForm) {
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            alert('Inloggning lyckades!');
+            showModal('confirmationModal', 'Inloggning lyckades!');
         } catch (error) {
-            alert(error.message);
+            showModal('errorModal', error.message);
         }
     });
 }
@@ -100,7 +102,7 @@ if (logoutProfileBtn) {
             window.location.hash = '#hem';
         } catch (error) {
             console.error("Fel vid utloggning:", error);
-            alert("Ett fel uppstod vid utloggning.");
+            showModal('errorModal', "Ett fel uppstod vid utloggning.");
         }
     });
 }
@@ -118,5 +120,31 @@ if (showRegisterLink) {
         e.preventDefault();
         userLoginPanel.classList.add('hidden');
         registerPanel.classList.remove('hidden');
+    });
+}
+
+// Lade till knappen för att ta bort konto
+const deleteAccountBtnEl = document.getElementById('delete-account-btn');
+if (deleteAccountBtnEl) {
+    deleteAccountBtnEl.addEventListener('click', () => {
+        showDeleteProfileModal();
+    });
+}
+
+const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
+if (confirmDeleteProfileBtn) {
+    confirmDeleteProfileBtn.addEventListener('click', async () => {
+        hideModal('deleteProfileModal');
+        const user = auth.currentUser;
+        if (user) {
+            try {
+                await deleteDoc(doc(db, "users", user.uid));
+                await deleteUser(user);
+                showModal('confirmationModal', "Ditt konto har tagits bort.");
+            } catch (error) {
+                console.error("Fel vid borttagning av konto:", error);
+                showModal('errorModal', "Ett fel uppstod när ditt konto skulle tas bort. Vänligen logga in igen för att bekräfta din behörighet.");
+            }
+        }
     });
 }

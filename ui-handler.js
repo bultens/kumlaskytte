@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.05
+// Ver. 1.06
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -58,6 +58,18 @@ export function showUserInfoModal(user) {
     modal.onclick = (e) => {
         if (e.target === modal) hideModal('userInfoModal');
     };
+}
+
+// Ny funktion för att visa bekräftelse för att ta bort profil
+export function showDeleteProfileModal() {
+    const modal = document.getElementById('deleteProfileModal');
+    if (modal) {
+        modal.classList.add('active');
+        const cancelButton = document.getElementById('cancel-delete-profile-btn');
+        if (cancelButton) {
+            cancelButton.onclick = () => hideModal('deleteProfileModal');
+        }
+    }
 }
 
 export function handleAdminUI(isAdmin) {
