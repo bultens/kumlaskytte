@@ -2,10 +2,10 @@
 import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn } from "./ui-handler.js";
-import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
+import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.15
+// Ver. 1.16
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -366,7 +366,7 @@ export function setupEventListeners() {
             const imageId = editImageBtn.getAttribute('data-id');
             const imageItem = imageData.find(i => i.id === imageId);
             if (imageItem) {
-                editingImageId = imageId;
+                setEditingImageId(imageId);
                 document.getElementById('image-title').value = imageItem.title;
                 document.getElementById('image-url').value = imageItem.url;
                 document.getElementById('image-year').value = imageItem.year;
