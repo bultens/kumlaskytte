@@ -5,7 +5,7 @@ import { addOrUpdateDocument } from "./data-service.js";
 import { auth } from "./main.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.04
+// Ver. 1.05
 export let editingImageId = null;
 export let editingSponsorId = null;
 
@@ -27,6 +27,7 @@ export async function handleImageUpload(e) {
     const imageUrl = document.getElementById('image-url').value;
     const imageYear = parseInt(document.getElementById('image-year').value);
     const imageMonth = parseInt(document.getElementById('image-month').value);
+    const imagePriority = parseInt(document.getElementById('image-priority').value);
     const file = document.getElementById('image-upload').files[0];
 
     if (!editingImageId && (!imageTitle || (!file && !imageUrl) || !imageYear || !imageMonth)) {
@@ -42,6 +43,7 @@ export async function handleImageUpload(e) {
         url: finalImageUrl,
         year: imageYear,
         month: imageMonth,
+        priority: imagePriority || 10,
         createdAt: editingImageId ? null : serverTimestamp(),
         updatedAt: editingImageId ? serverTimestamp() : null
     };

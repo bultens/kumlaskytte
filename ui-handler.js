@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.09
+// Ver. 1.11
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -374,7 +374,12 @@ export function renderImages(imageData, isAdminLoggedIn) {
     imageData.sort((a, b) => {
         const dateA = new Date(a.year, a.month - 1);
         const dateB = new Date(b.year, b.month - 1);
-        return dateB - dateA;
+        const priorityA = a.priority || 10;
+        const priorityB = b.priority || 10;
+        if (dateB - dateA !== 0) {
+            return dateB - dateA;
+        }
+        return priorityA - priorityB;
     });
     
     const groupedImages = imageData.reduce((acc, curr) => {
@@ -483,6 +488,7 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
                 <span class="font-semibold">${user.email} (Admin)</span>
                 <div class="flex space-x-2">
                     <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
                     ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
                 </div>
             `;
@@ -492,13 +498,13 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
                 <span class="font-semibold">${user.email}</span>
                 <div class="flex space-x-2">
                     <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
                     ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
                 </div>
             `;
             allUsersContainer.appendChild(userEl);
         }
     });
-
 }
 
 export function renderUserReport(usersData) {

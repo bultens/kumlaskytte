@@ -42,6 +42,7 @@ export function setupEventListeners() {
     const imageUrlInput = document.getElementById('image-url');
     const imageYearInput = document.getElementById('image-year');
     const imageMonthInput = document.getElementById('image-month');
+    const imagePriorityInput = document.getElementById('image-priority');
     const sponsorNameInput = document.getElementById('sponsor-name');
     const sponsorExtraText = document.getElementById('sponsor-extra-text');
     const sponsorUrlInput = document.getElementById('sponsor-url');
@@ -527,8 +528,10 @@ export function setupEventListeners() {
         imageUploadInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 fileNameDisplay.textContent = e.target.files[0].name;
+                clearImageUpload.classList.remove('hidden');
             } else {
                 fileNameDisplay.textContent = 'Ingen fil vald';
+                clearImageUpload.classList.add('hidden');
             }
         });
     }
