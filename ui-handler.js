@@ -99,6 +99,8 @@ export function showEditUserModal(user) {
 export function updateHeaderColor(color) {
     const header = document.getElementById('site-header');
     if (header && color) {
+        // Tar bort standardklassen för att kunna sätta egen färg
+        header.classList.remove('bg-blue-800');
         header.style.backgroundColor = color;
     }
 }

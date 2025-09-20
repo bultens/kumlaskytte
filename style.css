@@ -23,9 +23,10 @@ body {
     padding: 1rem;
     margin-bottom: 1.5rem;
 }
+/* Justerad padding för att minska menyns höjd */
 .nav-link {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
 }
 .nav-link.active {
     border-bottom: 2px solid #1e40af;
@@ -177,6 +178,16 @@ body {
 }
 .sponsor-card-1-4 .sponsor-logo {
     max-height: 90px;
+}
+/* Åtgärdat färg-input */
+#header-color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+#header-color-input::-webkit-color-swatch {
+    border: none;
+}
+#header-color-input {
+    height: 48px; /* Standardstorlek för input-fält */
 }
 
 @media (max-width: 768px) {
