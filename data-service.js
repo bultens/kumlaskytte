@@ -5,7 +5,7 @@ import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
 import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.02
+// Ver. 1.03
 export let newsData = [];
 export let eventsData = [];
 export let historyData = [];
