@@ -11,7 +11,7 @@
 </head>
 <body>
 
-    <header class="bg-blue-800 text-white shadow-lg">
+    <header class="bg-blue-800 text-white shadow-lg" id="site-header">
         <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
             <div class="flex items-center space-x-4">
                 <a href="#hem" id="site-logo-link" class="flex items-center">
@@ -33,7 +33,7 @@
                     <li><a href="#kalender" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Kalender</a></li>
                     <li><a href="#omoss" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Om oss</a></li>
                     <li><a href="#bilder" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Bilder</a></li>
-                    <li><a href="#sponsorer" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Sponsorer</a></li>
+                    <li id="sponsors-nav-link"><a href="#sponsorer" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Sponsorer</a></li>
                     <li id="user-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Logga in</a></li>
                     <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Min Profil</a></li>
                     <li><a href="#admin" class="nav-link text-lg py-3 hover:text-gray-600 transition duration-300">Admin</a></li>
@@ -327,6 +327,14 @@
                         
                         <label for="logo-url-input" class="block mb-2 font-semibold">Logotyp-URL</label>
                         <input type="url" id="logo-url-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <label for="header-color-input" class="block mb-2 font-semibold">Färg på sidhuvudet</label>
+                        <input type="color" id="header-color-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                        <div class="flex items-center mb-4">
+                            <input type="checkbox" id="show-sponsors-checkbox" class="mr-2">
+                            <label for="show-sponsors-checkbox" class="font-semibold">Visa sponsorsidan</label>
+                        </div>
                         
                         <h3 class="text-xl font-bold mt-8 mb-2">Kontaktinformation</h3>
                         <label for="contact-address-input" class="block mb-2 font-semibold">Adress</label>
