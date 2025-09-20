@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.16
+// Ver. 1.18
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -535,4 +535,15 @@ export function setupEventListeners() {
             }
         });
     }
+    
+    window.addEventListener('hashchange', () => {
+        const currentHash = window.location.hash;
+        if (currentHash === '#bilder') {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1; // getMonth() är 0-baserad
+            if (imageYearInput) imageYearInput.value = year;
+            if (imageMonthInput) imageMonthInput.value = month;
+        }
+    });
 }
