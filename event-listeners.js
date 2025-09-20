@@ -1,11 +1,11 @@
 // event-listeners.js
 import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
-import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand, isAdminLoggedIn } from "./ui-handler.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
+import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.11
+// Ver. 1.12
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -63,6 +63,8 @@ export function setupEventListeners() {
     const isRecurringCheckbox = document.getElementById('is-recurring');
     const singleEventFields = document.getElementById('single-event-fields');
     const recurringEventFields = document.getElementById('recurring-event-fields');
+    const editUserModal = document.getElementById('editUserModal');
+    const editUserForm = document.getElementById('edit-user-form');
 
 
     if (isRecurringCheckbox) {
@@ -291,13 +293,21 @@ export function setupEventListeners() {
             addAdminFromUser(userId);
         }
 
-        // New handlers for admin page buttons
         const showUserInfoBtn = e.target.closest('.show-user-info-btn');
         if (showUserInfoBtn) {
             const userId = showUserInfoBtn.getAttribute('data-id');
             const user = usersData.find(u => u.id === userId);
             if (user) {
                 showUserInfoModal(user);
+            }
+        }
+
+        const editUserBtn = e.target.closest('.edit-user-btn');
+        if (editUserBtn) {
+            const userId = editUserBtn.getAttribute('data-user-id');
+            const user = usersData.find(u => u.id === userId);
+            if (user) {
+                showEditUserModal(user);
             }
         }
 
@@ -481,4 +491,34 @@ export function setupEventListeners() {
             }
         }
     });
+
+    if (editUserModal) {
+        document.getElementById('close-edit-user-modal').addEventListener('click', () => hideModal('editUserModal'));
+        editUserModal.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) hideModal('editUserModal');
+        });
+    }
+
+    if (editUserForm) {
+        editUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('edit-user-id').value;
+            const name = document.getElementById('edit-user-name').value;
+            const address = document.getElementById('edit-user-address').value;
+            const phone = document.getElementById('edit-user-phone').value;
+            const birthyear = document.getElementById('edit-user-birthyear').value;
+            const mailingList = document.getElementById('edit-user-mailing-list').checked;
+            
+            const updatedData = {
+                name,
+                address,
+                phone,
+                birthyear: birthyear ? Number(birthyear) : null,
+                mailingList
+            };
+
+            await updateProfileByAdmin(userId, updatedData);
+            hideModal('editUserModal');
+        });
+    }
 }

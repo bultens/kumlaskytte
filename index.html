@@ -510,6 +510,35 @@
                 </div>
             </div>
         </div>
+        
+        <div id="editUserModal" class="modal">
+            <div class="modal-content">
+                <span id="close-edit-user-modal" class="modal-close-btn">&times;</span>
+                <h3 class="text-xl font-bold mb-4">Redigera användare</h3>
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id">
+                    
+                    <label for="edit-user-name" class="block mb-2 font-semibold">Namn</label>
+                    <input type="text" id="edit-user-name" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="edit-user-address" class="block mb-2 font-semibold">Adress</label>
+                    <input type="text" id="edit-user-address" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <label for="edit-user-phone" class="block mb-2 font-semibold">Telefonnummer</label>
+                    <input type="tel" id="edit-user-phone" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="edit-user-birthyear" class="block mb-2 font-semibold">Födelseår</label>
+                    <input type="number" id="edit-user-birthyear" min="1900" max="2100" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="edit-user-mailing-list" class="mr-2">
+                        <label for="edit-user-mailing-list" class="font-semibold">Vill ha utskick</label>
+                    </div>
+                    
+                    <button type="submit" id="save-edited-user-btn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara ändringar</button>
+                </form>
+            </div>
+        </div>
 
     </main>
 

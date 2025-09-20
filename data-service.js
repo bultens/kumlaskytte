@@ -5,7 +5,7 @@ import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
 import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.03
+// Ver. 1.04
 export let newsData = [];
 export let eventsData = [];
 export let historyData = [];
@@ -105,6 +105,20 @@ export async function updateProfile(uid, data) {
     } catch (error) {
         console.error("Fel vid sparande av profil:", error);
         showModal('errorModal', "Ett fel uppstod när din profil skulle sparas.");
+    }
+}
+
+export async function updateProfileByAdmin(uid, data) {
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
+    try {
+        await updateDoc(doc(db, 'users', uid), data);
+        showModal('confirmationModal', "Användarens profil har sparats!");
+    } catch (error) {
+        console.error("Fel vid sparande av användarprofil:", error);
+        showModal('errorModal', "Ett fel uppstod när användarens profil skulle sparas.");
     }
 }
 

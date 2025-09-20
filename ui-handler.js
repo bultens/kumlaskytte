@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.06
+// Ver. 1.08
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -60,17 +60,31 @@ export function showUserInfoModal(user) {
     };
 }
 
-// Ny funktion för att visa bekräftelse för att ta bort profil
-export function showDeleteProfileModal() {
-    const modal = document.getElementById('deleteProfileModal');
+export function showDeleteUserModal() {
+    const modal = document.getElementById('deleteUserModal');
     if (modal) {
         modal.classList.add('active');
-        const cancelButton = document.getElementById('cancel-delete-profile-btn');
+        const cancelButton = document.getElementById('cancel-delete-user-btn');
         if (cancelButton) {
-            cancelButton.onclick = () => hideModal('deleteProfileModal');
+            cancelButton.onclick = () => hideModal('deleteUserModal');
         }
     }
 }
+
+export function showEditUserModal(user) {
+    const modal = document.getElementById('editUserModal');
+    if (!modal) return;
+    
+    document.getElementById('edit-user-id').value = user.id;
+    document.getElementById('edit-user-name').value = user.name || '';
+    document.getElementById('edit-user-address').value = user.address || '';
+    document.getElementById('edit-user-phone').value = user.phone || '';
+    document.getElementById('edit-user-birthyear').value = user.birthyear || '';
+    document.getElementById('edit-user-mailing-list').checked = user.mailingList || false;
+
+    modal.classList.add('active');
+}
+
 
 export function handleAdminUI(isAdmin) {
     const adminIndicator = document.getElementById('admin-indicator');
