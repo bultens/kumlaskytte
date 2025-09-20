@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, applyEditorCommand, 
 import { handleImageUpload, handleSponsorUpload } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.10
+// Ver. 1.11
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -88,6 +88,12 @@ export function setupEventListeners() {
     if (profileForm) {
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const profileNameInput = document.getElementById('profile-name-input');
+            const profileAddressInput = document.getElementById('profile-address-input');
+            const profilePhoneInput = document.getElementById('profile-phone-input');
+            const profileBirthyearInput = document.getElementById('profile-birthyear-input');
+            const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+
             const profileData = {
                 name: profileNameInput.value,
                 address: profileAddressInput.value,
@@ -283,6 +289,22 @@ export function setupEventListeners() {
         if (addAdminFromUserBtn) {
             const userId = addAdminFromUserBtn.getAttribute('data-id');
             addAdminFromUser(userId);
+        }
+
+        // New handlers for admin page buttons
+        const showUserInfoBtn = e.target.closest('.show-user-info-btn');
+        if (showUserInfoBtn) {
+            const userId = showUserInfoBtn.getAttribute('data-id');
+            const user = usersData.find(u => u.id === userId);
+            if (user) {
+                showUserInfoModal(user);
+            }
+        }
+
+        const deleteAdminBtn = e.target.closest('.delete-admin-btn');
+        if (deleteAdminBtn) {
+            const adminId = deleteAdminBtn.getAttribute('data-id');
+            deleteAdmin(adminId);
         }
     });
 
