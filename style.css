@@ -190,6 +190,7 @@ body {
     height: 48px; /* Standardstorlek för input-fält */
 }
 
+/* Responsiv design */
 @media (max-width: 768px) {
     .sponsor-card-1-2, .sponsor-card-1-4 {
         width: 100%;
@@ -205,5 +206,24 @@ body {
     }
     .nav-link {
         font-size: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .header-content {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    #site-logo-link {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+    #site-title-display {
+        font-size: 2rem;
+    }
+    #admin-indicator {
+        top: 0.5rem;
+        right: 0.5rem;
     }
 }

@@ -12,19 +12,17 @@
 <body>
 
     <header class="bg-blue-800 text-white shadow-lg" id="site-header">
-        <div class="container py-4 flex flex-col sm:flex-row justify-between items-center">
-            <div class="flex items-center space-x-4">
+        <div class="container py-4 flex flex-col sm:flex-row justify-between items-center relative">
+            <div class="header-content flex items-center space-x-4">
                 <a href="#hem" id="site-logo-link" class="flex items-center">
                     <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
                 </a>
                 <div class="flex flex-col items-start">
-                    <div class="flex items-center space-x-2">
-                        <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                        <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1">ADMIN</span>
-                    </div>
-                    <p class="text-sm text-gray-300">Ver. 2.7</p>
+                    <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
+                    <p class="text-sm text-gray-300">Ver. 2.8</p>
                 </div>
             </div>
+            <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
         </div>
         <div class="bg-white text-black shadow">
             <nav class="container">
