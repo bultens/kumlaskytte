@@ -226,4 +226,12 @@ body {
         top: 0.5rem;
         right: 0.5rem;
     }
+    /* Gör nav-menyn scrollbar på små skärmar */
+    nav {
+        overflow-x: auto;
+    }
+    nav ul {
+        display: inline-flex;
+        white-space: nowrap;
+    }
 }
