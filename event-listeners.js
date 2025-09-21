@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.20
+// Ver. 1.22
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -456,7 +456,9 @@ export function setupEventListeners() {
         historyTitleInput, historyContentEditor, historyPriorityInput,
         imageTitleInput, imageYearInput, imageMonthInput, imageUploadInput, imageUrlInput,
         sponsorNameInput, sponsorExtraText, sponsorPriorityInput, sponsorLogoUpload, sponsorLogoUrlInput, sponsorSizeInput,
-        eventTitleInput, eventDescriptionEditor, eventDateInput, isRecurringCheckbox, startDateInput, endDateInput, weekdaySelect
+        eventTitleInput, eventDescriptionEditor, eventDateInput, isRecurringCheckbox, startDateInput, endDateInput, weekdaySelect,
+        headerColorInput, showSponsorsCheckbox, document.getElementById('logo-url-input'), document.getElementById('contact-address-input'),
+        document.getElementById('contact-phone-input'), document.getElementById('contact-email-input')
     ];
 
     inputElements.forEach(element => {
@@ -466,35 +468,35 @@ export function setupEventListeners() {
                 'history-title': checkHistoryForm, 'history-content-editor': checkHistoryForm, 'history-priority': checkHistoryForm,
                 'image-title': checkImageForm, 'image-year': checkImageForm, 'image-month': checkImageForm, 'image-upload': checkImageForm, 'image-url': checkImageForm,
                 'sponsor-name': checkSponsorForm, 'sponsor-extra-text': checkSponsorForm, 'sponsor-priority': checkSponsorForm, 'sponsor-logo-upload': checkSponsorForm, 'sponsor-logo-url': checkSponsorForm, 'sponsor-size': checkSponsorForm,
-                'event-title': checkEventForm, 'event-description-editor': checkEventForm, 'event-date': checkEventForm, 'is-recurring': checkEventForm, 'start-date': checkEventForm, 'end-date': checkEventForm, 'weekday-select': checkEventForm
+                'event-title': checkEventForm, 'event-description-editor': checkEventForm, 'event-date': checkEventForm, 'is-recurring': checkEventForm, 'start-date': checkEventForm, 'end-date': checkEventForm, 'weekday-select': checkEventForm,
+                'logo-url-input': () => {}, 'header-color-input': () => {}, 'show-sponsors-checkbox': () => {},
+                'contact-address-input': () => {}, 'contact-phone-input': () => {}, 'contact-email-input': () => {}
             };
             const eventType = element.id.includes('editor') || element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'number' || element.type === 'url' || element.type === 'date') ? 'input' : 'change';
             
             element.addEventListener(eventType, formCheckers[element.id]);
         }
     });
-
-    // Listeners for settings form
-    if (headerColorInput) {
-        headerColorInput.addEventListener('change', () => {
-            const settingsData = {
-                headerColor: headerColorInput.value,
-                showSponsors: showSponsorsCheckbox.checked,
-            };
-            updateSiteSettings(settingsData);
-        });
-    }
-
-    if (showSponsorsCheckbox) {
-        showSponsorsCheckbox.addEventListener('change', () => {
-            const settingsData = {
-                headerColor: headerColorInput.value,
-                showSponsors: showSponsorsCheckbox.checked,
-            };
-            updateSiteSettings(settingsData);
-        });
-    }
     
+    // Listeners for settings form
+    if (settingsForm) {
+        // En enda lyssnare för alla input-fält i settings-formuläret
+        const settingsInputs = settingsForm.querySelectorAll('input, select');
+        settingsInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                const settingsData = {
+                    logoUrl: document.getElementById('logo-url-input').value,
+                    headerColor: document.getElementById('header-color-input').value,
+                    showSponsors: document.getElementById('show-sponsors-checkbox').checked,
+                    contactAddress: document.getElementById('contact-address-input').value,
+                    contactPhone: document.getElementById('contact-phone-input').value,
+                    contactEmail: document.getElementById('contact-email-input').value
+                };
+                updateSiteSettings(settingsData);
+            });
+        });
+    }
+
     if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
         imageUploadInput.value = '';
         fileNameDisplay.textContent = 'Ingen fil vald';

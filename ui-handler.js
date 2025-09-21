@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.16
+// Ver. 1.17
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -141,7 +141,6 @@ export function handleAdminUI(isAdmin) {
             loggedInAdminUsername = user ? user.email : '';
             adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
         }
-        renderSiteSettings();
     } else {
         isAdminLoggedIn = false;
         if (adminIndicator) adminIndicator.classList.add('hidden');
@@ -208,14 +207,14 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
 
 
         homeNewsContainer.innerHTML += `
-            <div class="card flex items-start news-post home-news-post cursor-pointer" data-id="${item.id}">
+            <a href="#nyheter#news-${item.id}" class="card flex items-start news-post home-news-post" data-id="${item.id}">
                 ${imageHtml}
                 <div class="flex-grow">
                     <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
                     <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
                     <div class="text-gray-700 markdown-content">${shortContent}</div>
                 </div>
-            </div>
+            </a>
         `;
     });
 
@@ -275,7 +274,7 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
         
         homeEventsContainer.innerHTML += `
-            <div class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
+            <a href="#kalender#event-${item.id}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
                 <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
                     <p class="text-xl leading-none">${day}</p>
                     <p class="text-xs uppercase">${month}</p>
@@ -283,7 +282,7 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
                 <div class="flex-grow">
                     <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
                 </div>
-            </div>
+            </a>
         `;
     });
 
