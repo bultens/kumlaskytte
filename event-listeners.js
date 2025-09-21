@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.23
+// Ver. 1.24
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -514,7 +514,7 @@ export function setupEventListeners() {
         if (shareBtn) {
             const docId = shareBtn.getAttribute('data-id');
             const title = shareBtn.getAttribute('data-title');
-            const url = `${window.location.origin}/#nyheter#news-${docId}`;
+            const url = `${window.location.href.split('#')[0]}#nyheter#news-${docId}`;
             showShareModal(title, url);
         }
     });

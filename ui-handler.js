@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.23
+// Ver. 1.24
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
