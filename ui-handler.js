@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.15
+// Ver. 1.16
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -141,6 +141,7 @@ export function handleAdminUI(isAdmin) {
             loggedInAdminUsername = user ? user.email : '';
             adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
         }
+        renderSiteSettings();
     } else {
         isAdminLoggedIn = false;
         if (adminIndicator) adminIndicator.classList.add('hidden');
@@ -574,6 +575,19 @@ export function renderContactInfo() {
             if (contactEmailEl) contactEmailEl.textContent = data.contactEmail || 'Ej angivet';
         }
     });
+}
+
+export async function renderSiteSettings() {
+    const siteSettingsDoc = await getFirestoreDoc(doc(db, 'settings', 'siteSettings'));
+    if (siteSettingsDoc.exists()) {
+        const data = siteSettingsDoc.data();
+        document.getElementById('logo-url-input').value = data.logoUrl || '';
+        document.getElementById('header-color-input').value = data.headerColor || '#1e40af';
+        document.getElementById('show-sponsors-checkbox').checked = data.showSponsors || false;
+        document.getElementById('contact-address-input').value = data.contactAddress || '';
+        document.getElementById('contact-phone-input').value = data.contactPhone || '';
+        document.getElementById('contact-email-input').value = data.contactEmail || '';
+    }
 }
 
 export function renderProfileInfo(userDoc) {
