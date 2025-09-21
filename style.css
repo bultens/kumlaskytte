@@ -196,4 +196,14 @@ body {
         flex: 1 0 100%;
         max-width: none;
     }
+    .logo-large {
+        height: 75px;
+        width: 75px;
+    }
+    .page h1, .page h2 {
+        font-size: 1.5rem;
+    }
+    .nav-link {
+        font-size: 1rem;
+    }
 }

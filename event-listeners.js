@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.19
+// Ver. 1.20
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -68,7 +68,7 @@ export function setupEventListeners() {
     const editUserForm = document.getElementById('edit-user-form');
     const headerColorInput = document.getElementById('header-color-input');
     const showSponsorsCheckbox = document.getElementById('show-sponsors-checkbox');
-
+    const copyMailingListBtn = document.getElementById('copy-mailing-list-btn');
 
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
@@ -252,6 +252,22 @@ export function setupEventListeners() {
         });
     }
 
+    if (copyMailingListBtn) {
+        copyMailingListBtn.addEventListener('click', () => {
+            const mailingListUsers = usersData.filter(user => user.mailingList).sort((a, b) => a.email.localeCompare(b.email));
+            const emails = mailingListUsers.map(user => user.email);
+            const emailString = emails.join(';');
+            navigator.clipboard.writeText(emailString)
+                .then(() => {
+                    showModal('confirmationModal', 'E-postadresser har kopierats till urklipp!');
+                })
+                .catch(err => {
+                    console.error('Kunde inte kopiera text:', err);
+                    showModal('errorModal', 'Kunde inte kopiera e-postadresser.');
+                });
+        });
+    }
+
     document.addEventListener('click', (e) => {
         // Shared click handlers
         const deleteBtn = e.target.closest('.delete-btn');
@@ -428,7 +444,7 @@ export function setupEventListeners() {
                 document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
                 navigate('#kalender');
                 setTimeout(() => {
-                    document.getElementById('calendar-edit-section').scroll-into-view({ behavior: 'smooth', block: 'start' });
+                    document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 100);
             }
         }
