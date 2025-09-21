@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.17
+// Ver. 1.18
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -93,6 +93,32 @@ export function showEditUserModal(user) {
     document.getElementById('edit-user-birthyear').value = user.birthyear || '';
     document.getElementById('edit-user-mailing-list').checked = user.mailingList || false;
 
+    modal.classList.add('active');
+}
+
+export function showShareModal(title, url) {
+    const modal = document.getElementById('shareModal');
+    if (!modal) return;
+
+    const messageTitleEl = document.getElementById('share-message-title');
+    if (messageTitleEl) {
+        messageTitleEl.textContent = `Dela nyheten: "${title}"`;
+    }
+
+    const shareFacebookBtn = document.getElementById('share-facebook-btn');
+    if (shareFacebookBtn) {
+        shareFacebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    }
+    
+    const copyLinkBtn = document.getElementById('copy-link-btn');
+    if (copyLinkBtn) {
+        copyLinkBtn.onclick = () => {
+            navigator.clipboard.writeText(url)
+                .then(() => showModal('confirmationModal', 'Länken har kopierats till urklipp!'))
+                .catch(err => showModal('errorModal', 'Kunde inte kopiera länken.'));
+        };
+    }
+    
     modal.classList.add('active');
 }
 

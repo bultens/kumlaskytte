@@ -1,11 +1,11 @@
 // event-listeners.js
 import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData } from "./data-service.js";
-import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn } from "./ui-handler.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, toggleLike } from "./data-service.js";
+import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.22
+// Ver. 1.23
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -496,6 +496,28 @@ export function setupEventListeners() {
             });
         });
     }
+
+    // New event listeners for like and share buttons
+    document.addEventListener('click', async (e) => {
+        const likeBtn = e.target.closest('.like-btn');
+        if (likeBtn) {
+            const docId = likeBtn.getAttribute('data-id');
+            const docType = likeBtn.getAttribute('data-type');
+            if (!auth.currentUser) {
+                showModal('errorModal', "Du måste vara inloggad för att gilla ett inlägg.");
+                return;
+            }
+            await toggleLike(docId, docType, auth.currentUser.uid);
+        }
+
+        const shareBtn = e.target.closest('.share-btn');
+        if (shareBtn) {
+            const docId = shareBtn.getAttribute('data-id');
+            const title = shareBtn.getAttribute('data-title');
+            const url = `${window.location.origin}/#nyheter#news-${docId}`;
+            showShareModal(title, url);
+        }
+    });
 
     if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
         imageUploadInput.value = '';

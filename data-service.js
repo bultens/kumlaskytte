@@ -1,11 +1,11 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js";
-import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn } from "./ui-handler.js";
+import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings } from "./ui-handler.js";
 import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.08
+// Ver. 1.10
 export let newsData = [];
 export let eventsData = [];
 export let historyData = [];
@@ -31,6 +31,7 @@ export function initializeDataListeners() {
             renderContactInfo();
             updateHeaderColor(data.headerColor);
             toggleSponsorsNavLink(data.showSponsors);
+            renderSiteSettings();
         }
     });
 }
@@ -90,6 +91,31 @@ export async function deleteDocument(docId, collectionName, seriesId) {
     } catch (error) {
         console.error("Fel vid borttagning av post:", error);
         showModal('errorModal', "Ett fel uppstod när posten skulle tas bort. Kontrollera dina Firebase Security Rules.");
+    }
+}
+
+export async function toggleLike(docId, docType, userId) {
+    try {
+        const docRef = doc(db, docType, docId);
+        const docSnap = await getFirestoreDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const likes = data.likes || {};
+            let updatedLikes;
+            if (likes[userId]) {
+                // Ta bort like
+                updatedLikes = { ...likes };
+                delete updatedLikes[userId];
+                await updateDoc(docRef, { likes: updatedLikes });
+            } else {
+                // Lägg till like
+                updatedLikes = { ...likes, [userId]: true };
+                await updateDoc(docRef, { likes: updatedLikes });
+            }
+        }
+    } catch (error) {
+        console.error("Fel vid hantering av like:", error);
+        showModal('errorModal', "Kunde inte spara din gillamarkering.");
     }
 }
 
