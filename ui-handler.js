@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.20
+// Ver. 1.21
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -114,7 +114,10 @@ export function showShareModal(title, url) {
     if (copyLinkBtn) {
         copyLinkBtn.onclick = () => {
             navigator.clipboard.writeText(url)
-                .then(() => showModal('confirmationModal', 'Länken har kopierats till urklipp!'))
+                .then(() => {
+                    showModal('confirmationModal', 'Länken har kopierats till urklipp!');
+                    hideModal('shareModal');
+                })
                 .catch(err => showModal('errorModal', 'Kunde inte kopiera länken.'));
         };
     }
@@ -231,9 +234,11 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         
         const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
 
+        const baseUrl = `${window.location.origin}${window.location.pathname}`;
+        const newsUrl = `${baseUrl}?#nyheter#news-${item.id}`;
 
         homeNewsContainer.innerHTML += `
-            <a href="${window.location.pathname}#nyheter#news-${item.id}" class="card flex items-start news-post home-news-post" data-id="${item.id}">
+            <a href="${newsUrl}" class="card flex items-start news-post home-news-post" data-id="${item.id}">
                 ${imageHtml}
                 <div class="flex-grow">
                     <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
@@ -298,9 +303,12 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         const eventDate = new Date(item.date);
         const day = eventDate.getDate();
         const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
+
+        const baseUrl = `${window.location.origin}${window.location.pathname}`;
+        const eventUrl = `${baseUrl}?#kalender#event-${item.id}`;
         
         homeEventsContainer.innerHTML += `
-            <a href="${window.location.pathname}#kalender#event-${item.id}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
+            <a href="${eventUrl}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
                 <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
                     <p class="text-xl leading-none">${day}</p>
                     <p class="text-xs uppercase">${month}</p>
