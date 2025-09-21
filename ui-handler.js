@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.21
+// Ver. 1.23
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -107,7 +107,11 @@ export function showShareModal(title, url) {
 
     const shareFacebookBtn = document.getElementById('share-facebook-btn');
     if (shareFacebookBtn) {
-        shareFacebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        shareFacebookBtn.onclick = () => {
+            window.open(facebookUrl, '_blank');
+            hideModal('shareModal');
+        };
     }
     
     const copyLinkBtn = document.getElementById('copy-link-btn');
@@ -234,7 +238,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         
         const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
 
-        const baseUrl = `${window.location.origin}${window.location.pathname}`;
+        const baseUrl = window.location.href.split('?')[0];
         const newsUrl = `${baseUrl}?#nyheter#news-${item.id}`;
 
         homeNewsContainer.innerHTML += `
@@ -304,7 +308,7 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         const day = eventDate.getDate();
         const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
 
-        const baseUrl = `${window.location.origin}${window.location.pathname}`;
+        const baseUrl = window.location.href.split('?')[0];
         const eventUrl = `${baseUrl}?#kalender#event-${item.id}`;
         
         homeEventsContainer.innerHTML += `
