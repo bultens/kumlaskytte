@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.18
+// Ver. 1.19
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -66,6 +66,8 @@ export function setupEventListeners() {
     const recurringEventFields = document.getElementById('recurring-event-fields');
     const editUserModal = document.getElementById('editUserModal');
     const editUserForm = document.getElementById('edit-user-form');
+    const headerColorInput = document.getElementById('header-color-input');
+    const showSponsorsCheckbox = document.getElementById('show-sponsors-checkbox');
 
 
     if (isRecurringCheckbox) {
@@ -114,6 +116,8 @@ export function setupEventListeners() {
             const settingsData = {
                 siteName: document.getElementById('site-name-input').value,
                 logoUrl: document.getElementById('logo-url-input').value,
+                headerColor: headerColorInput.value,
+                showSponsors: showSponsorsCheckbox.checked,
                 contactAddress: document.getElementById('contact-address-input').value,
                 contactPhone: document.getElementById('contact-phone-input').value,
                 contactEmail: document.getElementById('contact-email-input').value
@@ -424,7 +428,7 @@ export function setupEventListeners() {
                 document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
                 navigate('#kalender');
                 setTimeout(() => {
-                    document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    document.getElementById('calendar-edit-section').scroll-into-view({ behavior: 'smooth', block: 'start' });
                 }, 100);
             }
         }
@@ -453,6 +457,27 @@ export function setupEventListeners() {
             element.addEventListener(eventType, formCheckers[element.id]);
         }
     });
+
+    // Listeners for settings form
+    if (headerColorInput) {
+        headerColorInput.addEventListener('change', () => {
+            const settingsData = {
+                headerColor: headerColorInput.value,
+                showSponsors: showSponsorsCheckbox.checked,
+            };
+            updateSiteSettings(settingsData);
+        });
+    }
+
+    if (showSponsorsCheckbox) {
+        showSponsorsCheckbox.addEventListener('change', () => {
+            const settingsData = {
+                headerColor: headerColorInput.value,
+                showSponsors: showSponsorsCheckbox.checked,
+            };
+            updateSiteSettings(settingsData);
+        });
+    }
     
     if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
         imageUploadInput.value = '';

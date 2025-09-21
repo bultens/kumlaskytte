@@ -5,7 +5,7 @@ import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
 import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.07
+// Ver. 1.08
 export let newsData = [];
 export let eventsData = [];
 export let historyData = [];
@@ -21,14 +21,11 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
-        const siteTitleElement = document.getElementById('site-title-display');
         const pageTitleElement = document.getElementById('page-title');
         const faviconLink = document.getElementById('favicon-link');
         const siteLogoElement = document.getElementById('site-logo');
         if (docSnap.exists()) {
             const data = docSnap.data();
-            if (siteTitleElement) siteTitleElement.textContent = data.siteName || "Klubbens Webbplats";
-            if (pageTitleElement) pageTitleElement.textContent = data.siteName || "Klubbens Webbplats";
             if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
             if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
             renderContactInfo();

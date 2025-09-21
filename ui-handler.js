@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.13
+// Ver. 1.14
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -98,8 +98,7 @@ export function showEditUserModal(user) {
 
 export function updateHeaderColor(color) {
     const header = document.getElementById('site-header');
-    if (header && color) {
-        // Tar bort standardklassen för att kunna sätta egen färg
+    if (header) {
         header.classList.remove('bg-blue-800');
         header.style.backgroundColor = color;
     }
