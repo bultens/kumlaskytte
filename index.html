@@ -63,6 +63,7 @@
                 <h2 class="text-2xl font-bold mb-4">Kontakt</h2>
                 <div id="contact-info" class="text-gray-700 space-y-2">
                     <p>Adress: <span id="contact-address"></span></p>
+                    <p>Skyttelokal: <span id="contact-location"></span></p>
                     <p>Telefon: <span id="contact-phone"></span></p>
                     <p>Email: <span id="contact-email"></span></p>
                 </div>
@@ -336,6 +337,8 @@
                         <h3 class="text-xl font-bold mt-8 mb-2">Kontaktinformation</h3>
                         <label for="contact-address-input" class="block mb-2 font-semibold">Adress</label>
                         <input type="text" id="contact-address-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <label for="contact-location-input" class="block mb-2 font-semibold">Skyttelokal</label>
+                        <input type="text" id="contact-location-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         <label for="contact-phone-input" class="block mb-2 font-semibold">Telefon</label>
                         <input type="text" id="contact-phone-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                         <label for="contact-email-input" class="block mb-2 font-semibold">E-post</label>
@@ -563,9 +566,10 @@
                     </svg>
                 </a>
             </div>
-            <p class="mt-2 sm:mt-0">Adress: Viagatan 5, Kumla, Sweden</p>
-            <p class="mt-2 sm:mt-0">Telefon: 073-088 57 25</p>
-            <p class="mt-2 sm:mt-0">Grundad: 1904</p>
+            <p class="mt-2 sm:mt-0">Adress: <span id="contact-address"></span></p>
+            <p class="mt-2 sm:mt-0">Skyttelokal: <span id="contact-location"></span></p>
+            <p class="mt-2 sm:mt-0">Telefon: <span id="contact-phone"></span></p>
+            <p class="mt-2 sm:mt-0">Email: <span id="contact-email"></span></p>
         </div>
     </footer>
     
@@ -578,4 +582,5 @@
     <script type="module" src="event-listeners.js"></script>
     <script type="module" src="main.js"></script>
 </body>
+
 </html>
