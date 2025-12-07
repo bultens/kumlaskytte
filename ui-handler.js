@@ -148,9 +148,55 @@ export function toggleSponsorsNavLink(isVisible) {
     }
 }
 
+export function renderCompetitions(data, isAdminLoggedIn) {
+    const container = document.getElementById('competitions-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    // Sortera: Nyaste datum först
+    data.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    data.forEach(item => {
+        const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+        let pdfButton = '';
+        if (item.pdfUrl) {
+            pdfButton = `
+                <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    Resultatlista (PDF)
+                </a>
+            `;
+        }
+
+        container.innerHTML += `
+            <div class="card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
+                        <p class="text-sm text-gray-500 mb-2">Datum: ${date} | Ort: ${item.location}</p>
+                    </div>
+                </div>
+                
+                <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
+                ${pdfButton}
+
+                ${isAdminLoggedIn ? `
+                    <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
+                        <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
+                        <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+}
+
 export function handleAdminUI(isAdmin) {
     const adminIndicator = document.getElementById('admin-indicator');
     const newsEditSection = document.getElementById('news-edit-section');
+    const competitionEditSection = document.getElementById('competition-edit-section');
     const calendarEditSection = document.getElementById('calendar-edit-section');
     const imageEditSection = document.getElementById('image-edit-section');
     const historyEditSection = document.getElementById('history-edit-section');
@@ -163,6 +209,7 @@ export function handleAdminUI(isAdmin) {
         isAdminLoggedIn = true;
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
+	if (competitionEditSection) competitionEditSection.classList.remove('hidden');
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
         if (historyEditSection) historyEditSection.classList.remove('hidden');
@@ -178,6 +225,7 @@ export function handleAdminUI(isAdmin) {
         isAdminLoggedIn = false;
         if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
+	if (competitionEditSection) competitionEditSection.classList.add('hidden');
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
         if (imageEditSection) imageEditSection.classList.add('hidden');
         if (historyEditSection) historyEditSection.classList.add('hidden');

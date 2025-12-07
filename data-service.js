@@ -8,6 +8,7 @@ import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasej
 // Ver. 1.10
 export let newsData = [];
 export let eventsData = [];
+export let competitionsData = [];
 export let historyData = [];
 export let imageData = [];
 export let usersData = []; 
@@ -15,6 +16,12 @@ export let sponsorsData = [];
 
 export function initializeDataListeners() {
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, currentUserId); });
+    import { renderCompetitions } from "./ui-handler.js"; // Se till att importera denna
+
+onSnapshot(collection(db, 'competitions'), (snapshot) => { 
+    competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+    renderCompetitions(competitionsData, isAdminLoggedIn); 
+});
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId); renderUserReport(usersData); });
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, currentUserId); });

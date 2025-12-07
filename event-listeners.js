@@ -1,4 +1,6 @@
 // event-listeners.js
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { competitionsData } from "./data-service.js"; // Lägg till i import
 import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, toggleLike } from "./data-service.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
@@ -11,6 +13,7 @@ let editingHistoryId = null;
 let editingImageId = null;
 let editingEventId = null;
 let editingSponsorId = null;
+let editingCompId = null;
 
 export function setupEventListeners() {
     const newsAddBtn = document.getElementById('add-news-btn');
@@ -69,6 +72,11 @@ export function setupEventListeners() {
     const headerColorInput = document.getElementById('header-color-input');
     const showSponsorsCheckbox = document.getElementById('show-sponsors-checkbox');
     const copyMailingListBtn = document.getElementById('copy-mailing-list-btn');
+    const addCompForm = document.getElementById('add-competition-form');
+    const compTitleInput = document.getElementById('comp-title');
+    const compContentEditor = document.getElementById('comp-content-editor');
+    const compPdfUpload = document.getElementById('comp-pdf-upload');
+    const compAddBtn = document.getElementById('add-comp-btn');
 
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
@@ -185,7 +193,116 @@ if (settingsForm) {
         });
     }
 
-    if (addEventForm) {
+function checkCompForm() {
+    if (compTitleInput.value && document.getElementById('comp-date').value) {
+         compAddBtn.disabled = false;
+         compAddBtn.classList.remove('bg-gray-400');
+         compAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+    } else {
+         compAddBtn.disabled = true;
+         compAddBtn.classList.add('bg-gray-400');
+         compAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+    }
+}
+
+if (addCompForm) {
+    // Lyssna på input för validering
+    addCompForm.addEventListener('input', checkCompForm);
+
+    // Hantera PDF-uppladdning direkt vid val av fil
+    compPdfUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Visa progress
+        document.getElementById('comp-upload-progress-container').classList.remove('hidden');
+        compAddBtn.disabled = true; // Lås knappen under uppladdning
+
+        const storage = getStorage();
+        const storagePath = `results/${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, storagePath);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on('state_changed', 
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                document.getElementById('comp-upload-progress').value = progress;
+            }, 
+            (error) => {
+                console.error(error);
+                showModal('errorModal', "Uppladdning av PDF misslyckades.");
+                compAddBtn.disabled = false;
+            }, 
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                    document.getElementById('comp-pdf-url').value = downloadURL;
+                    document.getElementById('comp-storage-path').value = storagePath;
+                    document.getElementById('comp-pdf-name').textContent = `Fil uppladdad: ${file.name}`;
+                    document.getElementById('comp-upload-progress-container').classList.add('hidden');
+                    checkCompForm(); // Lås upp knappen igen
+                });
+            }
+        );
+    });
+
+    // Hantera Submit
+    addCompForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const compObject = {
+            title: compTitleInput.value,
+            date: document.getElementById('comp-date').value,
+            location: document.getElementById('comp-location').value,
+            content: compContentEditor.innerHTML,
+            pdfUrl: document.getElementById('comp-pdf-url').value || null,
+            storagePath: document.getElementById('comp-storage-path').value || null,
+            createdAt: editingCompId ? competitionsData.find(c => c.id === editingCompId).createdAt : serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
+
+        await addOrUpdateDocument('competitions', editingCompId, compObject, "Tävlingsrapport sparad!", "Fel vid sparande.");
+        
+        // Återställ
+        addCompForm.reset();
+        compContentEditor.innerHTML = '';
+        document.getElementById('comp-pdf-name').textContent = '';
+        document.getElementById('comp-pdf-url').value = '';
+        editingCompId = null;
+        document.getElementById('competition-form-title').textContent = 'Lägg till Tävlingsrapport';
+        compAddBtn.textContent = 'Publicera rapport';
+    });
+}
+
+// Hantera redigering (Lägg till i din befintliga document.addEventListener('click', ...))
+document.addEventListener('click', (e) => {
+    const editCompBtn = e.target.closest('.edit-comp-btn');
+    if (editCompBtn) {
+        const id = editCompBtn.getAttribute('data-id');
+        const item = competitionsData.find(c => c.id === id);
+        if (item) {
+            editingCompId = id;
+            document.getElementById('comp-title').value = item.title;
+            document.getElementById('comp-date').value = item.date;
+            document.getElementById('comp-location').value = item.location;
+            document.getElementById('comp-content-editor').innerHTML = item.content;
+            if (item.pdfUrl) {
+                document.getElementById('comp-pdf-url').value = item.pdfUrl;
+                document.getElementById('comp-pdf-name').textContent = "Befintlig PDF sparad (ladda upp ny för att byta)";
+            }
+            
+            document.getElementById('competition-form-title').textContent = 'Ändra Tävlingsrapport';
+            compAddBtn.textContent = 'Spara ändring';
+            checkCompForm();
+            
+            navigate('#tavlingar');
+            setTimeout(() => {
+                 document.getElementById('competition-edit-section').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    }
+});    
+
+if (addEventForm) {
         addEventForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const isRecurring = isRecurringCheckbox.checked;
