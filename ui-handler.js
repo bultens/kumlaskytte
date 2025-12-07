@@ -2,7 +2,7 @@
 import { auth, db, getFirestoreDoc, doc } from "./main.js";
 import { usersData } from "./data-service.js";
 
-// Ver. 1.24
+// Ver. 1.25
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -600,16 +600,20 @@ export function renderUserReport(usersData) {
 
 
 export function renderContactInfo() {
-    const contactAddressEl = document.getElementById('contact-address');
-    const contactPhoneEl = document.getElementById('contact-phone');
-    const contactEmailEl = document.getElementById('contact-email');
+    // Använd querySelectorAll för att hitta ALLA element, eftersom ID:t nu finns på flera ställen (Footer + Om oss)
+    const contactAddressEls = document.querySelectorAll('#contact-address');
+    const contactLocationEls = document.querySelectorAll('#contact-location'); 
+    const contactPhoneEls = document.querySelectorAll('#contact-phone');
+    const contactEmailEls = document.querySelectorAll('#contact-email');
 
     getFirestoreDoc(doc(db, 'settings', 'siteSettings')).then(docSnap => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            if (contactAddressEl) contactAddressEl.textContent = data.contactAddress || 'Ej angivet';
-            if (contactPhoneEl) contactPhoneEl.textContent = data.contactPhone || 'Ej angivet';
-            if (contactEmailEl) contactEmailEl.textContent = data.contactEmail || 'Ej angivet';
+            
+            contactAddressEls.forEach(el => el.textContent = data.contactAddress || 'Ej angivet');
+            contactLocationEls.forEach(el => el.textContent = data.contactLocation || 'Ej angivet');
+            contactPhoneEls.forEach(el => el.textContent = data.contactPhone || 'Ej angivet');
+            contactEmailEls.forEach(el => el.textContent = data.contactEmail || 'Ej angivet');
         }
     });
 }
@@ -622,6 +626,7 @@ export async function renderSiteSettings() {
         document.getElementById('header-color-input').value = data.headerColor || '#1e40af';
         document.getElementById('show-sponsors-checkbox').checked = data.showSponsors || false;
         document.getElementById('contact-address-input').value = data.contactAddress || '';
+        document.getElementById('contact-location-input').value = data.contactLocation || '';
         document.getElementById('contact-phone-input').value = data.contactPhone || '';
         document.getElementById('contact-email-input').value = data.contactEmail || '';
     }

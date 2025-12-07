@@ -5,7 +5,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.24
+// Ver. 1.25
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -110,21 +110,22 @@ export function setupEventListeners() {
         });
     }
 
-    if (settingsForm) {
-        settingsForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const settingsData = {
-                siteName: document.getElementById('site-name-input').value,
-                logoUrl: document.getElementById('logo-url-input').value,
-                headerColor: headerColorInput.value,
-                showSponsors: showSponsorsCheckbox.checked,
-                contactAddress: document.getElementById('contact-address-input').value,
-                contactPhone: document.getElementById('contact-phone-input').value,
-                contactEmail: document.getElementById('contact-email-input').value
-            };
-            await updateSiteSettings(settingsData);
-        });
-    }
+if (settingsForm) {
+    settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const settingsData = {
+            siteName: document.getElementById('site-name-input').value,
+            logoUrl: document.getElementById('logo-url-input').value,
+            headerColor: headerColorInput.value,
+            showSponsors: showSponsorsCheckbox.checked,
+            contactAddress: document.getElementById('contact-address-input').value,
+            contactLocation: document.getElementById('contact-location-input').value, 
+            contactPhone: document.getElementById('contact-phone-input').value,
+            contactEmail: document.getElementById('contact-email-input').value
+        };
+        await updateSiteSettings(settingsData);
+    });
+}
 
     if (addNewsForm) {
         addNewsForm.addEventListener('submit', async (e) => {
@@ -458,6 +459,7 @@ export function setupEventListeners() {
         sponsorNameInput, sponsorExtraText, sponsorPriorityInput, sponsorLogoUpload, sponsorLogoUrlInput, sponsorSizeInput,
         eventTitleInput, eventDescriptionEditor, eventDateInput, isRecurringCheckbox, startDateInput, endDateInput, weekdaySelect,
         headerColorInput, showSponsorsCheckbox, document.getElementById('logo-url-input'), document.getElementById('contact-address-input'),
+        document.getElementById('contact-location-input'), // <--- Lades till här
         document.getElementById('contact-phone-input'), document.getElementById('contact-email-input')
     ];
 
@@ -470,14 +472,14 @@ export function setupEventListeners() {
                 'sponsor-name': checkSponsorForm, 'sponsor-extra-text': checkSponsorForm, 'sponsor-priority': checkSponsorForm, 'sponsor-logo-upload': checkSponsorForm, 'sponsor-logo-url': checkSponsorForm, 'sponsor-size': checkSponsorForm,
                 'event-title': checkEventForm, 'event-description-editor': checkEventForm, 'event-date': checkEventForm, 'is-recurring': checkEventForm, 'start-date': checkEventForm, 'end-date': checkEventForm, 'weekday-select': checkEventForm,
                 'logo-url-input': () => {}, 'header-color-input': () => {}, 'show-sponsors-checkbox': () => {},
-                'contact-address-input': () => {}, 'contact-phone-input': () => {}, 'contact-email-input': () => {}
+                'contact-address-input': () => {}, 'contact-location-input': () => {}, 'contact-phone-input': () => {}, 'contact-email-input': () => {}
             };
             const eventType = element.id.includes('editor') || element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'number' || element.type === 'url' || element.type === 'date') ? 'input' : 'change';
             
             element.addEventListener(eventType, formCheckers[element.id]);
         }
     });
-    
+
     // Listeners for settings form
     if (settingsForm) {
         // En enda lyssnare för alla input-fält i settings-formuläret
@@ -489,6 +491,7 @@ export function setupEventListeners() {
                     headerColor: document.getElementById('header-color-input').value,
                     showSponsors: document.getElementById('show-sponsors-checkbox').checked,
                     contactAddress: document.getElementById('contact-address-input').value,
+                    contactLocation: document.getElementById('contact-location-input').value, 
                     contactPhone: document.getElementById('contact-phone-input').value,
                     contactEmail: document.getElementById('contact-email-input').value
                 };
