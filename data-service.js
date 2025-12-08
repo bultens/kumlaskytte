@@ -1,11 +1,10 @@
 // data-service.js
-import { db, auth } from "./firebase-config.js";
+import { db, auth } from "./firebase-config.js"; // ÄNDRAT
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions } from "./ui-handler.js";
-import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.12 (Fixad import)
+// Ver. 1.13 (Stabil version)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -15,17 +14,20 @@ export let usersData = [];
 export let sponsorsData = [];
 
 export function initializeDataListeners() {
-    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, currentUserId); });
+    // Hämtar currentUserId direkt från auth-objektet istället för att importera det
+    const uid = auth.currentUser ? auth.currentUser.uid : null;
+
+    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
     
-    // Tävlingar - Nu korrekt placerad
+    // Tävlingar
     onSnapshot(collection(db, 'competitions'), (snapshot) => { 
         competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         renderCompetitions(competitionsData, isAdminLoggedIn); 
     });
 
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
-    onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId); renderUserReport(usersData); });
-    onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, currentUserId); });
+    onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); renderUserReport(usersData); });
+    onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
     

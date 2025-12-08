@@ -1,8 +1,8 @@
 // ui-handler.js
-import { auth, db, getFirestoreDoc, doc } from "./main.js";
-import { usersData } from "./data-service.js";
+import { auth, db } from "./firebase-config.js"; // ÄNDRAT: Hämtar direkt från config
+import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.25
+// Ver. 1.30 (Fixad för att undvika cirkulära beroenden)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -154,7 +154,6 @@ export function renderCompetitions(data, isAdminLoggedIn) {
 
     container.innerHTML = '';
     
-    // Sortera: Nyaste datum först
     data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     data.forEach(item => {
@@ -209,23 +208,23 @@ export function handleAdminUI(isAdmin) {
         isAdminLoggedIn = true;
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
-	if (competitionEditSection) competitionEditSection.classList.remove('hidden');
+        if (competitionEditSection) competitionEditSection.classList.remove('hidden');
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
         if (imageEditSection) imageEditSection.classList.remove('hidden');
         if (historyEditSection) historyEditSection.classList.remove('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
-        if (adminUserInfo) {
-            const user = usersData.find(u => u.id === auth.currentUser.uid);
-            loggedInAdminUsername = user ? user.email : '';
+        
+        if (adminUserInfo && auth.currentUser) {
+            loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
         }
     } else {
         isAdminLoggedIn = false;
         if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
-	if (competitionEditSection) competitionEditSection.classList.add('hidden');
+        if (competitionEditSection) competitionEditSection.classList.add('hidden');
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
         if (imageEditSection) imageEditSection.classList.add('hidden');
         if (historyEditSection) historyEditSection.classList.add('hidden');

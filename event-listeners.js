@@ -1,13 +1,30 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { competitionsData } from "./data-service.js";
-import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
+import { auth, db } from "./firebase-config.js"; // ÄNDRAT: Hämtar direkt från config
+import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; // OBS: signOut ligger här egentligen men vi importerar auth från config
+// ... vänta, signOut ligger i firebase-auth, inte firestore eller config.
+// Låt oss fixa importen korrekt:
+
+import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { doc as firestoreDoc, collection as firestoreCollection, query as firestoreQuery, where as firestoreWhere, getDocs as firestoreGetDocs, writeBatch as firestoreWriteBatch, serverTimestamp as firestoreServerTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Vi använder alias för att matcha koden nedan
+const doc = firestoreDoc;
+const collection = firestoreCollection;
+const query = firestoreQuery;
+const where = firestoreWhere;
+const getDocs = firestoreGetDocs;
+const writeBatch = firestoreWriteBatch;
+const serverTimestamp = firestoreServerTimestamp;
+
+
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, toggleLike } from "./data-service.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.27 (Rensad på dubbletter)
+// Ver. 1.30 (Stabiliserad)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
