@@ -5,7 +5,7 @@ import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
 import { currentUserId } from "./main.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.11
+// Ver. 1.12 (Fixad import)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -17,7 +17,7 @@ export let sponsorsData = [];
 export function initializeDataListeners() {
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, currentUserId); });
     
-    // Tävlingar
+    // Tävlingar - Nu korrekt placerad
     onSnapshot(collection(db, 'competitions'), (snapshot) => { 
         competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         renderCompetitions(competitionsData, isAdminLoggedIn); 
@@ -28,6 +28,7 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, currentUserId); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
+    
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const pageTitleElement = document.getElementById('page-title');
         const faviconLink = document.getElementById('favicon-link');
