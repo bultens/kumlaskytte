@@ -638,7 +638,7 @@ export function setupEventListeners() {
         checkSponsorForm();
     });
 
-    document.addEventListener('click', (e) => {
+   document.addEventListener('click', (e) => {
         const editorToolbarBtn = e.target.closest('.editor-toolbar button');
         if (editorToolbarBtn) {
             e.preventDefault();
@@ -665,7 +665,6 @@ export function setupEventListeners() {
                         }
                     }
                 }
-            }
             } else if (command === 'insertImage') {
                 const imageUrl = prompt("Ange bildens URL:");
                 if (imageUrl) {
