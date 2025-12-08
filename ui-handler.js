@@ -2,7 +2,7 @@
 import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.31 (Fixad för att undvika cirkulära beroenden)
+// Ver. 1.32 (Helt fristående för att undvika krasch)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -216,6 +216,7 @@ export function handleAdminUI(isAdmin) {
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
+        // Hämta användare direkt från auth istället för usersData för att undvika loop
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
