@@ -649,10 +649,23 @@ export function setupEventListeners() {
             if (!editorElement) return;
 
             if (command === 'createLink') {
-                const url = prompt("Ange länkens URL:");
+                const url = prompt("Ange länkens URL (t.ex. https://...):");
                 if (url) {
-                    applyEditorCommand(editorElement, command, url);
+                    const selection = window.getSelection();
+                    // Om användaren redan har markerat text, gör om den till länk
+                    if (selection.toString().length > 0) {
+                        applyEditorCommand(editorElement, command, url);
+                    } else {
+                        // Ingen text markerad -> Fråga efter visningstext
+                        const text = prompt("Ange text som ska visas för länken:", "Läs mer här");
+                        if (text) {
+                            // Vi använder 'insertHTML' för att skapa en snygg länk som öppnas i ny flik
+                            const html = `<a href="${url}" target="_blank">${text}</a>`;
+                            applyEditorCommand(editorElement, 'insertHTML', html);
+                        }
+                    }
                 }
+            }
             } else if (command === 'insertImage') {
                 const imageUrl = prompt("Ange bildens URL:");
                 if (imageUrl) {
