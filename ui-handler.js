@@ -1,8 +1,8 @@
 // ui-handler.js
-import { auth, db } from "./firebase-config.js"; // ÄNDRAT: Hämtar direkt från config
+import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.30 (Fixad för att undvika cirkulära beroenden)
+// Ver. 1.31 (Fixad för att undvika cirkulära beroenden)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 

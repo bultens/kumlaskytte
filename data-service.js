@@ -1,10 +1,10 @@
 // data-service.js
-import { db, auth } from "./firebase-config.js"; // ÄNDRAT
+import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.13 (Stabil version)
+// Ver. 1.14 (Stabil version)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
