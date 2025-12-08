@@ -1,13 +1,13 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-import { competitionsData } from "./data-service.js"; // Lägg till i import
+import { competitionsData } from "./data-service.js";
 import { auth, signOut, db, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "./main.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, toggleLike } from "./data-service.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.25
+// Ver. 1.26
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -94,7 +94,6 @@ export function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             signOut(auth);
-            // Efter utloggning kommer onAuthStateChanged att köras och uppdatera UI.
         });
     }
 
@@ -118,22 +117,39 @@ export function setupEventListeners() {
         });
     }
 
-if (settingsForm) {
-    settingsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const settingsData = {
-            siteName: document.getElementById('site-name-input').value,
-            logoUrl: document.getElementById('logo-url-input').value,
-            headerColor: headerColorInput.value,
-            showSponsors: showSponsorsCheckbox.checked,
-            contactAddress: document.getElementById('contact-address-input').value,
-            contactLocation: document.getElementById('contact-location-input').value, 
-            contactPhone: document.getElementById('contact-phone-input').value,
-            contactEmail: document.getElementById('contact-email-input').value
-        };
-        await updateSiteSettings(settingsData);
-    });
-}
+    if (settingsForm) {
+        const settingsInputs = settingsForm.querySelectorAll('input, select');
+        settingsInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                const settingsData = {
+                    logoUrl: document.getElementById('logo-url-input').value,
+                    headerColor: headerColorInput.value,
+                    showSponsors: showSponsorsCheckbox.checked,
+                    contactAddress: document.getElementById('contact-address-input').value,
+                    contactLocation: document.getElementById('contact-location-input').value, 
+                    contactPhone: document.getElementById('contact-phone-input').value,
+                    contactEmail: document.getElementById('contact-email-input').value
+                };
+                updateSiteSettings(settingsData);
+            });
+        });
+        
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Denna lyssnare behövs egentligen inte då 'input' lyssnaren sparar direkt, 
+            // men bra att ha för knappen "Spara".
+            const settingsData = {
+                logoUrl: document.getElementById('logo-url-input').value,
+                headerColor: headerColorInput.value,
+                showSponsors: showSponsorsCheckbox.checked,
+                contactAddress: document.getElementById('contact-address-input').value,
+                contactLocation: document.getElementById('contact-location-input').value, 
+                contactPhone: document.getElementById('contact-phone-input').value,
+                contactEmail: document.getElementById('contact-email-input').value
+            };
+            await updateSiteSettings(settingsData);
+        });
+    }
 
     if (addNewsForm) {
         addNewsForm.addEventListener('submit', async (e) => {
@@ -193,116 +209,7 @@ if (settingsForm) {
         });
     }
 
-function checkCompForm() {
-    if (compTitleInput.value && document.getElementById('comp-date').value) {
-         compAddBtn.disabled = false;
-         compAddBtn.classList.remove('bg-gray-400');
-         compAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-    } else {
-         compAddBtn.disabled = true;
-         compAddBtn.classList.add('bg-gray-400');
-         compAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-    }
-}
-
-if (addCompForm) {
-    // Lyssna på input för validering
-    addCompForm.addEventListener('input', checkCompForm);
-
-    // Hantera PDF-uppladdning direkt vid val av fil
-    compPdfUpload.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Visa progress
-        document.getElementById('comp-upload-progress-container').classList.remove('hidden');
-        compAddBtn.disabled = true; // Lås knappen under uppladdning
-
-        const storage = getStorage();
-        const storagePath = `results/${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, storagePath);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-
-        uploadTask.on('state_changed', 
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                document.getElementById('comp-upload-progress').value = progress;
-            }, 
-            (error) => {
-                console.error(error);
-                showModal('errorModal', "Uppladdning av PDF misslyckades.");
-                compAddBtn.disabled = false;
-            }, 
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    document.getElementById('comp-pdf-url').value = downloadURL;
-                    document.getElementById('comp-storage-path').value = storagePath;
-                    document.getElementById('comp-pdf-name').textContent = `Fil uppladdad: ${file.name}`;
-                    document.getElementById('comp-upload-progress-container').classList.add('hidden');
-                    checkCompForm(); // Lås upp knappen igen
-                });
-            }
-        );
-    });
-
-    // Hantera Submit
-    addCompForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const compObject = {
-            title: compTitleInput.value,
-            date: document.getElementById('comp-date').value,
-            location: document.getElementById('comp-location').value,
-            content: compContentEditor.innerHTML,
-            pdfUrl: document.getElementById('comp-pdf-url').value || null,
-            storagePath: document.getElementById('comp-storage-path').value || null,
-            createdAt: editingCompId ? competitionsData.find(c => c.id === editingCompId).createdAt : serverTimestamp(),
-            updatedAt: serverTimestamp()
-        };
-
-        await addOrUpdateDocument('competitions', editingCompId, compObject, "Tävlingsrapport sparad!", "Fel vid sparande.");
-        
-        // Återställ
-        addCompForm.reset();
-        compContentEditor.innerHTML = '';
-        document.getElementById('comp-pdf-name').textContent = '';
-        document.getElementById('comp-pdf-url').value = '';
-        editingCompId = null;
-        document.getElementById('competition-form-title').textContent = 'Lägg till Tävlingsrapport';
-        compAddBtn.textContent = 'Publicera rapport';
-    });
-}
-
-// Hantera redigering (Lägg till i din befintliga document.addEventListener('click', ...))
-document.addEventListener('click', (e) => {
-    const editCompBtn = e.target.closest('.edit-comp-btn');
-    if (editCompBtn) {
-        const id = editCompBtn.getAttribute('data-id');
-        const item = competitionsData.find(c => c.id === id);
-        if (item) {
-            editingCompId = id;
-            document.getElementById('comp-title').value = item.title;
-            document.getElementById('comp-date').value = item.date;
-            document.getElementById('comp-location').value = item.location;
-            document.getElementById('comp-content-editor').innerHTML = item.content;
-            if (item.pdfUrl) {
-                document.getElementById('comp-pdf-url').value = item.pdfUrl;
-                document.getElementById('comp-pdf-name').textContent = "Befintlig PDF sparad (ladda upp ny för att byta)";
-            }
-            
-            document.getElementById('competition-form-title').textContent = 'Ändra Tävlingsrapport';
-            compAddBtn.textContent = 'Spara ändring';
-            checkCompForm();
-            
-            navigate('#tavlingar');
-            setTimeout(() => {
-                 document.getElementById('competition-edit-section').scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        }
-    }
-});    
-
-if (addEventForm) {
+    if (addEventForm) {
         addEventForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const isRecurring = isRecurringCheckbox.checked;
@@ -317,7 +224,6 @@ if (addEventForm) {
             };
 
             if (isRecurring) {
-                // Logic for recurring events
                 const startDate = startDateInput.value;
                 const endDate = endDateInput.value;
                 const weekday = weekdaySelect.value;
@@ -347,7 +253,6 @@ if (addEventForm) {
                 showModal('confirmationModal', "Återkommande evenemang har lagts till!");
 
             } else {
-                // Logic for single event
                 const eventDate = eventDateInput.value;
                 if (!eventDate) {
                     showModal('errorModal', "Fyll i datum för enskild händelse.");
@@ -370,6 +275,82 @@ if (addEventForm) {
         });
     }
 
+    // Tävlingslogik
+    function checkCompForm() {
+        if (compTitleInput.value && document.getElementById('comp-date').value) {
+             compAddBtn.disabled = false;
+             compAddBtn.classList.remove('bg-gray-400');
+             compAddBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+             compAddBtn.disabled = true;
+             compAddBtn.classList.add('bg-gray-400');
+             compAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        }
+    }
+
+    if (addCompForm) {
+        addCompForm.addEventListener('input', checkCompForm);
+
+        compPdfUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('comp-upload-progress-container').classList.remove('hidden');
+            compAddBtn.disabled = true;
+
+            const storage = getStorage();
+            const storagePath = `results/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, storagePath);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    document.getElementById('comp-upload-progress').value = progress;
+                }, 
+                (error) => {
+                    console.error(error);
+                    showModal('errorModal', "Uppladdning av PDF misslyckades.");
+                    compAddBtn.disabled = false;
+                }, 
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                        document.getElementById('comp-pdf-url').value = downloadURL;
+                        document.getElementById('comp-storage-path').value = storagePath;
+                        document.getElementById('comp-pdf-name').textContent = `Fil uppladdad: ${file.name}`;
+                        document.getElementById('comp-upload-progress-container').classList.add('hidden');
+                        checkCompForm();
+                    });
+                }
+            );
+        });
+
+        addCompForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const compObject = {
+                title: compTitleInput.value,
+                date: document.getElementById('comp-date').value,
+                location: document.getElementById('comp-location').value,
+                content: compContentEditor.innerHTML,
+                pdfUrl: document.getElementById('comp-pdf-url').value || null,
+                storagePath: document.getElementById('comp-storage-path').value || null,
+                createdAt: editingCompId ? competitionsData.find(c => c.id === editingCompId).createdAt : serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+
+            await addOrUpdateDocument('competitions', editingCompId, compObject, "Tävlingsrapport sparad!", "Fel vid sparande.");
+            
+            addCompForm.reset();
+            compContentEditor.innerHTML = '';
+            document.getElementById('comp-pdf-name').textContent = '';
+            document.getElementById('comp-pdf-url').value = '';
+            editingCompId = null;
+            document.getElementById('competition-form-title').textContent = 'Lägg till Tävlingsrapport';
+            compAddBtn.textContent = 'Publicera rapport';
+        });
+    }
+
     if (copyMailingListBtn) {
         copyMailingListBtn.addEventListener('click', () => {
             const mailingListUsers = usersData.filter(user => user.mailingList).sort((a, b) => a.email.localeCompare(b.email));
@@ -386,8 +367,8 @@ if (addEventForm) {
         });
     }
 
+    // Shared Click Handlers
     document.addEventListener('click', (e) => {
-        // Shared click handlers
         const deleteBtn = e.target.closest('.delete-btn');
         if (deleteBtn) {
             const docId = deleteBtn.getAttribute('data-id');
@@ -455,10 +436,8 @@ if (addEventForm) {
             const adminId = deleteAdminBtn.getAttribute('data-id');
             deleteAdmin(adminId);
         }
-    });
 
-    // Delegated click listeners
-    document.addEventListener('click', (e) => {
+        // Redigeringsknappar
         const editNewsBtn = e.target.closest('.edit-news-btn');
         if (editNewsBtn) {
             const newsId = editNewsBtn.getAttribute('data-id');
@@ -562,173 +541,4 @@ if (addEventForm) {
                 document.getElementById('add-event-btn').classList.add('bg-blue-600', 'hover:bg-blue-700');
                 navigate('#kalender');
                 setTimeout(() => {
-                    document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
-            }
-        }
-    });
-
-    // Input listeners
-    const inputElements = [
-        newsTitleInput, newsContentEditor,
-        historyTitleInput, historyContentEditor, historyPriorityInput,
-        imageTitleInput, imageYearInput, imageMonthInput, imageUploadInput, imageUrlInput,
-        sponsorNameInput, sponsorExtraText, sponsorPriorityInput, sponsorLogoUpload, sponsorLogoUrlInput, sponsorSizeInput,
-        eventTitleInput, eventDescriptionEditor, eventDateInput, isRecurringCheckbox, startDateInput, endDateInput, weekdaySelect,
-        headerColorInput, showSponsorsCheckbox, document.getElementById('logo-url-input'), document.getElementById('contact-address-input'),
-        document.getElementById('contact-location-input'), // <--- Lades till här
-        document.getElementById('contact-phone-input'), document.getElementById('contact-email-input')
-    ];
-
-    inputElements.forEach(element => {
-        if (element) {
-            const formCheckers = {
-                'news-title': checkNewsForm, 'news-content-editor': checkNewsForm,
-                'history-title': checkHistoryForm, 'history-content-editor': checkHistoryForm, 'history-priority': checkHistoryForm,
-                'image-title': checkImageForm, 'image-year': checkImageForm, 'image-month': checkImageForm, 'image-upload': checkImageForm, 'image-url': checkImageForm,
-                'sponsor-name': checkSponsorForm, 'sponsor-extra-text': checkSponsorForm, 'sponsor-priority': checkSponsorForm, 'sponsor-logo-upload': checkSponsorForm, 'sponsor-logo-url': checkSponsorForm, 'sponsor-size': checkSponsorForm,
-                'event-title': checkEventForm, 'event-description-editor': checkEventForm, 'event-date': checkEventForm, 'is-recurring': checkEventForm, 'start-date': checkEventForm, 'end-date': checkEventForm, 'weekday-select': checkEventForm,
-                'logo-url-input': () => {}, 'header-color-input': () => {}, 'show-sponsors-checkbox': () => {},
-                'contact-address-input': () => {}, 'contact-location-input': () => {}, 'contact-phone-input': () => {}, 'contact-email-input': () => {}
-            };
-            const eventType = element.id.includes('editor') || element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'number' || element.type === 'url' || element.type === 'date') ? 'input' : 'change';
-            
-            element.addEventListener(eventType, formCheckers[element.id]);
-        }
-    });
-
-    // Listeners for settings form
-    if (settingsForm) {
-        // En enda lyssnare för alla input-fält i settings-formuläret
-        const settingsInputs = settingsForm.querySelectorAll('input, select');
-        settingsInputs.forEach(input => {
-            input.addEventListener('input', () => {
-                const settingsData = {
-                    logoUrl: document.getElementById('logo-url-input').value,
-                    headerColor: document.getElementById('header-color-input').value,
-                    showSponsors: document.getElementById('show-sponsors-checkbox').checked,
-                    contactAddress: document.getElementById('contact-address-input').value,
-                    contactLocation: document.getElementById('contact-location-input').value, 
-                    contactPhone: document.getElementById('contact-phone-input').value,
-                    contactEmail: document.getElementById('contact-email-input').value
-                };
-                updateSiteSettings(settingsData);
-            });
-        });
-    }
-
-    // New event listeners for like and share buttons
-    document.addEventListener('click', async (e) => {
-        const likeBtn = e.target.closest('.like-btn');
-        if (likeBtn) {
-            const docId = likeBtn.getAttribute('data-id');
-            const docType = likeBtn.getAttribute('data-type');
-            if (!auth.currentUser) {
-                showModal('errorModal', "Du måste vara inloggad för att gilla ett inlägg.");
-                return;
-            }
-            await toggleLike(docId, docType, auth.currentUser.uid);
-        }
-
-        const shareBtn = e.target.closest('.share-btn');
-        if (shareBtn) {
-            const docId = shareBtn.getAttribute('data-id');
-            const title = shareBtn.getAttribute('data-title');
-            const url = `${window.location.href.split('#')[0]}#nyheter#news-${docId}`;
-            showShareModal(title, url);
-        }
-    });
-
-    if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
-        imageUploadInput.value = '';
-        fileNameDisplay.textContent = 'Ingen fil vald';
-        clearImageUpload.classList.add('hidden');
-        checkImageForm();
-    });
-    
-    if (clearSponsorLogoUpload) clearSponsorLogoUpload.addEventListener('click', () => {
-        sponsorLogoUpload.value = '';
-        sponsorFileNameDisplay.textContent = 'Ingen fil vald';
-        clearSponsorLogoUpload.classList.add('hidden');
-        checkSponsorForm();
-    });
-
-    document.addEventListener('click', (e) => {
-        const editorToolbarBtn = e.target.closest('.editor-toolbar button');
-        if (editorToolbarBtn) {
-            e.preventDefault();
-            const command = editorToolbarBtn.dataset.command;
-            const editorTargetId = editorToolbarBtn.closest('.editor-toolbar').dataset.editorTarget;
-            const editorElement = document.getElementById(editorTargetId);
-            
-            if (!editorElement) return;
-
-            if (command === 'createLink') {
-                const url = prompt("Ange länkens URL:");
-                if (url) {
-                    applyEditorCommand(editorElement, command, url);
-                }
-            } else if (command === 'insertImage') {
-                const imageUrl = prompt("Ange bildens URL:");
-                if (imageUrl) {
-                    applyEditorCommand(editorElement, command, imageUrl);
-                }
-            } else {
-                applyEditorCommand(editorElement, command);
-            }
-        }
-    });
-
-    if (editUserModal) {
-        document.getElementById('close-edit-user-modal').addEventListener('click', () => hideModal('editUserModal'));
-        editUserModal.addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) hideModal('editUserModal');
-        });
-    }
-
-    if (editUserForm) {
-        editUserForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const userId = document.getElementById('edit-user-id').value;
-            const name = document.getElementById('edit-user-name').value;
-            const address = document.getElementById('edit-user-address').value;
-            const phone = document.getElementById('edit-user-phone').value;
-            const birthyear = document.getElementById('edit-user-birthyear').value;
-            const mailingList = document.getElementById('edit-user-mailing-list').checked;
-            
-            const updatedData = {
-                name,
-                address,
-                phone,
-                birthyear: birthyear ? Number(birthyear) : null,
-                mailingList
-            };
-
-            await updateProfileByAdmin(userId, updatedData);
-            hideModal('editUserModal');
-        });
-    }
-    
-    if (imageUploadInput && fileNameDisplay) {
-        imageUploadInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                fileNameDisplay.textContent = e.target.files[0].name;
-                clearImageUpload.classList.remove('hidden');
-            } else {
-                fileNameDisplay.textContent = 'Ingen fil vald';
-                clearImageUpload.classList.add('hidden');
-            }
-        });
-    }
-    
-    window.addEventListener('hashchange', () => {
-        const currentHash = window.location.hash;
-        if (currentHash === '#bilder') {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1; // getMonth() är 0-baserad
-            if (imageYearInput) imageYearInput.value = year;
-            if (imageMonthInput) imageMonthInput.value = month;
-        }
-    });
-}
+                    document.getElementById('calendar-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start'
