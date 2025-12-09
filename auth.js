@@ -14,6 +14,7 @@ const profilePanel = document.getElementById('profile-panel');
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
 const userNavLink = document.getElementById('user-nav-link');
 const profileNavLink = document.getElementById('profile-nav-link');
+const resultsNavLink = document.getElementById('results-nav-link');
 const showLoginLink = document.getElementById('show-login-link');
 const showRegisterLink = document.getElementById('show-register-link');
 const registerPanel = document.getElementById('register-panel');
@@ -28,12 +29,14 @@ function toggleProfileUI(user) {
         userLoginPanel.classList.add('hidden');
         registerPanel.classList.add('hidden');
         if (profileNavLink) profileNavLink.classList.remove('hidden');
+	if (resultsNavLink) resultsNavLink.classList.remove('hidden');
         if (userNavLink) userNavLink.classList.add('hidden');
     } else {
         profilePanel.classList.add('hidden');
         userLoginPanel.classList.remove('hidden');
         registerPanel.classList.add('hidden');
         if (profileNavLink) profileNavLink.classList.add('hidden');
+	if (resultsNavLink) resultsNavLink.classList.add('hidden');
         if (userNavLink) userNavLink.classList.remove('hidden');
     }
 }
