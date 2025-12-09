@@ -149,47 +149,87 @@ export function toggleSponsorsNavLink(isVisible) {
 }
 
 export function renderCompetitions(data, isAdminLoggedIn) {
+    // 1. Hantera huvudlistan (sidan Tävlingar)
     const container = document.getElementById('competitions-container');
-    if (!container) return;
-
-    container.innerHTML = '';
     
+    // Sortera: Nyast datum först
     data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    data.forEach(item => {
-        const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-        
-        let pdfButton = '';
-        if (item.pdfUrl) {
-            pdfButton = `
-                <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    Resultatlista (PDF)
+    if (container) {
+        container.innerHTML = '';
+        data.forEach(item => {
+            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            let pdfButton = '';
+            if (item.pdfUrl) {
+                pdfButton = `
+                    <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        Resultatlista (PDF)
+                    </a>
+                `;
+            }
+
+            container.innerHTML += `
+                <div class="card">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
+                            <p class="text-sm text-gray-500 mb-2">Datum: ${date} | Ort: ${item.location}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
+                    ${pdfButton}
+
+                    ${isAdminLoggedIn ? `
+                        <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
+                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
+                            <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+    }
+
+    // 2. Hantera startsidan (Senaste tävlingarna) - NY KOD
+    const homeContainer = document.getElementById('home-competitions-container');
+    if (homeContainer) {
+        homeContainer.innerHTML = '';
+
+        // Hjälpfunktion för att ta fram ren text ur HTML (samma som för nyheter)
+        const getFirstLineText = (htmlContent) => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            const firstChild = tempDiv.firstElementChild;
+            if (firstChild && firstChild.tagName === 'P') {
+                return firstChild.textContent;
+            }
+            return tempDiv.textContent.split('\n')[0].trim();
+        };
+
+        // Ta de 2 senaste
+        data.slice(0, 2).forEach(item => {
+            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+            // Ta fram en kort sammanfattning (max 150 tecken)
+            const rawText = getFirstLineText(item.content);
+            const shortContent = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
+            
+            // Länk som går till tävlingsfliken
+            const baseUrl = window.location.href.split('?')[0];
+            const compUrl = `${baseUrl}?#tavlingar`;
+
+            homeContainer.innerHTML += `
+                <a href="${compUrl}" class="card flex flex-col items-start hover:shadow-md transition duration-300">
+                    <h3 class="text-2xl font-semibold mb-1 text-blue-900">${item.title}</h3>
+                    <p class="text-sm text-gray-500 mb-2">${date} | ${item.location}</p>
+                    <div class="text-gray-700 markdown-content">${shortContent}</div>
+                    <span class="text-blue-600 text-sm mt-4 font-semibold">Läs hela rapporten &rarr;</span>
                 </a>
             `;
-        }
-
-        container.innerHTML += `
-            <div class="card">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
-                        <p class="text-sm text-gray-500 mb-2">Datum: ${date} | Ort: ${item.location}</p>
-                    </div>
-                </div>
-                
-                <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
-                ${pdfButton}
-
-                ${isAdminLoggedIn ? `
-                    <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
-                        <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
-                        <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    });
+        });
+    }
 }
 
 export function handleAdminUI(isAdmin) {
