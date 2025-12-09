@@ -671,11 +671,11 @@ export function setupEventListeners() {
                     applyEditorCommand(editorElement, command, imageUrl);
                 }
             } else if (command === 'insertGold') {
-                applyEditorCommand(editorElement, 'insertText', '🥇 ');
+                applyEditorCommand(editorElement, 'insertHTML', '🥇 ');
             } else if (command === 'insertSilver') {
-                applyEditorCommand(editorElement, 'insertText', '🥈 ');
+                applyEditorCommand(editorElement, 'insertHTML', '🥈 ');
             } else if (command === 'insertBronze') {
-                applyEditorCommand(editorElement, 'insertText', '🥉 ');
+                applyEditorCommand(editorElement, 'insertHTML', '🥉 ');
             } else {
                 applyEditorCommand(editorElement, command);
             }
