@@ -670,6 +670,12 @@ export function setupEventListeners() {
                 if (imageUrl) {
                     applyEditorCommand(editorElement, command, imageUrl);
                 }
+            } else if (command === 'insertGold') {
+                applyEditorCommand(editorElement, 'insertText', '🥇 ');
+            } else if (command === 'insertSilver') {
+                applyEditorCommand(editorElement, 'insertText', '🥈 ');
+            } else if (command === 'insertBronze') {
+                applyEditorCommand(editorElement, 'insertText', '🥉 ');
             } else {
                 applyEditorCommand(editorElement, command);
             }
