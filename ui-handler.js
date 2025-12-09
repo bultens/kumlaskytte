@@ -778,19 +778,34 @@ export function navigate(hash) {
         link.classList.remove('active');
     });
 
+    // Dela upp hash men hantera eventuella frågetecken som råkat komma med
     const hashParts = hash.split('#');
     let targetPageId = hashParts[1];
+    
+    // SÄKERHETSÅTGÄRD: Ta bort eventuella frågetecken och allt efter dem
+    if (targetPageId) {
+        targetPageId = targetPageId.split('?')[0];
+    }
+
     const targetElementId = hashParts[2];
     
     if (!targetPageId || targetPageId === 'hem') {
         targetPageId = 'hem';
-        document.getElementById(targetPageId).classList.add('active');
+        const homePage = document.getElementById(targetPageId);
+        if (homePage) homePage.classList.add('active');
     } else {
-        const targetPage = document.querySelector(`#${targetPageId}`);
-        if (targetPage) {
-            targetPage.classList.add('active');
-        } else {
-            // Fallback to home if the page ID is not found
+        // Nu är targetPageId rensat från '?', så querySelector kommer inte krascha
+        try {
+            const targetPage = document.querySelector(`#${targetPageId}`);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            } else {
+                // Fallback till hem om sidan inte finns
+                targetPageId = 'hem';
+                document.getElementById('hem').classList.add('active');
+            }
+        } catch (e) {
+            console.warn("Kunde inte navigera till:", targetPageId);
             targetPageId = 'hem';
             document.getElementById('hem').classList.add('active');
         }
