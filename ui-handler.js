@@ -325,8 +325,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         
         const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
 
-        const baseUrl = window.location.href.split('?')[0];
-        const newsUrl = `${baseUrl}?#nyheter#news-${item.id}`;
+        const newsUrl = `#nyheter#news-${item.id}`;
 
         homeNewsContainer.innerHTML += `
             <a href="${newsUrl}" class="card flex items-start news-post home-news-post" data-id="${item.id}">
@@ -395,8 +394,7 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         const day = eventDate.getDate();
         const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
 
-        const baseUrl = window.location.href.split('?')[0];
-        const eventUrl = `${baseUrl}?#kalender#event-${item.id}`;
+        const eventUrl = `#kalender#event-${item.id}`;
         
         homeEventsContainer.innerHTML += `
             <a href="${eventUrl}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
