@@ -35,6 +35,7 @@
                     <li id="sponsors-nav-link"><a href="#sponsorer" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Sponsorer</a></li>
                     <li id="user-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Logga in</a></li>
                     <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Min Profil</a></li>
+		    <li id="results-nav-link" class="hidden"><a href="#resultat" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Mina Resultat</a></li>
                     <li><a href="#admin" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Admin</a></li>
                 </ul>
             </nav>
@@ -472,7 +473,29 @@
                         <input type="checkbox" id="profile-mailing-list-checkbox" class="mr-2">
                         <label for="profile-mailing-list-checkbox" class="font-semibold">Ja, jag vill ha eventuella Mail utskick, du kan ändra detta när som helst.</label>
                     </div>
+			<hr class="my-6 border-gray-200">
 
+		<h3 class="font-bold text-lg text-gray-800 mb-3">Inställningar</h3>
+
+		<div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+    			<div>
+        			<label for="track-medals-toggle" class="font-medium text-gray-700 cursor-pointer">Gamification & Medaljer</label>
+        			<p class="text-xs text-gray-500">Visa animationer och spåra seriemärken (Guld/Silver/Brons).</p>
+    			</div>
+    				<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+        			<input type="checkbox" id="track-medals-toggle" class="w-6 h-6 text-blue-600 rounded focus:ring-blue-500" checked>
+    			</div>
+		</div>
+
+		<div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-start">
+    				<div class="flex items-center h-5">
+        			<input type="checkbox" id="profile-default-share" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500">
+    			</div>
+    			<div class="ml-3 text-sm">
+        			<label for="profile-default-share" class="font-medium text-gray-700">Dela resultat automatiskt</label>
+        			<p class="text-xs text-gray-500">Detta förväljer rutan "Dela med klubben" när du matar in nya resultat.</p>
+    			</div>
+		</div>
                     <button type="submit" id="save-profile-btn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara profil</button>
                 </form>
 
@@ -509,6 +532,105 @@
             </div>
             
         </section>
+	
+	<section id="resultat" class="page">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold mb-6">Mina Resultat</h1>
+
+        <div class="card mb-6 border-l-4 border-blue-600 bg-blue-50">
+            <label for="shooter-selector" class="block text-sm font-bold text-blue-900 mb-2">Vem är det som skjuter?</label>
+            <div class="relative">
+                <select id="shooter-selector" class="block w-full p-4 rounded-lg border border-blue-200 text-lg font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white">
+                    <option value="">Laddar profiler...</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+            </div>
+            <p class="text-xs text-blue-600 mt-2 ml-1">Du kan hantera flera skyttar från samma inloggning.</p>
+        </div>
+
+        <div class="card mb-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Registrera ny omgång</h2>
+            <form id="add-result-form">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Datum</label>
+                        <input type="date" id="result-date" required class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Typ av skytte</label>
+                        <select id="result-type" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="training">Träning</option>
+                            <option value="competition">Tävling</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Skjutstil</label>
+                        <select id="result-discipline" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="sitting">Sittande</option>
+                            <option value="standing">Stående</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Antal skott</label>
+                        <div class="flex bg-gray-200 rounded-lg p-1">
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md bg-white shadow text-blue-800 font-bold transition-all" data-count="20">20</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="40">40</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="60">60</button>
+                        </div>
+                        <input type="hidden" id="result-shot-count" value="20">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block font-semibold text-gray-700 mb-3">Serier (10 skott per ruta)</label>
+                    <div id="series-inputs-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <span class="text-xs text-gray-500 block mb-1">Serie 1</span>
+                            <input type="number" class="w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg" placeholder="-">
+                        </div>
+                        <div class="text-center">
+                            <span class="text-xs text-gray-500 block mb-1">Serie 2</span>
+                            <input type="number" class="w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg" placeholder="-">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center bg-gray-900 text-white p-5 rounded-xl mb-6 shadow-lg">
+                    <div>
+                        <span class="text-gray-400 text-xs uppercase tracking-wider font-bold">Totalpoäng</span>
+                        <div class="text-4xl font-extrabold text-blue-400" id="live-total-display">0</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-400 text-xs uppercase tracking-wider font-bold">Bästa Serie</span>
+                        <div class="text-2xl font-bold text-green-400" id="live-best-series">-</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 mb-8 p-4 bg-indigo-50 rounded-lg border border-indigo-100 flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" id="result-share-checkbox" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="result-share-checkbox" class="font-bold text-indigo-900">Dela med klubben</label>
+                        <p class="text-indigo-700">Om ikryssad syns detta resultat i topplistor och nyhetsflöden. (Du kan ställa in standardvärdet i din profil).</p>
+                    </div>
+                </div>
+
+                <button type="submit" id="save-result-btn" class="w-full bg-green-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-green-700 transition duration-300 transform hover:scale-[1.02] shadow-md">
+                    Spara Resultat
+                </button>
+            </form>
+        </div>
+
+        <h2 class="text-2xl font-bold mb-4">Senaste Resultat</h2>
+        <div id="results-history-container" class="space-y-4">
+            <p class="text-gray-500 italic">Inga resultat registrerade än.</p>
+        </div>
+    </div>
+</section>
         
         <div id="errorModal" class="modal">
             <div class="modal-content">
