@@ -217,8 +217,7 @@ export function renderCompetitions(data, isAdminLoggedIn) {
             const shortContent = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
             
             // Länk som går till tävlingsfliken
-            const baseUrl = window.location.href.split('?')[0];
-            const compUrl = `${baseUrl}?#tavlingar`;
+            const compUrl = '#tavlingar';
 
             homeContainer.innerHTML += `
                 <a href="${compUrl}" class="card flex flex-col items-start hover:shadow-md transition duration-300">
