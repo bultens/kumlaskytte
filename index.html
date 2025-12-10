@@ -533,18 +533,24 @@
     <div class="max-w-3xl mx-auto">
         <h1 class="text-4xl font-bold mb-6">Mina Resultat</h1>
 
-        <div class="card mb-6 border-l-4 border-blue-600 bg-blue-50">
-            <label for="shooter-selector" class="block text-sm font-bold text-blue-900 mb-2">Vem är det som skjuter?</label>
-            <div class="relative">
-                <select id="shooter-selector" class="block w-full p-4 rounded-lg border border-blue-200 text-lg font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white">
-                    <option value="">Laddar profiler...</option>
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
-            </div>
-            <p class="text-xs text-blue-600 mt-2 ml-1">Du kan hantera flera skyttar från samma inloggning.</p>
+<div class="card mb-6 border-l-4 border-blue-600 bg-blue-50">
+    <div class="flex justify-between items-center mb-2">
+        <label for="shooter-selector" class="text-sm font-bold text-blue-900">Vem är det som skjuter?</label>
+        <button id="open-add-shooter-modal-btn" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+            + Lägg till ny skytt
+        </button>
+    </div>
+    
+    <div class="relative">
+        <select id="shooter-selector" class="block w-full p-4 rounded-lg border border-blue-200 text-lg font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white">
+            <option value="">Laddar profiler...</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
         </div>
+    </div>
+    <p class="text-xs text-blue-600 mt-2 ml-1">Välj dig själv eller ett barn du hanterar.</p>
+</div>
 
         <div class="card mb-8">
             <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Registrera ny omgång</h2>
@@ -715,6 +721,25 @@
             </div>
         </div>
         
+	<div id="addShooterModal" class="modal">
+    <div class="modal-content">
+        <span id="close-add-shooter-modal" class="modal-close-btn">×</span>
+        <h3 class="text-xl font-bold mb-4">Lägg till ny skytt</h3>
+        <p class="text-sm text-gray-600 mb-4">Skapa en profil för t.ex. ditt barn så att du kan mata in resultat åt dem.</p>
+        
+        <form id="add-shooter-form">
+            <label for="new-shooter-name" class="block mb-2 font-semibold">Namn</label>
+            <input type="text" id="new-shooter-name" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="T.ex. Kalle Svensson">
+            
+            <label for="new-shooter-birthyear" class="block mb-2 font-semibold">Födelseår</label>
+            <input type="number" id="new-shooter-birthyear" required min="1900" max="2100" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="T.ex. 2012">
+            
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Skapa Profil</button>
+        </form>
+    </div>
+</div>
+
+
         <div id="editUserModal" class="modal">
             <div class="modal-content">
                 <span id="close-edit-user-modal" class="modal-close-btn">&times;</span>
