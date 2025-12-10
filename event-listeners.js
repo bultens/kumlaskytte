@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
@@ -83,6 +83,10 @@ export function setupEventListeners() {
     const addShooterModal = document.getElementById('addShooterModal');
     const closeShooterModalBtn = document.getElementById('close-add-shooter-modal');
     const addShooterForm = document.getElementById('add-shooter-form');
+    const resultsContainer = document.getElementById('results-history-container');
+    const editResultModal = document.getElementById('editResultModal');
+    const closeEditResultBtn = document.getElementById('close-edit-result-modal');
+    const editResultForm = document.getElementById('edit-result-form');
 
 if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
@@ -157,6 +161,74 @@ if (openAddShooterBtn) {
             }
         });
     }
+if (resultsContainer) {
+        resultsContainer.addEventListener('click', (e) => {
+            // 1. Hantera TA BORT
+            const deleteBtn = e.target.closest('.delete-result-btn');
+            if (deleteBtn) {
+                const docId = deleteBtn.dataset.id;
+                showModal('deleteConfirmationModal', "Är du säker på att du vill radera resultatet?");
+                
+                // Koppla bekräfta-knappen till just detta ID
+                const confirmBtn = document.getElementById('confirm-delete-btn');
+                // Vi klonar knappen för att rensa gamla lyssnare (samma trick som för 20/40-knapparna)
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                
+                newConfirmBtn.addEventListener('click', async () => {
+                    // Använd din befintliga deleteDocument men skicka 'results' som collection
+                    await deleteDocument(docId, 'results');
+                    hideModal('deleteConfirmationModal');
+                    // Ladda om listan
+                    const shooterId = document.getElementById('shooter-selector').value;
+                    if (shooterId) loadResultsHistory(shooterId);
+                });
+            }
+
+            // 2. Hantera ÄNDRA
+            const editBtn = e.target.closest('.edit-result-btn');
+            if (editBtn) {
+                const data = JSON.parse(decodeURIComponent(editBtn.dataset.obj));
+                
+                // Fyll i formuläret
+                document.getElementById('edit-result-id').value = data.id;
+                document.getElementById('edit-result-date').value = data.date;
+                document.getElementById('edit-result-type').value = data.type;
+                document.getElementById('edit-result-discipline').value = data.discipline;
+                document.getElementById('edit-result-share').checked = data.shared;
+                
+                // Visa modalen
+                editResultModal.classList.add('active');
+            }
+        });
+    }
+
+    // Stäng edit-modal
+    if (closeEditResultBtn) {
+        closeEditResultBtn.addEventListener('click', () => editResultModal.classList.remove('active'));
+    }
+
+    // Spara ändringar
+    if (editResultForm) {
+        editResultForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultId = document.getElementById('edit-result-id').value;
+            const updatedData = {
+                date: document.getElementById('edit-result-date').value,
+                type: document.getElementById('edit-result-type').value,
+                discipline: document.getElementById('edit-result-discipline').value,
+                sharedWithClub: document.getElementById('edit-result-share').checked
+            };
+
+            await updateUserResult(resultId, updatedData);
+            editResultModal.classList.remove('active');
+            
+            // Uppdatera listan
+            const shooterId = document.getElementById('shooter-selector').value;
+            if (shooterId) loadResultsHistory(shooterId);
+        });
+    }
 
     // 3. Spara Resultat
     const addResultForm = document.getElementById('add-result-form');
@@ -207,11 +279,13 @@ if (openAddShooterBtn) {
         });
     }
 
-    async function loadResultsHistory(shooterId) {
+async function loadResultsHistory(shooterId) {
         const container = document.getElementById('results-history-container');
         if (!container) return;
         
         container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
+        
+        // Hämta resultat (din nya säkra sökning)
         const results = await getShooterResults(shooterId);
         
         container.innerHTML = '';
@@ -220,17 +294,47 @@ if (openAddShooterBtn) {
             return;
         }
 
-        results.slice(0, 5).forEach(res => { // Visa de 5 senaste
-            const date = new Date(res.date).toLocaleDateString(); // Förenklad datum
-            // Enkel rendering
+        results.slice(0, 10).forEach(res => { 
+            const date = new Date(res.date).toLocaleDateString();
+            const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
+            const shareTitle = res.sharedWithClub ? 'Delad med klubben' : 'Privat';
+
+            // Vi sparar datan i data-attribut för att enkelt kunna ladda edit-fönstret
+            const dataString = encodeURIComponent(JSON.stringify({
+                id: res.id,
+                date: res.date,
+                type: res.type,
+                discipline: res.discipline,
+                shared: res.sharedWithClub
+            }));
+
             container.innerHTML += `
                 <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'}">
-                    <div>
-                        <p class="font-bold text-gray-800">${res.total} poäng</p>
+                    <div class="flex-grow">
+                        <div class="flex items-center space-x-2">
+                            <p class="font-bold text-gray-800 text-lg">${res.total} p</p>
+                            <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
+                        </div>
                         <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
+                        <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded">Bästa: ${res.bestSeries}</span>
+                    
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
+                        
+                        <button class="edit-result-btn p-2 text-gray-500 hover:text-blue-600 transition" 
+                                data-obj="${dataString}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+
+                        <button class="delete-result-btn p-2 text-gray-500 hover:text-red-600 transition" 
+                                data-id="${res.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             `;
@@ -892,4 +996,65 @@ if (openAddShooterBtn) {
             if (imageMonthInput) imageMonthInput.value = month;
         }
     });
+async function loadResultsHistory(shooterId) {
+        const container = document.getElementById('results-history-container');
+        if (!container) return;
+        
+        container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
+        
+        // Hämta resultat
+        const results = await getShooterResults(shooterId);
+        
+        container.innerHTML = '';
+        if (results.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
+            return;
+        }
+
+        results.slice(0, 10).forEach(res => { 
+            const date = new Date(res.date).toLocaleDateString();
+            const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
+            const shareTitle = res.sharedWithClub ? 'Delad med klubben' : 'Privat';
+
+            // Vi sparar datan i data-attribut för att enkelt kunna ladda edit-fönstret
+            const dataString = encodeURIComponent(JSON.stringify({
+                id: res.id,
+                date: res.date,
+                type: res.type,
+                discipline: res.discipline,
+                shared: res.sharedWithClub
+            }));
+
+            container.innerHTML += `
+                <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'}">
+                    <div class="flex-grow">
+                        <div class="flex items-center space-x-2">
+                            <p class="font-bold text-gray-800 text-lg">${res.total} p</p>
+                            <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
+                        <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
+                        
+                        <button class="edit-result-btn p-2 text-gray-500 hover:text-blue-600 transition" 
+                                data-obj="${dataString}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+
+                        <button class="delete-result-btn p-2 text-gray-500 hover:text-red-600 transition" 
+                                data-id="${res.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
 }

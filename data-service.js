@@ -280,3 +280,20 @@ export async function getShooterResults(shooterId) {
         return [];
     }
 }
+// Uppdatera ett resultat (för vanliga användare)
+export async function updateUserResult(resultId, data) {
+    if (!auth.currentUser) return;
+    
+    try {
+        const docRef = doc(db, 'results', resultId);
+        // Säkerhetskoll görs även av Firestore Rules, men bra att ha här
+        await updateDoc(docRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        });
+        showModal('confirmationModal', "Resultatet har uppdaterats!");
+    } catch (error) {
+        console.error("Fel vid uppdatering av resultat:", error);
+        showModal('errorModal', "Kunde inte uppdatera resultatet. Kontrollera att du äger posten.");
+    }
+}
