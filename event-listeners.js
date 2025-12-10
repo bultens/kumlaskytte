@@ -88,6 +88,7 @@ export function setupEventListeners() {
     const closeEditResultBtn = document.getElementById('close-edit-result-modal');
     const editResultForm = document.getElementById('edit-result-form');
 
+
 if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
             if (addShooterModal) addShooterModal.classList.add('active');
@@ -1005,24 +1006,45 @@ async function loadResultsHistory(shooterId) {
         // Hämta resultat
         const results = await getShooterResults(shooterId);
         
+        // --- NYTT: UPPDATERA STATISTIK-TABELLEN ---
+        const stats = calculateShooterStats(results);
+        document.getElementById('stats-current-year').textContent = new Date().getFullYear();
+        
+        // Helper för att visa "-" om värdet är 0, annars värdet
+        const show = (val) => val > 0 ? val : '-';
+
+        document.getElementById('stats-year-series').textContent = show(stats.year.series);
+        document.getElementById('stats-year-20').textContent = show(stats.year.s20);
+        document.getElementById('stats-year-40').textContent = show(stats.year.s40);
+        document.getElementById('stats-year-60').textContent = show(stats.year.s60);
+
+        document.getElementById('stats-all-series').textContent = show(stats.allTime.series);
+        document.getElementById('stats-all-20').textContent = show(stats.allTime.s20);
+        document.getElementById('stats-all-40').textContent = show(stats.allTime.s40);
+        document.getElementById('stats-all-60').textContent = show(stats.allTime.s60);
+
+        // NYTT: Uppdatera Medaljligan
+        document.getElementById('count-gold3').textContent = stats.medals['Guld 3'] || 0;
+        document.getElementById('count-gold2').textContent = stats.medals['Guld 2'] || 0;
+        document.getElementById('count-gold1').textContent = stats.medals['Guld 1'] || 0;
+        document.getElementById('count-gold').textContent  = stats.medals['Guld']   || 0;
+        document.getElementById('count-silver').textContent = stats.medals['Silver'] || 0;
+        document.getElementById('count-bronze').textContent = stats.medals['Brons']  || 0;
+        // -------------------------------------------
+
         container.innerHTML = '';
         if (results.length === 0) {
             container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
             return;
         }
 
+        // Visa listan (Samma kod som förut)
         results.slice(0, 10).forEach(res => { 
             const date = new Date(res.date).toLocaleDateString();
             const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
             const shareTitle = res.sharedWithClub ? 'Delad med klubben' : 'Privat';
-
-            // Vi sparar datan i data-attribut för att enkelt kunna ladda edit-fönstret
             const dataString = encodeURIComponent(JSON.stringify({
-                id: res.id,
-                date: res.date,
-                type: res.type,
-                discipline: res.discipline,
-                shared: res.sharedWithClub
+                id: res.id, date: res.date, type: res.type, discipline: res.discipline, shared: res.sharedWithClub
             }));
 
             container.innerHTML += `
@@ -1035,22 +1057,13 @@ async function loadResultsHistory(shooterId) {
                         <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
                         <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
                     </div>
-                    
                     <div class="flex items-center space-x-2">
                         <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
-                        
-                        <button class="edit-result-btn p-2 text-gray-500 hover:text-blue-600 transition" 
-                                data-obj="${dataString}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
+                        <button class="edit-result-btn p-2 text-gray-500 hover:text-blue-600 transition" data-obj="${dataString}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
-
-                        <button class="delete-result-btn p-2 text-gray-500 hover:text-red-600 transition" 
-                                data-id="${res.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                        <button class="delete-result-btn p-2 text-gray-500 hover:text-red-600 transition" data-id="${res.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     </div>
                 </div>

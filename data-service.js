@@ -297,3 +297,56 @@ export async function updateUserResult(resultId, data) {
         showModal('errorModal', "Kunde inte uppdatera resultatet. Kontrollera att du äger posten.");
     }
 }
+// Beräkna statistik för en skytt
+export function calculateShooterStats(results) {
+    const currentYear = new Date().getFullYear();
+    
+    const stats = {
+        year: { series: 0, s20: 0, s40: 0, s60: 0 },
+        allTime: { series: 0, s20: 0, s40: 0, s60: 0 },
+        // NYTT: Räknare för medaljer
+        medals: {
+            'Guld 3': 0,
+            'Guld 2': 0,
+            'Guld 1': 0,
+            'Guld': 0,
+            'Silver': 0,
+            'Brons': 0
+        }
+    };
+
+    results.forEach(res => {
+        const resYear = new Date(res.date).getFullYear();
+        const isCurrentYear = resYear === currentYear;
+        const total = parseFloat(res.total) || 0;
+        const bestSeries = parseFloat(res.bestSeries) || 0;
+        const count = parseInt(res.shotCount);
+
+        // Rekord-logik (som förut)
+        if (bestSeries > stats.allTime.series) stats.allTime.series = bestSeries;
+        if (isCurrentYear && bestSeries > stats.year.series) stats.year.series = bestSeries;
+
+        if (count === 20) {
+            if (total > stats.allTime.s20) stats.allTime.s20 = total;
+            if (isCurrentYear && total > stats.year.s20) stats.year.s20 = total;
+        } else if (count === 40) {
+            if (total > stats.allTime.s40) stats.allTime.s40 = total;
+            if (isCurrentYear && total > stats.year.s40) stats.year.s40 = total;
+        } else if (count === 60) {
+            if (total > stats.allTime.s60) stats.allTime.s60 = total;
+            if (isCurrentYear && total > stats.year.s60) stats.year.s60 = total;
+        }
+
+        // NYTT: Räkna medaljer från seriesMedals-arrayen
+        if (res.seriesMedals && Array.isArray(res.seriesMedals)) {
+            res.seriesMedals.forEach(medalName => {
+                // Om det finns ett medaljnamn och vi har en räknare för det
+                if (medalName && stats.medals[medalName] !== undefined) {
+                    stats.medals[medalName]++;
+                }
+            });
+        }
+    });
+
+    return stats;
+}

@@ -626,7 +626,78 @@
                 </button>
             </form>
         </div>
-
+	<div class="card mb-8 bg-white border border-gray-200 shadow-sm" id="stats-card">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Mina Bästa Resultat</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 rounded-l-lg">Period</th>
+                            <th scope="col" class="px-4 py-3 text-center">Bästa Serie (10)</th>
+                            <th scope="col" class="px-4 py-3 text-center">20 Skott</th>
+                            <th scope="col" class="px-4 py-3 text-center">40 Skott</th>
+                            <th scope="col" class="px-4 py-3 text-center rounded-r-lg">60 Skott</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-white border-b">
+                            <th scope="row" class="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">
+                                I år (<span id="stats-current-year">2025</span>)
+                            </th>
+                            <td class="px-4 py-4 text-center text-blue-600 font-bold text-lg" id="stats-year-series">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-year-20">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-year-40">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-year-60">-</td>
+                        </tr>
+                        <tr class="bg-white">
+                            <th scope="row" class="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">
+                                Personbästa (Totalt)
+                            </th>
+                            <td class="px-4 py-4 text-center text-green-600 font-bold text-lg" id="stats-all-series">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-all-20">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-all-40">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-all-60">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+		<div class="mt-6 pt-4 border-t border-gray-100">
+                <h3 class="text-sm font-bold text-gray-700 uppercase mb-3 ml-1">Min Medaljliga (Antal seriemärken)</h3>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+                    <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-100">
+                        <div class="text-xl mb-1">🏆</div>
+                        <div class="font-bold text-yellow-800 text-lg leading-none" id="count-gold3">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 3</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-100">
+                        <div class="text-xl mb-1">🥇</div>
+                        <div class="font-bold text-yellow-800 text-lg leading-none" id="count-gold2">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 2</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-100">
+                        <div class="text-xl mb-1">🥇</div>
+                        <div class="font-bold text-yellow-800 text-lg leading-none" id="count-gold1">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 1</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-100">
+                        <div class="text-xl mb-1">🥇</div>
+                        <div class="font-bold text-yellow-800 text-lg leading-none" id="count-gold">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                        <div class="text-xl mb-1">🥈</div>
+                        <div class="font-bold text-gray-600 text-lg leading-none" id="count-silver">-</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mt-1">Silver</div>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-2 border border-orange-200">
+                        <div class="text-xl mb-1">🥉</div>
+                        <div class="font-bold text-orange-800 text-lg leading-none" id="count-bronze">-</div>
+                        <div class="text-[10px] text-orange-700 uppercase font-bold mt-1">Brons</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
         <h2 class="text-2xl font-bold mb-4">Senaste Resultat</h2>
         <div id="results-history-container" class="space-y-4">
             <p class="text-gray-500 italic">Inga resultat registrerade än.</p>
