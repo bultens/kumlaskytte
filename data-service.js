@@ -3,8 +3,9 @@ import { db, auth } from "./firebase-config.js";
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { renderShootersAdmin } from "./ui-handler.js";
 
-// Ver. 1.14 (Stabil version)
+// Ver. 1.15 (Fixat syntaxfel)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -12,10 +13,19 @@ export let historyData = [];
 export let imageData = [];
 export let usersData = []; 
 export let sponsorsData = [];
+export let allShootersData = [];
 
 export function initializeDataListeners() {
-    // Hämtar currentUserId direkt från auth-objektet istället för att importera det
+    // Hämtar currentUserId direkt från auth-objektet
     const uid = auth.currentUser ? auth.currentUser.uid : null;
+
+    // Hämta alla skyttar ENDAST om man är Admin
+    if (isAdminLoggedIn) {
+        onSnapshot(collection(db, 'shooters'), (snapshot) => { 
+            allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+            renderShootersAdmin(allShootersData); 
+        });
+    }
 
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
     
@@ -26,7 +36,14 @@ export function initializeDataListeners() {
     });
 
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
-    onSnapshot(collection(db, 'users'), (snapshot) => { usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); renderUserReport(usersData); });
+    
+    // Users - Här låg felet tidigare
+    onSnapshot(collection(db, 'users'), (snapshot) => { 
+        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
+        renderUserReport(usersData); 
+    });
+
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });

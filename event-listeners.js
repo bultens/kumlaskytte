@@ -269,7 +269,7 @@ export function setupEventListeners() {
         });
     }
 
-    // Dubbletten av loadResultsHistory är borttagen härifrån, och den korrekta finns längst ner.
+
 
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
@@ -941,14 +941,26 @@ export function setupEventListeners() {
         document.getElementById('stats-all-40').textContent = show(stats.allTime.s40);
         document.getElementById('stats-all-60').textContent = show(stats.allTime.s60);
 
-        // NYTT: Uppdatera Medaljligan
-        document.getElementById('count-gold3').textContent = stats.medals['Guld 3'] || 0;
-        document.getElementById('count-gold2').textContent = stats.medals['Guld 2'] || 0;
-        document.getElementById('count-gold1').textContent = stats.medals['Guld 1'] || 0;
-        document.getElementById('count-gold').textContent  = stats.medals['Guld']   || 0;
-        document.getElementById('count-silver').textContent = stats.medals['Silver'] || 0;
-        document.getElementById('count-bronze').textContent = stats.medals['Brons']  || 0;
-        
+	// Hantera Medaljligan baserat på inställningar
+        const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
+        const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
+        const medalSection = document.getElementById('medal-league-section');
+
+        if (currentSettings.trackMedals === false) {
+            // Om gamification är avstängt: Dölj sektionen
+            if (medalSection) medalSection.classList.add('hidden');
+        } else {
+            // Om påslaget: Visa och uppdatera siffrorna
+            if (medalSection) {
+                medalSection.classList.remove('hidden');
+                document.getElementById('count-gold3').textContent = stats.medals['Guld 3'] || 0;
+                document.getElementById('count-gold2').textContent = stats.medals['Guld 2'] || 0;
+                document.getElementById('count-gold1').textContent = stats.medals['Guld 1'] || 0;
+                document.getElementById('count-gold').textContent  = stats.medals['Guld']   || 0;
+                document.getElementById('count-silver').textContent = stats.medals['Silver'] || 0;
+                document.getElementById('count-bronze').textContent = stats.medals['Brons']  || 0;
+            }
+        }        
         container.innerHTML = '';
         if (results.length === 0) {
             container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';

@@ -648,6 +648,33 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
     });
 }
 
+export function renderShootersAdmin(shootersData) {
+    const container = document.getElementById('admin-shooters-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    // Sortera i bokstavsordning
+    shootersData.sort((a, b) => a.name.localeCompare(b.name));
+
+    shootersData.forEach(shooter => {
+        container.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-200">
+                <div>
+                    <span class="font-bold text-gray-800">${shooter.name}</span>
+                    <span class="text-sm text-gray-500 ml-2">(Född: ${shooter.birthyear})</span>
+                    <p class="text-xs text-gray-400">Kopplad till ID: ${shooter.parentUserIds ? shooter.parentUserIds[0] : 'Ingen'}</p>
+                </div>
+                <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition" 
+                        data-id="${shooter.id}" 
+                        data-type="shooters">
+                    Ta bort
+                </button>
+            </div>
+        `;
+    });
+}
+
 export function renderUserReport(usersData) {
     const userListContainer = document.getElementById('user-report-list');
     const mailingListContainer = document.getElementById('mailing-list-report');
