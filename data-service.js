@@ -265,7 +265,12 @@ export async function saveResult(resultData) {
 // Hämta historik för en specifik skytt
 export async function getShooterResults(shooterId) {
     try {
-        const q = query(collection(db, 'results'), where('shooterId', '==', shooterId)); // Lägg till orderBy('date', 'desc') senare när index är byggt
+        const q = query(
+            collection(db, 'results'), 
+            where('shooterId', '==', shooterId),
+            where('registeredBy', '==', auth.currentUser.uid)
+        );
+        
         const snapshot = await getDocs(q);
         let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         // Sortera manuellt tills index finns
