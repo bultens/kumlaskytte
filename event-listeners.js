@@ -4,6 +4,7 @@ import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike } from "./data-service.js";
+import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
@@ -78,6 +79,162 @@ export function setupEventListeners() {
     const compContentEditor = document.getElementById('comp-content-editor');
     const compPdfUpload = document.getElementById('comp-pdf-upload');
     const compAddBtn = document.getElementById('add-comp-btn');
+    const openAddShooterBtn = document.getElementById('open-add-shooter-modal-btn');
+    const addShooterModal = document.getElementById('addShooterModal');
+    const closeShooterModalBtn = document.getElementById('close-add-shooter-modal');
+    const addShooterForm = document.getElementById('add-shooter-form');
+
+if (openAddShooterBtn) {
+        openAddShooterBtn.addEventListener('click', () => {
+            if (addShooterModal) addShooterModal.classList.add('active');
+        });
+    }
+    if (closeShooterModalBtn) {
+        closeShooterModalBtn.addEventListener('click', () => {
+            if (addShooterModal) addShooterModal.classList.remove('active');
+        });
+    }
+    if (addShooterForm) {
+        addShooterForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-shooter-name').value;
+            const year = document.getElementById('new-shooter-birthyear').value;
+            
+            if (auth.currentUser) {
+                await createShooterProfile(auth.currentUser.uid, name, year);
+                addShooterModal.classList.remove('active');
+                addShooterForm.reset();
+                loadShootersIntoDropdown(); // Uppdatera listan direkt
+            }
+        });
+    }
+
+    // 2. Ladda skyttar till dropdown när man går till fliken (eller loggar in)
+    async function loadShootersIntoDropdown() {
+        const select = document.getElementById('shooter-selector');
+        if (!select || !auth.currentUser) return;
+
+        const shooters = await getMyShooters(auth.currentUser.uid);
+        select.innerHTML = '';
+        
+        if (shooters.length === 0) {
+            select.innerHTML = '<option value="">Inga profiler hittades - Skapa en ny!</option>';
+        } else {
+            shooters.forEach(shooter => {
+                const option = document.createElement('option');
+                option.value = shooter.id;
+                option.text = shooter.name;
+                // Spara inställningar i dataset för att använda senare
+                option.dataset.settings = JSON.stringify(shooter.settings || {});
+                select.appendChild(option);
+            });
+            // Trigga en 'change' så att vi kan ladda inställningar för den förvalda skytten
+            select.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // Körs när man loggat in (via main/auth listener) eller manuellt:
+    window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#resultat') {
+            loadShootersIntoDropdown();
+        }
+    });
+    
+    // Hantera val av skytt (uppdatera "Dela"-rutan baserat på profil)
+    const shooterSelect = document.getElementById('shooter-selector');
+    if (shooterSelect) {
+        shooterSelect.addEventListener('change', (e) => {
+            const selectedOption = e.target.selectedOptions[0];
+            if (selectedOption && selectedOption.dataset.settings) {
+                const settings = JSON.parse(selectedOption.dataset.settings);
+                const shareCheckbox = document.getElementById('result-share-checkbox');
+                if (shareCheckbox) {
+                    shareCheckbox.checked = settings.defaultShareResults || false;
+                }
+                // Här kan vi också ladda historik för vald skytt!
+                loadResultsHistory(e.target.value);
+            }
+        });
+    }
+
+    // 3. Spara Resultat
+    const addResultForm = document.getElementById('add-result-form');
+    if (addResultForm) {
+        addResultForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const shooterId = document.getElementById('shooter-selector').value;
+            if (!shooterId) {
+                showModal('errorModal', "Du måste välja eller skapa en skytt först!");
+                return;
+            }
+
+            const { total, best, seriesScores } = calculateTotal();
+            
+            // Hämta inställningar för att veta om vi ska spara medaljer
+            const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
+            const settings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
+            const trackMedals = settings.trackMedals !== false; // Default true
+
+            // Beräkna medaljer för serierna
+            const seriesMedals = seriesScores.map(score => {
+                if (trackMedals) {
+                    const m = getMedalForScore(score);
+                    return m ? m.name : null;
+                }
+                return null;
+            });
+
+            const resultData = {
+                shooterId: shooterId,
+                registeredBy: auth.currentUser.uid,
+                date: document.getElementById('result-date').value,
+                type: document.getElementById('result-type').value,
+                discipline: document.getElementById('result-discipline').value,
+                shotCount: parseInt(document.getElementById('result-shot-count').value),
+                series: seriesScores,
+                seriesMedals: seriesMedals,
+                total: total,
+                bestSeries: best,
+                sharedWithClub: document.getElementById('result-share-checkbox').checked
+            };
+
+            await saveResult(resultData);
+            addResultForm.reset();
+            setupResultFormListeners(); // Återställ rutorna (default 20 skott)
+            loadResultsHistory(shooterId); // Uppdatera listan
+        });
+    }
+
+    async function loadResultsHistory(shooterId) {
+        const container = document.getElementById('results-history-container');
+        if (!container) return;
+        
+        container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
+        const results = await getShooterResults(shooterId);
+        
+        container.innerHTML = '';
+        if (results.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
+            return;
+        }
+
+        results.slice(0, 5).forEach(res => { // Visa de 5 senaste
+            const date = new Date(res.date).toLocaleDateString(); // Förenklad datum
+            // Enkel rendering
+            container.innerHTML += `
+                <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'}">
+                    <div>
+                        <p class="font-bold text-gray-800">${res.total} poäng</p>
+                        <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded">Bästa: ${res.bestSeries}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
 
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {

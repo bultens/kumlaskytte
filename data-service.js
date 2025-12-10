@@ -211,3 +211,67 @@ export async function deleteAdmin(adminId) {
         showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.");
     }
 }
+
+// --- SHOOTER & RESULT LOGIC ---
+
+// Skapa en ny skytt-profil
+export async function createShooterProfile(userId, name, birthyear) {
+    if (!userId) return;
+    try {
+        await addDoc(collection(db, 'shooters'), {
+            name: name,
+            birthyear: parseInt(birthyear),
+            parentUserIds: [userId], // Kopplar skytten till din inloggning
+            settings: {
+                trackMedals: true,
+                defaultShareResults: false
+            },
+            createdAt: serverTimestamp()
+        });
+        showModal('confirmationModal', `Profil för ${name} skapad!`);
+    } catch (error) {
+        console.error("Fel vid skapande av skytt:", error);
+        showModal('errorModal', "Kunde inte skapa profil.");
+    }
+}
+
+// Hämta alla skyttar jag har rätt att se (mig själv + barn)
+export async function getMyShooters(userId) {
+    if (!userId) return [];
+    try {
+        const q = query(collection(db, 'shooters'), where('parentUserIds', 'array-contains', userId));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Fel vid hämtning av skyttar:", error);
+        return [];
+    }
+}
+
+// Spara resultatet
+export async function saveResult(resultData) {
+    try {
+        await addDoc(collection(db, 'results'), {
+            ...resultData,
+            createdAt: serverTimestamp()
+        });
+        showModal('confirmationModal', "Resultat sparat!");
+    } catch (error) {
+        console.error("Fel vid sparande av resultat:", error);
+        showModal('errorModal', "Kunde inte spara resultatet.");
+    }
+}
+
+// Hämta historik för en specifik skytt
+export async function getShooterResults(shooterId) {
+    try {
+        const q = query(collection(db, 'results'), where('shooterId', '==', shooterId)); // Lägg till orderBy('date', 'desc') senare när index är byggt
+        const snapshot = await getDocs(q);
+        let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sortera manuellt tills index finns
+        return results.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } catch (error) {
+        console.error("Fel vid hämtning av resultat:", error);
+        return [];
+    }
+}
