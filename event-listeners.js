@@ -137,6 +137,7 @@ if (openAddShooterBtn) {
     window.addEventListener('hashchange', () => {
         if (window.location.hash === '#resultat') {
             loadShootersIntoDropdown();
+	    setupResultFormListeners();
         }
     });
     
