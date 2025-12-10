@@ -3,13 +3,14 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult } from "./data-service.js";
+// VIKTIGT: calculateShooterStats är nu tillagd i importen här nere
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.28 (Rensade importer)
+// Ver. 1.29 (Fixad import och dubbla funktioner)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -88,8 +89,7 @@ export function setupEventListeners() {
     const closeEditResultBtn = document.getElementById('close-edit-result-modal');
     const editResultForm = document.getElementById('edit-result-form');
 
-
-if (openAddShooterBtn) {
+    if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
             if (addShooterModal) addShooterModal.classList.add('active');
         });
@@ -109,12 +109,11 @@ if (openAddShooterBtn) {
                 await createShooterProfile(auth.currentUser.uid, name, year);
                 addShooterModal.classList.remove('active');
                 addShooterForm.reset();
-                loadShootersIntoDropdown(); // Uppdatera listan direkt
+                loadShootersIntoDropdown();
             }
         });
     }
 
-    // 2. Ladda skyttar till dropdown när man går till fliken (eller loggar in)
     async function loadShootersIntoDropdown() {
         const select = document.getElementById('shooter-selector');
         if (!select || !auth.currentUser) return;
@@ -129,24 +128,28 @@ if (openAddShooterBtn) {
                 const option = document.createElement('option');
                 option.value = shooter.id;
                 option.text = shooter.name;
-                // Spara inställningar i dataset för att använda senare
                 option.dataset.settings = JSON.stringify(shooter.settings || {});
                 select.appendChild(option);
             });
-            // Trigga en 'change' så att vi kan ladda inställningar för den förvalda skytten
             select.dispatchEvent(new Event('change'));
         }
     }
 
-    // Körs när man loggat in (via main/auth listener) eller manuellt:
     window.addEventListener('hashchange', () => {
-        if (window.location.hash === '#resultat') {
+        const currentHash = window.location.hash;
+        if (currentHash === '#resultat') {
             loadShootersIntoDropdown();
-	    setupResultFormListeners();
+            setupResultFormListeners();
+        }
+        if (currentHash === '#bilder') {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1; 
+            if (imageYearInput) imageYearInput.value = year;
+            if (imageMonthInput) imageMonthInput.value = month;
         }
     });
     
-    // Hantera val av skytt (uppdatera "Dela"-rutan baserat på profil)
     const shooterSelect = document.getElementById('shooter-selector');
     if (shooterSelect) {
         shooterSelect.addEventListener('change', (e) => {
@@ -157,59 +160,49 @@ if (openAddShooterBtn) {
                 if (shareCheckbox) {
                     shareCheckbox.checked = settings.defaultShareResults || false;
                 }
-                // Här kan vi också ladda historik för vald skytt!
                 loadResultsHistory(e.target.value);
             }
         });
     }
-if (resultsContainer) {
+    
+    if (resultsContainer) {
         resultsContainer.addEventListener('click', (e) => {
-            // 1. Hantera TA BORT
             const deleteBtn = e.target.closest('.delete-result-btn');
             if (deleteBtn) {
                 const docId = deleteBtn.dataset.id;
                 showModal('deleteConfirmationModal', "Är du säker på att du vill radera resultatet?");
                 
-                // Koppla bekräfta-knappen till just detta ID
                 const confirmBtn = document.getElementById('confirm-delete-btn');
-                // Vi klonar knappen för att rensa gamla lyssnare (samma trick som för 20/40-knapparna)
                 const newConfirmBtn = confirmBtn.cloneNode(true);
                 confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
                 
                 newConfirmBtn.addEventListener('click', async () => {
-                    // Använd din befintliga deleteDocument men skicka 'results' som collection
                     await deleteDocument(docId, 'results');
                     hideModal('deleteConfirmationModal');
-                    // Ladda om listan
                     const shooterId = document.getElementById('shooter-selector').value;
                     if (shooterId) loadResultsHistory(shooterId);
                 });
             }
 
-            // 2. Hantera ÄNDRA
             const editBtn = e.target.closest('.edit-result-btn');
             if (editBtn) {
                 const data = JSON.parse(decodeURIComponent(editBtn.dataset.obj));
                 
-                // Fyll i formuläret
                 document.getElementById('edit-result-id').value = data.id;
                 document.getElementById('edit-result-date').value = data.date;
                 document.getElementById('edit-result-type').value = data.type;
                 document.getElementById('edit-result-discipline').value = data.discipline;
                 document.getElementById('edit-result-share').checked = data.shared;
                 
-                // Visa modalen
                 editResultModal.classList.add('active');
             }
         });
     }
 
-    // Stäng edit-modal
     if (closeEditResultBtn) {
         closeEditResultBtn.addEventListener('click', () => editResultModal.classList.remove('active'));
     }
 
-    // Spara ändringar
     if (editResultForm) {
         editResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -225,13 +218,11 @@ if (resultsContainer) {
             await updateUserResult(resultId, updatedData);
             editResultModal.classList.remove('active');
             
-            // Uppdatera listan
             const shooterId = document.getElementById('shooter-selector').value;
             if (shooterId) loadResultsHistory(shooterId);
         });
     }
 
-    // 3. Spara Resultat
     const addResultForm = document.getElementById('add-result-form');
     if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
@@ -245,12 +236,10 @@ if (resultsContainer) {
 
             const { total, best, seriesScores } = calculateTotal();
             
-            // Hämta inställningar för att veta om vi ska spara medaljer
             const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
             const settings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
-            const trackMedals = settings.trackMedals !== false; // Default true
+            const trackMedals = settings.trackMedals !== false; 
 
-            // Beräkna medaljer för serierna
             const seriesMedals = seriesScores.map(score => {
                 if (trackMedals) {
                     const m = getMedalForScore(score);
@@ -275,72 +264,12 @@ if (resultsContainer) {
 
             await saveResult(resultData);
             addResultForm.reset();
-            setupResultFormListeners(); // Återställ rutorna (default 20 skott)
-            loadResultsHistory(shooterId); // Uppdatera listan
+            setupResultFormListeners(); 
+            loadResultsHistory(shooterId);
         });
     }
 
-async function loadResultsHistory(shooterId) {
-        const container = document.getElementById('results-history-container');
-        if (!container) return;
-        
-        container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
-        
-        // Hämta resultat (din nya säkra sökning)
-        const results = await getShooterResults(shooterId);
-        
-        container.innerHTML = '';
-        if (results.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
-            return;
-        }
-
-        results.slice(0, 10).forEach(res => { 
-            const date = new Date(res.date).toLocaleDateString();
-            const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
-            const shareTitle = res.sharedWithClub ? 'Delad med klubben' : 'Privat';
-
-            // Vi sparar datan i data-attribut för att enkelt kunna ladda edit-fönstret
-            const dataString = encodeURIComponent(JSON.stringify({
-                id: res.id,
-                date: res.date,
-                type: res.type,
-                discipline: res.discipline,
-                shared: res.sharedWithClub
-            }));
-
-            container.innerHTML += `
-                <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'}">
-                    <div class="flex-grow">
-                        <div class="flex items-center space-x-2">
-                            <p class="font-bold text-gray-800 text-lg">${res.total} p</p>
-                            <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
-                        </div>
-                        <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
-                        <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
-                    </div>
-                    
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
-                        
-                        <button class="edit-result-btn p-2 text-gray-500 hover:text-blue-600 transition" 
-                                data-obj="${dataString}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-
-                        <button class="delete-result-btn p-2 text-gray-500 hover:text-red-600 transition" 
-                                data-id="${res.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-    }
+    // Dubbletten av loadResultsHistory är borttagen härifrån, och den korrekta finns längst ner.
 
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
@@ -369,13 +298,20 @@ async function loadResultsHistory(shooterId) {
             const profilePhoneInput = document.getElementById('profile-phone-input');
             const profileBirthyearInput = document.getElementById('profile-birthyear-input');
             const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+            // Inställningar
+            const trackMedals = document.getElementById('track-medals-toggle').checked;
+            const defaultShare = document.getElementById('profile-default-share').checked;
 
             const profileData = {
                 name: profileNameInput.value,
                 address: profileAddressInput.value,
                 phone: profilePhoneInput.value,
                 birthyear: profileBirthyearInput.value,
-                mailingList: profileMailingListCheckbox.checked
+                mailingList: profileMailingListCheckbox.checked,
+                settings: {
+                    trackMedals: trackMedals,
+                    defaultShareResults: defaultShare
+                }
             };
             await updateProfile(auth.currentUser.uid, profileData);
         });
@@ -629,7 +565,6 @@ async function loadResultsHistory(shooterId) {
         });
     }
 
-    // Shared Click Handlers
     document.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-btn');
         if (deleteBtn) {
@@ -699,7 +634,6 @@ async function loadResultsHistory(shooterId) {
             deleteAdmin(adminId);
         }
 
-        // Redigeringsknappar
         const editNewsBtn = e.target.closest('.edit-news-btn');
         if (editNewsBtn) {
             const newsId = editNewsBtn.getAttribute('data-id');
@@ -808,7 +742,6 @@ async function loadResultsHistory(shooterId) {
             }
         }
         
-        // Editera tävling
         const editCompBtn = e.target.closest('.edit-comp-btn');
         if (editCompBtn) {
             const id = editCompBtn.getAttribute('data-id');
@@ -836,7 +769,6 @@ async function loadResultsHistory(shooterId) {
         }
     });
 
-    // Input listeners
     const inputElements = [
         newsTitleInput, newsContentEditor,
         historyTitleInput, historyContentEditor, historyPriorityInput,
@@ -865,7 +797,6 @@ async function loadResultsHistory(shooterId) {
         }
     });
 
-    // New event listeners for like and share buttons
     document.addEventListener('click', async (e) => {
         const likeBtn = e.target.closest('.like-btn');
         if (likeBtn) {
@@ -915,14 +846,11 @@ async function loadResultsHistory(shooterId) {
                 const url = prompt("Ange länkens URL (t.ex. https://...):");
                 if (url) {
                     const selection = window.getSelection();
-                    // Om användaren redan har markerat text, gör om den till länk
                     if (selection.toString().length > 0) {
                         applyEditorCommand(editorElement, command, url);
                     } else {
-                        // Ingen text markerad -> Fråga efter visningstext
                         const text = prompt("Ange text som ska visas för länken:", "Läs mer här");
                         if (text) {
-                            // Vi använder 'insertHTML' för att skapa en snygg länk som öppnas i ny flik
                             const html = `<a href="${url}" target="_blank">${text}</a>`;
                             applyEditorCommand(editorElement, 'insertHTML', html);
                         }
@@ -986,18 +914,8 @@ async function loadResultsHistory(shooterId) {
             }
         });
     }
-    
-    window.addEventListener('hashchange', () => {
-        const currentHash = window.location.hash;
-        if (currentHash === '#bilder') {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1; // getMonth() är 0-baserad
-            if (imageYearInput) imageYearInput.value = year;
-            if (imageMonthInput) imageMonthInput.value = month;
-        }
-    });
-async function loadResultsHistory(shooterId) {
+
+    async function loadResultsHistory(shooterId) {
         const container = document.getElementById('results-history-container');
         if (!container) return;
         
@@ -1006,7 +924,7 @@ async function loadResultsHistory(shooterId) {
         // Hämta resultat
         const results = await getShooterResults(shooterId);
         
-        // --- NYTT: UPPDATERA STATISTIK-TABELLEN ---
+        // --- UPPDATERA STATISTIK-TABELLEN ---
         const stats = calculateShooterStats(results);
         document.getElementById('stats-current-year').textContent = new Date().getFullYear();
         
@@ -1030,15 +948,13 @@ async function loadResultsHistory(shooterId) {
         document.getElementById('count-gold').textContent  = stats.medals['Guld']   || 0;
         document.getElementById('count-silver').textContent = stats.medals['Silver'] || 0;
         document.getElementById('count-bronze').textContent = stats.medals['Brons']  || 0;
-        // -------------------------------------------
-
+        
         container.innerHTML = '';
         if (results.length === 0) {
             container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
             return;
         }
 
-        // Visa listan (Samma kod som förut)
         results.slice(0, 10).forEach(res => { 
             const date = new Date(res.date).toLocaleDateString();
             const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
