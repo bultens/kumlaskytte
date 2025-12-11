@@ -5,7 +5,7 @@ import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { renderShootersAdmin } from "./ui-handler.js";
 
-// Ver. 1.16
+// Ver. 1.17
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -38,7 +38,8 @@ if (auth.currentUser) {
     }
 
 onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
-  
+onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
+onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
 onSnapshot(collection(db, 'users'), async (snapshot) => { 
     usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
     renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
