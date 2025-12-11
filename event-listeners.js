@@ -9,7 +9,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.30
+// Ver. 1.31
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -87,6 +87,7 @@ export function setupEventListeners() {
     const editResultModal = document.getElementById('editResultModal');
     const closeEditResultBtn = document.getElementById('close-edit-result-modal');
     const editResultForm = document.getElementById('edit-result-form');
+    const addResultForm = document.getElementById('add-result-form');
 
     if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
