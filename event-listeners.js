@@ -947,20 +947,54 @@ export function setupEventListeners() {
         const medalSection = document.getElementById('medal-league-section');
 
         if (currentSettings.trackMedals === false) {
-            // Om gamification är avstängt: Dölj sektionen
             if (medalSection) medalSection.classList.add('hidden');
         } else {
-            // Om påslaget: Visa och uppdatera siffrorna
             if (medalSection) {
                 medalSection.classList.remove('hidden');
-                document.getElementById('count-gold3').textContent = stats.medals['Guld 3'] || 0;
-                document.getElementById('count-gold2').textContent = stats.medals['Guld 2'] || 0;
-                document.getElementById('count-gold1').textContent = stats.medals['Guld 1'] || 0;
-                document.getElementById('count-gold').textContent  = stats.medals['Guld']   || 0;
-                document.getElementById('count-silver').textContent = stats.medals['Silver'] || 0;
-                document.getElementById('count-bronze').textContent = stats.medals['Brons']  || 0;
+                
+                // Hjälpfunktion för att rendera märkesstatus
+                const updateBadgeUI = (type, elementId, icon) => {
+                    const count = stats.medals[type] || 0;
+                    // Uppdatera övre raden (Total)
+                    const countEl = document.getElementById(`count-${elementId}`);
+                    if(countEl) countEl.textContent = count;
+
+                    // Uppdatera nedre raden (Märkesstatus)
+                    const statusEl = document.getElementById(`badge-status-${elementId}`);
+                    if(!statusEl) return;
+
+                    const earnedBadges = Math.floor(count / 10);
+                    const progress = count % 10;
+
+                    if (earnedBadges > 0) {
+                        // Har tagit minst ett märke -> Visa Grönt Checktecken + Antal
+                        statusEl.innerHTML = `
+                            <div class="bg-green-100 text-green-600 rounded-full p-1 mb-1 border-2 border-green-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div class="text-xs font-bold text-gray-700">${earnedBadges} st klara</div>
+                            <div class="text-[10px] text-gray-500">${progress} / 10 mot nästa</div>
+                        `;
+                    } else {
+                        // Har inte tagit märke än -> Visa framsteg "X / 10"
+                        statusEl.innerHTML = `
+                            <div class="text-2xl mb-1 opacity-50 grayscale">${icon}</div>
+                            <div class="font-bold text-lg leading-none">${progress} / 10</div>
+                        `;
+                    }
+                };
+
+                // Kör funktionen för alla valörer
+                updateBadgeUI('Guld 3', 'gold3', '🏆');
+                updateBadgeUI('Guld 2', 'gold2', '🥇');
+                updateBadgeUI('Guld 1', 'gold1', '🥇');
+                updateBadgeUI('Guld',   'gold',   '🥇');
+                updateBadgeUI('Silver', 'silver', '🥈');
+                updateBadgeUI('Brons',  'bronze', '🥉');
             }
-        }        
+        }      
         container.innerHTML = '';
         if (results.length === 0) {
             container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
