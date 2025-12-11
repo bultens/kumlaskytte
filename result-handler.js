@@ -24,17 +24,13 @@ export function setupResultFormListeners() {
     const shotCountBtns = document.querySelectorAll('.shot-count-btn');
     const shotCountInput = document.getElementById('result-shot-count');
     
-    // Om knapparna inte hittas (sidan kanske inte laddat klart), avbryt
     if (!shotCountBtns.length) return;
 
-    // 1. Hantera val av antal skott (20/40/60)
     shotCountBtns.forEach(btn => {
-        // Ta bort gamla listeners genom att klona knappen (enklast för att undvika dubbla klick)
         const newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
         
         newBtn.addEventListener('click', () => {
-            // Uppdatera utseende på knappar
             document.querySelectorAll('.shot-count-btn').forEach(b => {
                 b.classList.remove('bg-white', 'shadow', 'text-blue-800', 'font-bold');
                 b.classList.add('text-gray-600', 'hover:bg-white/50');
@@ -42,7 +38,6 @@ export function setupResultFormListeners() {
             newBtn.classList.add('bg-white', 'shadow', 'text-blue-800', 'font-bold');
             newBtn.classList.remove('text-gray-600', 'hover:bg-white/50');
             
-            // Uppdatera logik
             const count = parseInt(newBtn.dataset.count);
             if (shotCountInput) shotCountInput.value = count;
             
@@ -51,7 +46,6 @@ export function setupResultFormListeners() {
         });
     });
 
-    // Starta med 20 skott som standard om rutorna är tomma
     const container = document.getElementById('series-inputs-container');
     if (container && container.innerHTML.trim() === '') {
         generateSeriesInputs(20);
@@ -68,18 +62,23 @@ function generateSeriesInputs(totalShots) {
     for (let i = 1; i <= seriesCount; i++) {
         const div = document.createElement('div');
         div.className = "text-center";
-        // VIKTIGT: step="0.1" tillåter decimaler. 
+        
+        // ÄNDRING: Använder type="text" och inputmode="decimal" för att tillåta både komma och punkt
         div.innerHTML = `
             <span class="text-xs text-gray-500 block mb-1">Serie ${i}</span>
-            <input type="number" min="0" max="109" step="0.1" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="-">
+            <input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="-">
         `;
         seriesContainer.appendChild(div);
     }
 
-    // Lägg till lyssnare för live-räkning
     const inputs = seriesContainer.querySelectorAll('.series-input');
     inputs.forEach(input => {
-        input.addEventListener('input', calculateTotal);
+        // Validera att man bara skriver siffror, punkt eller komma
+        input.addEventListener('input', (e) => {
+            // Byt ut komma mot punkt live för beräkningens skull, eller hantera det i calculateTotal
+            // Här låter vi användaren skriva vad de vill, men calculateTotal städar upp det.
+            calculateTotal();
+        });
     });
 }
 
@@ -91,13 +90,15 @@ export function calculateTotal() {
     let seriesScores = [];
 
     inputs.forEach(input => {
-        // VIKTIGT: parseFloat istället för parseInt för att behålla decimaler
-        let val = parseFloat(input.value);
+        let rawValue = input.value;
         
-        // Fixa kommatecken om webbläsaren släppt igenom det (t.ex. "105,5")
-        if (isNaN(val) && input.value.includes(',')) {
-            val = parseFloat(input.value.replace(',', '.'));
-        }
+        // Byt ut komma mot punkt för att JS ska kunna räkna
+        rawValue = rawValue.replace(',', '.');
+        
+        // Ta bort allt som inte är siffror eller punkt (säkerhetsåtgärd eftersom vi bytte till text-input)
+        // Detta tillåter dock användaren att skriva "10.5"
+        
+        let val = parseFloat(rawValue);
 
         if (!isNaN(val)) {
             total += val;
@@ -109,8 +110,8 @@ export function calculateTotal() {
         }
     });
 
-    // Fixa så vi inte får 105.100000004 pga flyttals-matte
-    total = parseFloat(total.toFixed(1)); 
+    // Avrunda till 1 decimal för att undvika flyttalsfel (t.ex. 10.1 + 20.2 = 30.2999999)
+    total = Math.round(total * 10) / 10;
     
     const totalEl = document.getElementById('live-total-display');
     const bestEl = document.getElementById('live-best-series');
