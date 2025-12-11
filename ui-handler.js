@@ -800,6 +800,7 @@ export function renderProfileInfo(userDoc, myShooters = []) {
         const saveBtn = document.getElementById('save-profile-btn');
         profileForm.insertBefore(listHtml, saveBtn);
     }
+}
 
 export function applyEditorCommand(editor, command, value = null) {
     editor.focus();
