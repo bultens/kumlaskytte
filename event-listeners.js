@@ -9,7 +9,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.29 (Fixad import och dubbla funktioner)
+// Ver. 1.30
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -223,7 +223,7 @@ export function setupEventListeners() {
         });
     }
 
-    const addResultForm = document.getElementById('add-result-form');
+// --- HÄR ÄR DEN KOMPLETTA KODEN SOM SKA IN ---
     if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -238,7 +238,14 @@ export function setupEventListeners() {
             
             const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
             const settings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
+            const shooterName = selectedShooterOption ? selectedShooterOption.text : "Skytten";
             const trackMedals = settings.trackMedals !== false; 
+
+            // Hämta medaljinfo
+            let earnedMedal = null;
+            if (trackMedals) {
+                earnedMedal = getMedalForScore(total); 
+            }
 
             const seriesMedals = seriesScores.map(score => {
                 if (trackMedals) {
@@ -263,11 +270,35 @@ export function setupEventListeners() {
             };
 
             await saveResult(resultData);
+            
+            // --- NYTT: KONFETTI OCH GRATTIS-MEDDELANDE ---
+            if (earnedMedal) {
+                if (window.confetti) {
+                    window.confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+                showModal('confirmationModal', `
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">${earnedMedal.icon}</div>
+                        <h3 class="text-xl font-bold text-green-700">Grattis ${shooterName}!</h3>
+                        <p>Du sköt ${total} poäng och klarade gränsen för <strong>${earnedMedal.name}</strong>!</p>
+                    </div>
+                `);
+            } else {
+                showModal('confirmationModal', "Resultat sparat!");
+            }
+
             addResultForm.reset();
             setupResultFormListeners(); 
             loadResultsHistory(shooterId);
         });
     }
+    // ------------------------------------------------
+          
+   
 
 
 

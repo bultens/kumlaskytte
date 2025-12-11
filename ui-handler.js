@@ -1,8 +1,9 @@
 // ui-handler.js
 import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.32 (Helt fristående för att undvika krasch)
+// Ver. 1.33
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -882,4 +883,77 @@ export function navigate(hash) {
     } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+}
+export function renderHomeAchievements(allResults, allShooters) {
+    const container = document.getElementById('achievements-list');
+    const section = document.getElementById('achievements-section');
+    
+    if (!container || !section) return;
+
+    // Om ingen är inloggad, göm sektionen
+    if (!auth.currentUser) {
+        section.classList.add('hidden');
+        return;
+    }
+    section.classList.remove('hidden');
+
+    // 1. Filtrera ut resultat:
+    // - Måste vara delat med klubben (sharedWithClub)
+    // - Måste vara från senaste 30 dagarna
+    // - Måste vara en medaljpoäng
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+
+    const relevantResults = allResults.filter(res => {
+        const resDate = new Date(res.date);
+        const isRecent = resDate >= thirtyDaysAgo;
+        const isShared = res.sharedWithClub === true;
+        const medal = getMedalForScore(res.total);
+        return isRecent && isShared && medal !== null;
+    });
+
+    // 2. Sortera: Nyast först, sedan högst poäng
+    relevantResults.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateB - dateA !== 0) return dateB - dateA; // Datum först
+        return b.total - a.total; // Poäng sen
+    });
+
+    // 3. Rendera (Max 6 st för att inte ta över sidan)
+    container.innerHTML = '';
+    
+    if (relevantResults.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga medaljer registrerade de senaste 30 dagarna. Ut och skjut! 🎯</p>';
+        return;
+    }
+
+    relevantResults.slice(0, 6).forEach(res => {
+        const shooter = allShooters.find(s => s.id === res.shooterId);
+        const shooterName = shooter ? shooter.name : "Okänd skytt";
+        const medal = getMedalForScore(res.total);
+        const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
+
+        // Välj bakgrundsfärg baserat på medalj
+        let bgClass = "bg-gray-50 border-gray-200";
+        if (medal.name.includes('Guld')) bgClass = "bg-yellow-50 border-yellow-200";
+        if (medal.name.includes('Silver')) bgClass = "bg-slate-100 border-slate-300";
+        if (medal.name.includes('Brons')) bgClass = "bg-orange-50 border-orange-200";
+
+        container.innerHTML += `
+            <div class="flex items-center p-3 rounded-lg border ${bgClass} shadow-sm">
+                <div class="text-3xl mr-3">${medal.icon}</div>
+                <div>
+                    <p class="font-bold text-gray-800 leading-tight">${shooterName}</p>
+                    <p class="text-sm text-gray-600">
+                        <span class="font-bold text-blue-900">${res.total}p</span> 
+                        <span class="text-xs text-gray-500 mx-1">•</span> 
+                        ${medal.name}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">${dateStr} (${res.discipline})</p>
+                </div>
+            </div>
+        `;
+    });
 }
