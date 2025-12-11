@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
@@ -224,8 +224,8 @@ export function setupEventListeners() {
         });
     }
 
-// --- HÄR ÄR DEN KOMPLETTA KODEN SOM SKA IN ---
-    if (addResultForm) {
+
+if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -236,71 +236,133 @@ export function setupEventListeners() {
             }
 
             const { total, best, seriesScores } = calculateTotal();
+            const shotCount = parseInt(document.getElementById('result-shot-count').value);
             
             const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
             const settings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
             const shooterName = selectedShooterOption ? selectedShooterOption.text : "Skytten";
             const trackMedals = settings.trackMedals !== false; 
 
-            // Hämta medaljinfo
-            let earnedMedal = null;
+            // 1. Räkna ut prestationer (Medaljer)
+            let totalMedal = null;
+            let seriesMedalCounts = {}; // Håller koll på antal: { 'Guld': 2, 'Silver': 1 }
+
             if (trackMedals) {
-                earnedMedal = getMedalForScore(total); 
+                // Totalmedalj (om man har sånt system, annars ignorera)
+                totalMedal = getMedalForScore(total); 
+
+                // Seriemedaljer
+                seriesScores.forEach(score => {
+                    const m = getMedalForScore(score);
+                    if (m) {
+                        seriesMedalCounts[m.name] = (seriesMedalCounts[m.name] || 0) + 1;
+                    }
+                });
             }
 
-            const seriesMedals = seriesScores.map(score => {
-                if (trackMedals) {
-                    const m = getMedalForScore(score);
-                    return m ? m.name : null;
-                }
-                return null;
+            const seriesMedalsList = seriesScores.map(score => {
+                const m = trackMedals ? getMedalForScore(score) : null;
+                return m ? m.name : null;
             });
 
+            // 2. Räkna ut PB och SB (Genom att kolla historik)
+            let isPB = false;
+            let isSB = false;
+
+            // Hämta tidigare resultat från cachen för denna skytt
+            const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
+            const stats = calculateShooterStats(shooterHistory);
+            
+            // Kolla vilken gren det gäller (20, 40 eller 60 skott) för att jämföra rätt
+            let currentPB = 0;
+            let currentSB = 0;
+
+            if (shotCount === 20) {
+                currentPB = stats.allTime.s20;
+                currentSB = stats.year.s20;
+            } else if (shotCount === 40) {
+                currentPB = stats.allTime.s40;
+                currentSB = stats.year.s40;
+            } else if (shotCount === 60) {
+                currentPB = stats.allTime.s60;
+                currentSB = stats.year.s60;
+            }
+
+            if (total > currentPB) isPB = true;
+            if (total > currentSB) isSB = true;
+
+            // 3. Skapa resultatet
             const resultData = {
                 shooterId: shooterId,
                 registeredBy: auth.currentUser.uid,
                 date: document.getElementById('result-date').value,
                 type: document.getElementById('result-type').value,
                 discipline: document.getElementById('result-discipline').value,
-                shotCount: parseInt(document.getElementById('result-shot-count').value),
+                shotCount: shotCount,
                 series: seriesScores,
-                seriesMedals: seriesMedals,
+                seriesMedals: seriesMedalsList,
                 total: total,
                 bestSeries: best,
-                sharedWithClub: document.getElementById('result-share-checkbox').checked
+                sharedWithClub: document.getElementById('result-share-checkbox').checked,
+                isPB: isPB, // Spara flagga
+                isSB: isSB  // Spara flagga
             };
 
             await saveResult(resultData);
             
-            // --- NYTT: KONFETTI OCH GRATTIS-MEDDELANDE ---
-            if (earnedMedal) {
-                if (window.confetti) {
-                    window.confetti({
-                        particleCount: 150,
-                        spread: 70,
-                        origin: { y: 0.6 }
-                    });
+            // 4. Bygg Feedback-meddelande
+            let messageHtml = `<h3 class="text-xl font-bold text-gray-800 mb-2">Resultat sparat!</h3>`;
+            let hasAchievements = false;
+
+            // Om vi har medaljer eller rekord
+            if (trackMedals || isPB || isSB) {
+                let achievementsHtml = '<div class="space-y-2 text-left bg-gray-50 p-4 rounded-lg border border-gray-200">';
+                
+                if (isPB) {
+                    achievementsHtml += `<div class="flex items-center text-green-700 font-bold"><span class="text-2xl mr-2">🚀</span> Nytt Personbästa! (${total}p)</div>`;
+                    hasAchievements = true;
+                } else if (isSB) {
+                    achievementsHtml += `<div class="flex items-center text-blue-700 font-bold"><span class="text-2xl mr-2">📅</span> Nytt Årsbästa! (${total}p)</div>`;
+                    hasAchievements = true;
                 }
-                showModal('confirmationModal', `
-                    <div class="text-center">
-                        <div class="text-4xl mb-2">${earnedMedal.icon}</div>
-                        <h3 class="text-xl font-bold text-green-700">Grattis ${shooterName}!</h3>
-                        <p>Du sköt ${total} poäng och klarade gränsen för <strong>${earnedMedal.name}</strong>!</p>
-                    </div>
-                `);
-            } else {
-                showModal('confirmationModal', "Resultat sparat!");
+
+                // Lista seriemedaljer (t.ex. "2 st Guld")
+                Object.keys(seriesMedalCounts).forEach(medalName => {
+                    const count = seriesMedalCounts[medalName];
+                    const medalObj = getMedalForScore(total); // Bara för att hämta ikonen om vi vill, eller hårdkoda
+                    // Enklare map för ikoner baserat på namn
+                    let icon = '🏅';
+                    if(medalName.includes('Guld')) icon = '🥇';
+                    if(medalName.includes('Silver')) icon = '🥈';
+                    if(medalName.includes('Brons')) icon = '🥉';
+
+                    achievementsHtml += `<div class="flex items-center text-gray-800"><span class="text-2xl mr-2">${icon}</span> ${count} st ${medalName}-serier</div>`;
+                    hasAchievements = true;
+                });
+
+                achievementsHtml += '</div>';
+                
+                if (hasAchievements) {
+                    messageHtml = `
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-green-700 mb-2">Bra skjutit ${shooterName}!</h3>
+                            ${achievementsHtml}
+                        </div>
+                    `;
+                    // Konfetti bara om man presterat något extra
+                    if (window.confetti) {
+                        window.confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                    }
+                }
             }
+
+            showModal('confirmationModal', messageHtml);
 
             addResultForm.reset();
             setupResultFormListeners(); 
             loadResultsHistory(shooterId);
         });
     }
-    // ------------------------------------------------
-          
-   
-
 
 
     if (isRecurringCheckbox) {

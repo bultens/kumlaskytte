@@ -890,68 +890,101 @@ export function renderHomeAchievements(allResults, allShooters) {
     
     if (!container || !section) return;
 
-    // Om ingen är inloggad, göm sektionen
     if (!auth.currentUser) {
         section.classList.add('hidden');
         return;
     }
     section.classList.remove('hidden');
 
-    // 1. Filtrera ut resultat:
-    // - Måste vara delat med klubben (sharedWithClub)
-    // - Måste vara från senaste 30 dagarna
-    // - Måste vara en medaljpoäng
     const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(now.getDate() - 30);
 
+    // Filtrera: Resultat delade med klubben, senaste 30 dagarna, som har NÅGON form av prestation
     const relevantResults = allResults.filter(res => {
         const resDate = new Date(res.date);
         const isRecent = resDate >= thirtyDaysAgo;
         const isShared = res.sharedWithClub === true;
-        const medal = getMedalForScore(res.total);
-        return isRecent && isShared && medal !== null;
+        
+        // Har medaljer i serierna?
+        const hasSeriesMedals = res.seriesMedals && res.seriesMedals.some(m => m !== null);
+        // Har PB eller SB?
+        const isRecord = res.isPB || res.isSB;
+
+        return isRecent && isShared && (hasSeriesMedals || isRecord);
     });
 
-    // 2. Sortera: Nyast först, sedan högst poäng
-    relevantResults.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (dateB - dateA !== 0) return dateB - dateA; // Datum först
-        return b.total - a.total; // Poäng sen
-    });
+    // Sortera: Nyast först
+    relevantResults.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // 3. Rendera (Max 6 st för att inte ta över sidan)
     container.innerHTML = '';
     
     if (relevantResults.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga medaljer registrerade de senaste 30 dagarna. Ut och skjut! 🎯</p>';
+        container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga nya prestationer registrerade senaste 30 dagarna. Ut och kämpa! 🎯</p>';
         return;
     }
 
-    relevantResults.slice(0, 6).forEach(res => {
+    relevantResults.slice(0, 9).forEach(res => {
         const shooter = allShooters.find(s => s.id === res.shooterId);
         const shooterName = shooter ? shooter.name : "Okänd skytt";
-        const medal = getMedalForScore(res.total);
         const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
 
-        // Välj bakgrundsfärg baserat på medalj
-        let bgClass = "bg-gray-50 border-gray-200";
-        if (medal.name.includes('Guld')) bgClass = "bg-yellow-50 border-yellow-200";
-        if (medal.name.includes('Silver')) bgClass = "bg-slate-100 border-slate-300";
-        if (medal.name.includes('Brons')) bgClass = "bg-orange-50 border-orange-200";
+        // Räkna medaljer för visning
+        let medalSummary = '';
+        if (res.seriesMedals) {
+            const counts = {};
+            res.seriesMedals.forEach(m => {
+                if(m) counts[m] = (counts[m] || 0) + 1;
+            });
+            
+            // Bygg HTML för medaljerna
+            const badges = [];
+            // Prioriterad ordning
+            ['Guld 3', 'Guld 2', 'Guld 1', 'Guld', 'Silver', 'Brons'].forEach(type => {
+                if(counts[type]) {
+                    let color = 'text-gray-600';
+                    let icon = '🏅';
+                    if(type.includes('Guld')) { color = 'text-yellow-600'; icon = '🥇'; }
+                    else if(type.includes('Silver')) { color = 'text-slate-500'; icon = '🥈'; }
+                    else if(type.includes('Brons')) { color = 'text-orange-700'; icon = '🥉'; }
+                    
+                    badges.push(`<span class="${color} font-bold text-xs border border-gray-200 bg-white px-1.5 py-0.5 rounded-md shadow-sm">${counts[type]}x ${icon}</span>`);
+                }
+            });
+            medalSummary = badges.join(' ');
+        }
+
+        // Taggar för PB / SB
+        let recordBadge = '';
+        if (res.isPB) {
+            recordBadge = `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wide">PB 🚀</span>`;
+        } else if (res.isSB) {
+            recordBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-wide">ÅB 📅</span>`;
+        }
+
+        // Bakgrundsfärg: Lite finare om det är PB
+        let bgClass = "bg-white border-gray-100";
+        if (res.isPB) bgClass = "bg-green-50 border-green-200";
+        else if (res.isSB) bgClass = "bg-blue-50 border-blue-200";
+        else if (medalSummary.includes('Guld')) bgClass = "bg-yellow-50 border-yellow-200";
 
         container.innerHTML += `
-            <div class="flex items-center p-3 rounded-lg border ${bgClass} shadow-sm">
-                <div class="text-3xl mr-3">${medal.icon}</div>
-                <div>
-                    <p class="font-bold text-gray-800 leading-tight">${shooterName}</p>
-                    <p class="text-sm text-gray-600">
-                        <span class="font-bold text-blue-900">${res.total}p</span> 
-                        <span class="text-xs text-gray-500 mx-1">•</span> 
-                        ${medal.name}
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">${dateStr} (${res.discipline})</p>
+            <div class="flex flex-col p-3 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-gray-800 truncate pr-2">${shooterName}</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">${dateStr}</span>
+                </div>
+                
+                <div class="flex items-center justify-between mt-1">
+                    <div class="text-sm">
+                        <span class="font-bold text-blue-900 text-lg">${res.total}p</span>
+                        <span class="text-xs text-gray-500">(${res.discipline})</span>
+                    </div>
+                     <div>${recordBadge}</div>
+                </div>
+
+                <div class="mt-2 flex flex-wrap gap-1">
+                    ${medalSummary}
                 </div>
             </div>
         `;
