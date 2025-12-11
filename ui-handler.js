@@ -653,23 +653,30 @@ export function renderShootersAdmin(shootersData) {
     if (!container) return;
 
     container.innerHTML = '';
-    
-    // Sortera i bokstavsordning
     shootersData.sort((a, b) => a.name.localeCompare(b.name));
 
     shootersData.forEach(shooter => {
+        // Räkna hur många föräldrar som är kopplade
+        const parentCount = shooter.parentUserIds ? shooter.parentUserIds.length : 0;
+        
         container.innerHTML += `
             <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-200">
                 <div>
                     <span class="font-bold text-gray-800">${shooter.name}</span>
-                    <span class="text-sm text-gray-500 ml-2">(Född: ${shooter.birthyear})</span>
-                    <p class="text-xs text-gray-400">Kopplad till ID: ${shooter.parentUserIds ? shooter.parentUserIds[0] : 'Ingen'}</p>
+                    <span class="text-sm text-gray-500"> (Född: ${shooter.birthyear})</span>
+                    <p class="text-xs text-gray-500">Adminstreras av ${parentCount} konton</p>
                 </div>
-                <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition" 
-                        data-id="${shooter.id}" 
-                        data-type="shooters">
-                    Ta bort
-                </button>
+                <div class="flex space-x-2">
+                    <button class="link-parent-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" 
+                            data-id="${shooter.id}" data-name="${shooter.name}">
+                        Koppla
+                    </button>
+                    <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition" 
+                            data-id="${shooter.id}" 
+                            data-type="shooters">
+                        Ta bort
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -744,7 +751,7 @@ export async function renderSiteSettings() {
     }
 }
 
-export function renderProfileInfo(userDoc) {
+export function renderProfileInfo(userDoc, myShooters = []) {
     if (!userDoc || !userDoc.exists()) {
         const profileNameInput = document.getElementById('profile-name-input');
         const profileAddressInput = document.getElementById('profile-address-input');
@@ -771,7 +778,28 @@ export function renderProfileInfo(userDoc) {
     profilePhoneInput.value = data.phone || '';
     profileBirthyearInput.value = data.birthyear || '';
     profileMailingListCheckbox.checked = data.mailingList || false;
-}
+// NYTT: Visa kopplade skyttar
+    const profileForm = document.getElementById('profile-form');
+    // Rensa eventuell gammal lista om den finns
+    const oldList = document.getElementById('profile-linked-shooters');
+    if (oldList) oldList.remove();
+
+    if (myShooters && myShooters.length > 0) {
+        const listHtml = document.createElement('div');
+        listHtml.id = 'profile-linked-shooters';
+        listHtml.className = "mt-6 p-4 bg-blue-50 rounded border border-blue-100";
+        
+        let html = '<h3 class="font-bold text-blue-900 mb-2">Kopplade Skyttprofiler</h3><ul class="list-disc pl-5 text-sm text-blue-800">';
+        myShooters.forEach(s => {
+            html += `<li>${s.name} (Född ${s.birthyear})</li>`;
+        });
+        html += '</ul>';
+        listHtml.innerHTML = html;
+        
+        // Lägg in listan före spara-knappen
+        const saveBtn = document.getElementById('save-profile-btn');
+        profileForm.insertBefore(listHtml, saveBtn);
+    }
 
 export function applyEditorCommand(editor, command, value = null) {
     editor.focus();

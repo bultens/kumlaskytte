@@ -37,12 +37,24 @@ export function initializeDataListeners() {
 
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
     
-    // Users - Här låg felet tidigare
-    onSnapshot(collection(db, 'users'), (snapshot) => { 
-        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
-        renderUserReport(usersData); 
-    });
+onSnapshot(collection(db, 'users'), async (snapshot) => { 
+    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+    renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
+    renderUserReport(usersData);
+
+    // Hämta min profil och mina skyttar för att visa i "Min Profil"
+    if (uid) {
+        const myProfile = usersData.find(u => u.id === uid);
+        // Vi måste hämta skyttarna separat här för att vara säkra
+        const myShooters = await getMyShooters(uid);
+        // OBS: renderProfileInfo måste nu ta emot 2 argument!
+        // Du måste skicka in ett "fake" doc-objekt eller ändra renderProfileInfo att ta data direkt.
+        // Enklast: Skicka docSnap om vi hade det, men nu har vi data.
+        // Vi gör en liten fuling och skickar ett objekt som "ser ut" som en snapshot:
+        const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
+        renderProfileInfo(fakeDocSnap, myShooters); 
+    }
+});
 
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
@@ -312,6 +324,32 @@ export async function updateUserResult(resultId, data) {
     } catch (error) {
         console.error("Fel vid uppdatering av resultat:", error);
         showModal('errorModal', "Kunde inte uppdatera resultatet. Kontrollera att du äger posten.");
+    }
+}
+// Uppdatera skytt-profil (Namn och inställningar)
+export async function updateShooterProfile(shooterId, data) {
+    // Enkel säkerhetskoll i frontend, reglerna kollar backend
+    if (!auth.currentUser) return;
+    try {
+        await updateDoc(doc(db, 'shooters', shooterId), data);
+        showModal('confirmationModal', "Skyttprofilen uppdaterad!");
+    } catch (error) {
+        console.error("Fel vid uppdatering av skytt:", error);
+        showModal('errorModal', "Kunde inte spara. Kontrollera att du har rättigheter.");
+    }
+}
+
+// Admin: Koppla en användare till en skytt
+export async function linkUserToShooter(shooterId, userId) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await updateDoc(doc(db, 'shooters', shooterId), {
+            parentUserIds: arrayUnion(userId)
+        });
+        showModal('confirmationModal', "Användaren har kopplats till skytten!");
+    } catch (error) {
+        console.error("Fel vid koppling:", error);
+        showModal('errorModal', "Kunde inte koppla användaren.");
     }
 }
 // Beräkna statistik för en skytt

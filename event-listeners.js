@@ -3,8 +3,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-// VIKTIGT: calculateShooterStats är nu tillagd i importen här nere
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
@@ -106,11 +105,11 @@ export function setupEventListeners() {
             const year = document.getElementById('new-shooter-birthyear').value;
             
             if (auth.currentUser) {
-                await createShooterProfile(auth.currentUser.uid, name, year);
-                addShooterModal.classList.remove('active');
-                addShooterForm.reset();
-                loadShootersIntoDropdown();
-            }
+    		await createShooterProfile(auth.currentUser.uid, name, year);
+    		addShooterModal.classList.remove('active');
+    		addShooterForm.reset();
+    		loadShootersIntoDropdown();
+		}
         });
     }
 
@@ -129,6 +128,7 @@ export function setupEventListeners() {
                 option.value = shooter.id;
                 option.text = shooter.name;
                 option.dataset.settings = JSON.stringify(shooter.settings || {});
+		option.dataset.birthyear = shooter.birthyear;
                 select.appendChild(option);
             });
             select.dispatchEvent(new Event('change'));
@@ -983,7 +983,7 @@ export function setupEventListeners() {
                             <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
                         </div>
                         <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
-                        <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
+                        <p class="text-xs tloadShootersIntoDropdownxt-gray-400">Serier: ${res.series.join(', ')}</p>
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
@@ -998,4 +998,110 @@ export function setupEventListeners() {
             `;
         });
     }
+// --- NYTT: Hantera "Inställningar för skytt" ---
+    const editShooterBtn = document.getElementById('edit-shooter-btn');
+    const editShooterModal = document.getElementById('editShooterModal');
+    const closeEditShooterBtn = document.getElementById('close-edit-shooter-modal');
+    const editShooterForm = document.getElementById('edit-shooter-form');
+
+    if (editShooterBtn) {
+        editShooterBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Förhindra formulär-submit om den ligger i en form
+            const select = document.getElementById('shooter-selector');
+            const selectedOption = select.selectedOptions[0];
+            
+            if (!selectedOption || !select.value) {
+                showModal('errorModal', "Välj en skytt först.");
+                return;
+            }
+
+
+            
+            const shooterId = select.value;
+            const name = selectedOption.text;
+            // För settings, parse:a dataset
+            const settings = JSON.parse(selectedOption.dataset.settings || '{}');
+            
+            document.getElementById('edit-shooter-id').value = shooterId;
+            document.getElementById('edit-shooter-name').value = name;
+            // Vi har inte sparat år i dropdown än. Låt oss fixa det i loadShootersIntoDropdown nedan.
+            document.getElementById('edit-shooter-birthyear').value = selectedOption.dataset.birthyear || ''; 
+            
+            document.getElementById('edit-shooter-gamification').checked = settings.trackMedals !== false;
+            document.getElementById('edit-shooter-share').checked = settings.defaultShareResults || false;
+
+            editShooterModal.classList.add('active');
+        });
+    }
+
+    if (closeEditShooterBtn) {
+        closeEditShooterBtn.addEventListener('click', () => editShooterModal.classList.remove('active'));
+    }
+
+    if (editShooterForm) {
+        editShooterForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-shooter-id').value;
+            const name = document.getElementById('edit-shooter-name').value;
+            const birthyear = document.getElementById('edit-shooter-birthyear').value;
+            
+            const updatedData = {
+                name: name,
+                birthyear: parseInt(birthyear),
+                settings: {
+                    trackMedals: document.getElementById('edit-shooter-gamification').checked,
+                    defaultShareResults: document.getElementById('edit-shooter-share').checked
+                }
+            };
+
+            await updateShooterProfile(id, updatedData);
+            editShooterModal.classList.remove('active');
+            loadShootersIntoDropdown(); // Uppdatera listan
+        });
+    }
+
+    // --- NYTT: Admin - Koppla förälder ---
+    // (Lyssna på klick i admin-listan)
+    const adminShootersList = document.getElementById('admin-shooters-list');
+    const linkParentModal = document.getElementById('linkParentModal');
+    const linkParentSelect = document.getElementById('link-parent-select');
+    const confirmLinkParentBtn = document.getElementById('confirm-link-parent-btn');
+    const closeLinkParentBtn = document.getElementById('close-link-parent-modal');
+
+    if (adminShootersList) {
+        adminShootersList.addEventListener('click', (e) => {
+            const linkBtn = e.target.closest('.link-parent-btn');
+            if (linkBtn) {
+                const shooterId = linkBtn.dataset.id;
+                document.getElementById('link-shooter-id').value = shooterId;
+                
+                // Fyll dropdown med alla användare
+                linkParentSelect.innerHTML = '';
+                // Sortera usersData (som vi har importerat/är global)
+                const sortedUsers = [...usersData].sort((a, b) => a.email.localeCompare(b.email));
+                sortedUsers.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.text = `${u.email} (${u.name || '-'})`;
+                    linkParentSelect.appendChild(opt);
+                });
+
+                linkParentModal.classList.add('active');
+            }
+        });
+    }
+
+    if (closeLinkParentBtn) closeLinkParentBtn.onclick = () => linkParentModal.classList.remove('active');
+
+    if (confirmLinkParentBtn) {
+        confirmLinkParentBtn.onclick = async () => {
+            const shooterId = document.getElementById('link-shooter-id').value;
+            const userId = linkParentSelect.value;
+            if (shooterId && userId) {
+                await linkUserToShooter(shooterId, userId);
+                linkParentModal.classList.remove('active');
+            }
+        };
+    }
+
 }
