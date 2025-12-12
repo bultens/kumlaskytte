@@ -897,34 +897,66 @@ export function renderHomeAchievements(allResults, allShooters) {
     }
     section.classList.remove('hidden');
 
+    // 1. "Spela upp historiken" för att hitta ÄKTA PB och Årsbästa (SB)
+    // Vi sorterar äldst först för att bygga upp rekordhistoriken korrekt
+    const chronologicalResults = [...allResults].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const truePBIds = new Set(); // Här sparar vi ID på de resultat som faktiskt var PB
+    const trueSBIds = new Set(); // Här sparar vi ID på de resultat som faktiskt var SB
+    
+    const pbTracker = {}; // Håller koll på bästa resultatet per skytt/gren/antal skott
+    const sbTracker = {}; // Håller koll på bästa resultatet per skytt/gren/antal skott/år
+
+    chronologicalResults.forEach(res => {
+        // Skapa unika nycklar för att skilja på grenar och antal skott (t.ex. "Kalle_sitting_20")
+        const key = `${res.shooterId}_${res.discipline}_${res.shotCount}`;
+        const year = new Date(res.date).getFullYear();
+        const yearKey = `${key}_${year}`;
+        
+        const score = parseFloat(res.total);
+
+        // Kolla Personbästa (PB)
+        // Om inget tidigare resultat finns, eller om detta är högre än nuvarande max
+        if (!pbTracker[key] || score > pbTracker[key]) {
+            pbTracker[key] = score;
+            truePBIds.add(res.id); // Detta ID är ett äkta PB
+        }
+
+        // Kolla Årsbästa (SB)
+        if (!sbTracker[yearKey] || score > sbTracker[yearKey]) {
+            sbTracker[yearKey] = score;
+            trueSBIds.add(res.id); // Detta ID är ett äkta SB
+        }
+    });
+
+    // 2. Filtrering för visning (Senaste 30 dagarna, delat med klubben)
     const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(now.getDate() - 30);
 
-    // Filtrera: Resultat delade med klubben, senaste 30 dagarna
-    // NYTT: Visar ENDAST om det är PB, SB eller om man tagit ett MÄRKE (earnedBadges)
     const relevantResults = allResults.filter(res => {
         const resDate = new Date(res.date);
         const isRecent = resDate >= thirtyDaysAgo;
         const isShared = res.sharedWithClub === true;
         
-        // Har tagit märke denna gång? (Kollar arrayen vi skapade i event-listeners)
+        // Har tagit märke denna gång? 
         const hasEarnedBadge = res.earnedBadges && res.earnedBadges.length > 0;
         
-        // Har PB eller SB?
-        const isRecord = res.isPB || res.isSB;
+        // Är det ett ÄKTA PB eller SB (beräknat ovan)?
+        // Vi ignorerar res.isPB från databasen och litar på vår nya beräkning
+        const isTruePB = truePBIds.has(res.id);
+        const isTrueSB = trueSBIds.has(res.id);
 
-        return isRecent && isShared && (hasEarnedBadge || isRecord);
+        // Vi visar resultatet om det är nytt OCH delat OCH (Märke ELLER Rekord)
+        return isRecent && isShared && (hasEarnedBadge || isTruePB || isTrueSB);
     });
 
-    // Sortera: Nyast först
+    // Sortera för visning: Nyast först
     relevantResults.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     container.innerHTML = '';
     
     if (relevantResults.length === 0) {
-        // Dölj sektionen helt om inga STORA prestationer finns, 
-        // eller visa ett meddelande om att vi väntar på rekord.
         container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga nya rekord eller märken de senaste 30 dagarna. Kämpa på! 🎯</p>';
         return;
     }
@@ -934,15 +966,19 @@ export function renderHomeAchievements(allResults, allShooters) {
         const shooterName = shooter ? shooter.name : "Okänd skytt";
         const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
 
+        // Kolla våra beräknade Sets istället för databas-värdet
+        const isTruePB = truePBIds.has(res.id);
+        const isTrueSB = trueSBIds.has(res.id);
+
         // Taggar för PB / SB
         let recordBadge = '';
-        if (res.isPB) {
+        if (isTruePB) {
             recordBadge = `<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full border border-green-200 uppercase tracking-wide shadow-sm">PB 🚀</span>`;
-        } else if (res.isSB) {
+        } else if (isTrueSB) {
             recordBadge = `<span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200 uppercase tracking-wide shadow-sm">ÅB 📅</span>`;
         }
 
-        // Taggar för MÄRKEN (om man tog ett märke denna gång)
+        // Taggar för MÄRKEN
         let badgeHtml = '';
         if (res.earnedBadges && res.earnedBadges.length > 0) {
             res.earnedBadges.forEach(badge => {
@@ -959,11 +995,11 @@ export function renderHomeAchievements(allResults, allShooters) {
             });
         }
 
-        // Bakgrundsfärg: Grön om PB, Gul om Märke, annars Blå/Vit
+        // Bakgrundsfärg
         let bgClass = "bg-white border-gray-100";
-        if (res.isPB) bgClass = "bg-green-50 border-green-200";
+        if (isTruePB) bgClass = "bg-green-50 border-green-200";
         else if (res.earnedBadges && res.earnedBadges.includes('Guld 3')) bgClass = "bg-yellow-50 border-yellow-200";
-        else if (res.isSB) bgClass = "bg-blue-50 border-blue-200";
+        else if (isTrueSB) bgClass = "bg-blue-50 border-blue-200";
 
         container.innerHTML += `
             <div class="flex flex-col p-4 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
