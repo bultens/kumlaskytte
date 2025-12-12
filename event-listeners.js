@@ -9,7 +9,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.4
+// Ver. 1.5 (Fixad SyntaxError)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -91,6 +91,7 @@ export function setupEventListeners() {
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     
+    // --- Hantera Klasser (Admin) ---
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -136,21 +137,17 @@ export function setupEventListeners() {
         });
     }
 
-    // --- NY: Publika Sidan - Dropdown ---
+    // --- Publika Sidan - Dropdown ---
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     
-    // Funktion för att fylla dropdown (anropas när vi navigerar till #topplistor)
     const populatePublicDropdown = () => {
         if (!publicShooterSelect) return;
         
-        // Hitta alla skyttar som har minst ETT delat resultat
-        // Vi använder latestResultsCache som redan är laddad
         const activeShooterIds = new Set();
         latestResultsCache.forEach(r => {
             if (r.sharedWithClub) activeShooterIds.add(r.shooterId);
         });
 
-        // Filtrera skytt-listan
         const publicShooters = allShootersData.filter(s => activeShooterIds.has(s.id));
         publicShooters.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -165,13 +162,10 @@ export function setupEventListeners() {
 
     window.addEventListener('hashchange', () => {
         if (window.location.hash === '#topplistor') {
-            // Se till att data är laddad, eller vänta lite
             if (allShootersData.length > 0) {
                 populatePublicDropdown();
-                // Trigga omrendering av topplistor
                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
             } else {
-                // Retry om en sekund ifall data inte hunnit komma
                 setTimeout(() => {
                     populatePublicDropdown();
                     renderTopLists(competitionClasses, latestResultsCache, allShootersData);
@@ -185,8 +179,8 @@ export function setupEventListeners() {
             renderPublicShooterStats(e.target.value, latestResultsCache, allShootersData);
         });
     }
-}
 
+    // --- Skyttar och Resultat ---
     if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
             if (addShooterModal) addShooterModal.classList.add('active');
@@ -204,11 +198,11 @@ export function setupEventListeners() {
             const year = document.getElementById('new-shooter-birthyear').value;
             
             if (auth.currentUser) {
-    		await createShooterProfile(auth.currentUser.uid, name, year);
-    		addShooterModal.classList.remove('active');
-    		addShooterForm.reset();
-    		loadShootersIntoDropdown();
-		}
+                await createShooterProfile(auth.currentUser.uid, name, year);
+                addShooterModal.classList.remove('active');
+                addShooterForm.reset();
+                loadShootersIntoDropdown();
+            }
         });
     }
 
@@ -227,7 +221,7 @@ export function setupEventListeners() {
                 option.value = shooter.id;
                 option.text = shooter.name;
                 option.dataset.settings = JSON.stringify(shooter.settings || {});
-		option.dataset.birthyear = shooter.birthyear;
+                option.dataset.birthyear = shooter.birthyear;
                 select.appendChild(option);
             });
             select.dispatchEvent(new Event('change'));
@@ -322,8 +316,7 @@ export function setupEventListeners() {
         });
     }
 
-
-if (addResultForm) {
+    if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -341,28 +334,23 @@ if (addResultForm) {
             const shooterName = selectedShooterOption ? selectedShooterOption.text : "Skytten";
             const trackMedals = settings.trackMedals !== false; 
 
-let totalMedal = null;
-            let earnedBadges = []; // NYTT: Lista för märken vi tar IDAG (t.ex. "Guld")
+            let totalMedal = null;
+            let earnedBadges = []; 
             
-            // Hämta historik för att veta var vi stod INNAN dagens skytte
             const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
             const stats = calculateShooterStats(shooterHistory);
             
-            // Kopiera nuvarande medaljstatus så vi kan simulera ökningen
             let tempMedalCounts = { ...stats.medals };
 
             if (trackMedals) {
                 totalMedal = getMedalForScore(total); 
 
-                // Loopa igenom dagens serier för att se om vi tar några märken
                 seriesScores.forEach(score => {
                     const m = getMedalForScore(score);
                     if (m) {
                         const type = m.name;
-                        // Öka räknaren
                         tempMedalCounts[type] = (tempMedalCounts[type] || 0) + 1;
                         
-                        // NYTT: Kolla om vi precis träffade en multipel av 10 (10, 20, 30...)
                         if (tempMedalCounts[type] % 10 === 0) {
                             earnedBadges.push(type);
                         }
@@ -370,13 +358,11 @@ let totalMedal = null;
                 });
             }
             
-            // Spara vilka valörer serierna hade (för detaljvy), men logiken för startsidan går på earnedBadges
             const seriesMedalsList = seriesScores.map(score => {
                 const m = trackMedals ? getMedalForScore(score) : null;
                 return m ? m.name : null;
             });
 
-            // 2. Räkna ut PB och SB
             let isPB = false;
             let isSB = false;
             
@@ -397,7 +383,6 @@ let totalMedal = null;
             if (total > currentPB) isPB = true;
             if (total > currentSB) isSB = true;
 
-            // 3. Skapa resultatet
             const resultData = {
                 shooterId: shooterId,
                 registeredBy: auth.currentUser.uid,
@@ -407,7 +392,7 @@ let totalMedal = null;
                 shotCount: shotCount,
                 series: seriesScores,
                 seriesMedals: seriesMedalsList,
-                earnedBadges: earnedBadges, // NYTT: Sparar märken vi tog denna gång
+                earnedBadges: earnedBadges,
                 total: total,
                 bestSeries: best,
                 sharedWithClub: document.getElementById('result-share-checkbox').checked,
@@ -417,11 +402,9 @@ let totalMedal = null;
 
             await saveResult(resultData);
             
-            // 4. Bygg Feedback-meddelande
             let messageHtml = `<h3 class="text-xl font-bold text-gray-800 mb-2">Resultat sparat!</h3>`;
             let hasAchievements = false;
 
-            // Visa feedback om PB, SB eller MÄRKE (inte bara vanliga serier)
             if (isPB || isSB || earnedBadges.length > 0) {
                 let achievementsHtml = '<div class="space-y-2 text-left bg-gray-50 p-4 rounded-lg border border-gray-200">';
                 
@@ -433,14 +416,12 @@ let totalMedal = null;
                     hasAchievements = true;
                 }
 
-                // Visa om man tagit ett märke
                 earnedBadges.forEach(badge => {
                     let icon = '🏅';
                     if(badge.includes('Guld')) icon = '🥇';
                     if(badge.includes('Silver')) icon = '🥈';
                     if(badge.includes('Brons')) icon = '🥉';
                     
-                    // Räkna ut vilket nummer i ordningen det är (t.ex. 10:e, 20:e)
                     const count = tempMedalCounts[badge]; 
                     
                     achievementsHtml += `<div class="flex items-center text-yellow-700 font-bold"><span class="text-2xl mr-2">🏆</span> GRATTIS! Du har klarat ${count} st ${badge}-serier!</div>`;
@@ -498,7 +479,6 @@ let totalMedal = null;
             const profilePhoneInput = document.getElementById('profile-phone-input');
             const profileBirthyearInput = document.getElementById('profile-birthyear-input');
             const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
-            // Inställningar
             const trackMedals = document.getElementById('track-medals-toggle').checked;
             const defaultShare = document.getElementById('profile-default-share').checked;
 
@@ -607,7 +587,6 @@ let totalMedal = null;
         });
     }
 
-    // Tävlingslogik
     function checkCompForm() {
         if (compTitleInput.value && document.getElementById('comp-date').value) {
              compAddBtn.disabled = false;
@@ -1121,14 +1100,11 @@ let totalMedal = null;
         
         container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
         
-        // Hämta resultat
         const results = await getShooterResults(shooterId);
         
-        // --- UPPDATERA STATISTIK-TABELLEN ---
         const stats = calculateShooterStats(results);
         document.getElementById('stats-current-year').textContent = new Date().getFullYear();
         
-        // Helper för att visa "-" om värdet är 0, annars värdet
         const show = (val) => val > 0 ? val : '-';
 
         document.getElementById('stats-year-series').textContent = show(stats.year.series);
@@ -1141,7 +1117,6 @@ let totalMedal = null;
         document.getElementById('stats-all-40').textContent = show(stats.allTime.s40);
         document.getElementById('stats-all-60').textContent = show(stats.allTime.s60);
 
-	// Hantera Medaljligan baserat på inställningar
         const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
         const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
         const medalSection = document.getElementById('medal-league-section');
@@ -1152,14 +1127,11 @@ let totalMedal = null;
             if (medalSection) {
                 medalSection.classList.remove('hidden');
                 
-                // Hjälpfunktion för att rendera märkesstatus
                 const updateBadgeUI = (type, elementId, icon) => {
                     const count = stats.medals[type] || 0;
-                    // Uppdatera övre raden (Total)
                     const countEl = document.getElementById(`count-${elementId}`);
                     if(countEl) countEl.textContent = count;
 
-                    // Uppdatera nedre raden (Märkesstatus)
                     const statusEl = document.getElementById(`badge-status-${elementId}`);
                     if(!statusEl) return;
 
@@ -1167,7 +1139,6 @@ let totalMedal = null;
                     const progress = count % 10;
 
                     if (earnedBadges > 0) {
-                        // Har tagit minst ett märke -> Visa Grönt Checktecken + Antal
                         statusEl.innerHTML = `
                             <div class="bg-green-100 text-green-600 rounded-full p-1 mb-1 border-2 border-green-500">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -1178,7 +1149,6 @@ let totalMedal = null;
                             <div class="text-[10px] text-gray-500">${progress} / 10 mot nästa</div>
                         `;
                     } else {
-                        // Har inte tagit märke än -> Visa framsteg "X / 10"
                         statusEl.innerHTML = `
                             <div class="text-2xl mb-1 opacity-50 grayscale">${icon}</div>
                             <div class="font-bold text-lg leading-none">${progress} / 10</div>
@@ -1186,7 +1156,6 @@ let totalMedal = null;
                     }
                 };
 
-                // Kör funktionen för alla valörer
                 updateBadgeUI('Guld 3', 'gold3', '🏆');
                 updateBadgeUI('Guld 2', 'gold2', '🥇');
                 updateBadgeUI('Guld 1', 'gold1', '🥇');
@@ -1232,7 +1201,7 @@ let totalMedal = null;
             `;
         });
     }
-// --- NYTT: Hantera "Inställningar för skytt" ---
+
     const editShooterBtn = document.getElementById('edit-shooter-btn');
     const editShooterModal = document.getElementById('editShooterModal');
     const closeEditShooterBtn = document.getElementById('close-edit-shooter-modal');
@@ -1240,7 +1209,7 @@ let totalMedal = null;
 
     if (editShooterBtn) {
         editShooterBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Förhindra formulär-submit om den ligger i en form
+            e.preventDefault(); 
             const select = document.getElementById('shooter-selector');
             const selectedOption = select.selectedOptions[0];
             
@@ -1248,17 +1217,13 @@ let totalMedal = null;
                 showModal('errorModal', "Välj en skytt först.");
                 return;
             }
-
-
             
             const shooterId = select.value;
             const name = selectedOption.text;
-            // För settings, parse:a dataset
             const settings = JSON.parse(selectedOption.dataset.settings || '{}');
             
             document.getElementById('edit-shooter-id').value = shooterId;
             document.getElementById('edit-shooter-name').value = name;
-            // Vi har inte sparat år i dropdown än. Låt oss fixa det i loadShootersIntoDropdown nedan.
             document.getElementById('edit-shooter-birthyear').value = selectedOption.dataset.birthyear || ''; 
             
             document.getElementById('edit-shooter-gamification').checked = settings.trackMedals !== false;
@@ -1290,12 +1255,10 @@ let totalMedal = null;
 
             await updateShooterProfile(id, updatedData);
             editShooterModal.classList.remove('active');
-            loadShootersIntoDropdown(); // Uppdatera listan
+            loadShootersIntoDropdown(); 
         });
     }
 
-    // --- NYTT: Admin - Koppla förälder ---
-    // (Lyssna på klick i admin-listan)
     const adminShootersList = document.getElementById('admin-shooters-list');
     const linkParentModal = document.getElementById('linkParentModal');
     const linkParentSelect = document.getElementById('link-parent-select');
@@ -1309,9 +1272,7 @@ let totalMedal = null;
                 const shooterId = linkBtn.dataset.id;
                 document.getElementById('link-shooter-id').value = shooterId;
                 
-                // Fyll dropdown med alla användare
                 linkParentSelect.innerHTML = '';
-                // Sortera usersData (som vi har importerat/är global)
                 const sortedUsers = [...usersData].sort((a, b) => a.email.localeCompare(b.email));
                 sortedUsers.forEach(u => {
                     const opt = document.createElement('option');
@@ -1337,3 +1298,5 @@ let totalMedal = null;
             }
         };
     }
+
+}
