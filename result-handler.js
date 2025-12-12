@@ -63,7 +63,7 @@ function generateSeriesInputs(totalShots) {
         const div = document.createElement('div');
         div.className = "text-center";
         
-        // ÄNDRING: Använder type="text" och inputmode="decimal" för att tillåta både komma och punkt
+// ÄNDRA HÄR: Byt type="number" mot type="text" och lägg till inputmode="decimal"
         div.innerHTML = `
             <span class="text-xs text-gray-500 block mb-1">Serie ${i}</span>
             <input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="-">
