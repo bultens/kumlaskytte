@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.33
+// Ver. 1.34
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -884,6 +884,7 @@ export function navigate(hash) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
+
 export function renderHomeAchievements(allResults, allShooters) {
     const container = document.getElementById('achievements-list');
     const section = document.getElementById('achievements-section');
@@ -900,18 +901,20 @@ export function renderHomeAchievements(allResults, allShooters) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(now.getDate() - 30);
 
-    // Filtrera: Resultat delade med klubben, senaste 30 dagarna, som har NÅGON form av prestation
+    // Filtrera: Resultat delade med klubben, senaste 30 dagarna
+    // NYTT: Visar ENDAST om det är PB, SB eller om man tagit ett MÄRKE (earnedBadges)
     const relevantResults = allResults.filter(res => {
         const resDate = new Date(res.date);
         const isRecent = resDate >= thirtyDaysAgo;
         const isShared = res.sharedWithClub === true;
         
-        // Har medaljer i serierna?
-        const hasSeriesMedals = res.seriesMedals && res.seriesMedals.some(m => m !== null);
+        // Har tagit märke denna gång? (Kollar arrayen vi skapade i event-listeners)
+        const hasEarnedBadge = res.earnedBadges && res.earnedBadges.length > 0;
+        
         // Har PB eller SB?
         const isRecord = res.isPB || res.isSB;
 
-        return isRecent && isShared && (hasSeriesMedals || isRecord);
+        return isRecent && isShared && (hasEarnedBadge || isRecord);
     });
 
     // Sortera: Nyast först
@@ -920,7 +923,9 @@ export function renderHomeAchievements(allResults, allShooters) {
     container.innerHTML = '';
     
     if (relevantResults.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga nya prestationer registrerade senaste 30 dagarna. Ut och kämpa! 🎯</p>';
+        // Dölj sektionen helt om inga STORA prestationer finns, 
+        // eller visa ett meddelande om att vi väntar på rekord.
+        container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga nya rekord eller märken de senaste 30 dagarna. Kämpa på! 🎯</p>';
         return;
     }
 
@@ -929,62 +934,54 @@ export function renderHomeAchievements(allResults, allShooters) {
         const shooterName = shooter ? shooter.name : "Okänd skytt";
         const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
 
-        // Räkna medaljer för visning
-        let medalSummary = '';
-        if (res.seriesMedals) {
-            const counts = {};
-            res.seriesMedals.forEach(m => {
-                if(m) counts[m] = (counts[m] || 0) + 1;
-            });
-            
-            // Bygg HTML för medaljerna
-            const badges = [];
-            // Prioriterad ordning
-            ['Guld 3', 'Guld 2', 'Guld 1', 'Guld', 'Silver', 'Brons'].forEach(type => {
-                if(counts[type]) {
-                    let color = 'text-gray-600';
-                    let icon = '🏅';
-                    if(type.includes('Guld')) { color = 'text-yellow-600'; icon = '🥇'; }
-                    else if(type.includes('Silver')) { color = 'text-slate-500'; icon = '🥈'; }
-                    else if(type.includes('Brons')) { color = 'text-orange-700'; icon = '🥉'; }
-                    
-                    badges.push(`<span class="${color} font-bold text-xs border border-gray-200 bg-white px-1.5 py-0.5 rounded-md shadow-sm">${counts[type]}x ${icon}</span>`);
-                }
-            });
-            medalSummary = badges.join(' ');
-        }
-
         // Taggar för PB / SB
         let recordBadge = '';
         if (res.isPB) {
-            recordBadge = `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 uppercase tracking-wide">PB 🚀</span>`;
+            recordBadge = `<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full border border-green-200 uppercase tracking-wide shadow-sm">PB 🚀</span>`;
         } else if (res.isSB) {
-            recordBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-wide">ÅB 📅</span>`;
+            recordBadge = `<span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200 uppercase tracking-wide shadow-sm">ÅB 📅</span>`;
         }
 
-        // Bakgrundsfärg: Lite finare om det är PB
+        // Taggar för MÄRKEN (om man tog ett märke denna gång)
+        let badgeHtml = '';
+        if (res.earnedBadges && res.earnedBadges.length > 0) {
+            res.earnedBadges.forEach(badge => {
+                let color = 'text-gray-600 bg-gray-50 border-gray-200';
+                let icon = '🏅';
+                
+                if(badge.includes('Guld')) { color = 'text-yellow-800 bg-yellow-100 border-yellow-300'; icon = '🏆'; }
+                else if(badge.includes('Silver')) { color = 'text-slate-700 bg-slate-100 border-slate-300'; icon = '🥈'; }
+                else if(badge.includes('Brons')) { color = 'text-orange-800 bg-orange-100 border-orange-300'; icon = '🥉'; }
+                
+                badgeHtml += `<div class="${color} flex items-center justify-center font-bold text-xs border px-2 py-1 rounded-full shadow-sm mt-1 w-full">
+                    <span class="mr-1 text-sm">${icon}</span> ${badge}-märke fixat!
+                </div>`;
+            });
+        }
+
+        // Bakgrundsfärg: Grön om PB, Gul om Märke, annars Blå/Vit
         let bgClass = "bg-white border-gray-100";
         if (res.isPB) bgClass = "bg-green-50 border-green-200";
+        else if (res.earnedBadges && res.earnedBadges.includes('Guld 3')) bgClass = "bg-yellow-50 border-yellow-200";
         else if (res.isSB) bgClass = "bg-blue-50 border-blue-200";
-        else if (medalSummary.includes('Guld')) bgClass = "bg-yellow-50 border-yellow-200";
 
         container.innerHTML += `
-            <div class="flex flex-col p-3 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-800 truncate pr-2">${shooterName}</span>
+            <div class="flex flex-col p-4 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="font-bold text-gray-800 truncate text-lg">${shooterName}</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">${dateStr}</span>
                 </div>
                 
-                <div class="flex items-center justify-between mt-1">
-                    <div class="text-sm">
-                        <span class="font-bold text-blue-900 text-lg">${res.total}p</span>
-                        <span class="text-xs text-gray-500">(${res.discipline})</span>
+                <div class="flex items-center justify-between mt-1 mb-2">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-blue-900 text-2xl">${res.total}p</span>
+                        <span class="text-xs text-gray-500">${res.discipline}</span>
                     </div>
                      <div>${recordBadge}</div>
                 </div>
 
-                <div class="mt-2 flex flex-wrap gap-1">
-                    ${medalSummary}
+                <div class="flex flex-col gap-1 mt-auto">
+                    ${badgeHtml}
                 </div>
             </div>
         `;

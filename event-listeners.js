@@ -9,7 +9,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.31
+// Ver. 1.32
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -243,37 +243,45 @@ if (addResultForm) {
             const shooterName = selectedShooterOption ? selectedShooterOption.text : "Skytten";
             const trackMedals = settings.trackMedals !== false; 
 
-            // 1. Räkna ut prestationer (Medaljer)
-            let totalMedal = null;
-            let seriesMedalCounts = {}; // Håller koll på antal: { 'Guld': 2, 'Silver': 1 }
+let totalMedal = null;
+            let earnedBadges = []; // NYTT: Lista för märken vi tar IDAG (t.ex. "Guld")
+            
+            // Hämta historik för att veta var vi stod INNAN dagens skytte
+            const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
+            const stats = calculateShooterStats(shooterHistory);
+            
+            // Kopiera nuvarande medaljstatus så vi kan simulera ökningen
+            let tempMedalCounts = { ...stats.medals };
 
             if (trackMedals) {
-                // Totalmedalj (om man har sånt system, annars ignorera)
                 totalMedal = getMedalForScore(total); 
 
-                // Seriemedaljer
+                // Loopa igenom dagens serier för att se om vi tar några märken
                 seriesScores.forEach(score => {
                     const m = getMedalForScore(score);
                     if (m) {
-                        seriesMedalCounts[m.name] = (seriesMedalCounts[m.name] || 0) + 1;
+                        const type = m.name;
+                        // Öka räknaren
+                        tempMedalCounts[type] = (tempMedalCounts[type] || 0) + 1;
+                        
+                        // NYTT: Kolla om vi precis träffade en multipel av 10 (10, 20, 30...)
+                        if (tempMedalCounts[type] % 10 === 0) {
+                            earnedBadges.push(type);
+                        }
                     }
                 });
             }
-
+            
+            // Spara vilka valörer serierna hade (för detaljvy), men logiken för startsidan går på earnedBadges
             const seriesMedalsList = seriesScores.map(score => {
                 const m = trackMedals ? getMedalForScore(score) : null;
                 return m ? m.name : null;
             });
 
-            // 2. Räkna ut PB och SB (Genom att kolla historik)
+            // 2. Räkna ut PB och SB
             let isPB = false;
             let isSB = false;
-
-            // Hämta tidigare resultat från cachen för denna skytt
-            const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
-            const stats = calculateShooterStats(shooterHistory);
             
-            // Kolla vilken gren det gäller (20, 40 eller 60 skott) för att jämföra rätt
             let currentPB = 0;
             let currentSB = 0;
 
@@ -301,11 +309,12 @@ if (addResultForm) {
                 shotCount: shotCount,
                 series: seriesScores,
                 seriesMedals: seriesMedalsList,
+                earnedBadges: earnedBadges, // NYTT: Sparar märken vi tog denna gång
                 total: total,
                 bestSeries: best,
                 sharedWithClub: document.getElementById('result-share-checkbox').checked,
-                isPB: isPB, // Spara flagga
-                isSB: isSB  // Spara flagga
+                isPB: isPB,
+                isSB: isSB
             };
 
             await saveResult(resultData);
@@ -314,8 +323,8 @@ if (addResultForm) {
             let messageHtml = `<h3 class="text-xl font-bold text-gray-800 mb-2">Resultat sparat!</h3>`;
             let hasAchievements = false;
 
-            // Om vi har medaljer eller rekord
-            if (trackMedals || isPB || isSB) {
+            // Visa feedback om PB, SB eller MÄRKE (inte bara vanliga serier)
+            if (isPB || isSB || earnedBadges.length > 0) {
                 let achievementsHtml = '<div class="space-y-2 text-left bg-gray-50 p-4 rounded-lg border border-gray-200">';
                 
                 if (isPB) {
@@ -326,17 +335,17 @@ if (addResultForm) {
                     hasAchievements = true;
                 }
 
-                // Lista seriemedaljer (t.ex. "2 st Guld")
-                Object.keys(seriesMedalCounts).forEach(medalName => {
-                    const count = seriesMedalCounts[medalName];
-                    const medalObj = getMedalForScore(total); // Bara för att hämta ikonen om vi vill, eller hårdkoda
-                    // Enklare map för ikoner baserat på namn
+                // Visa om man tagit ett märke
+                earnedBadges.forEach(badge => {
                     let icon = '🏅';
-                    if(medalName.includes('Guld')) icon = '🥇';
-                    if(medalName.includes('Silver')) icon = '🥈';
-                    if(medalName.includes('Brons')) icon = '🥉';
-
-                    achievementsHtml += `<div class="flex items-center text-gray-800"><span class="text-2xl mr-2">${icon}</span> ${count} st ${medalName}-serier</div>`;
+                    if(badge.includes('Guld')) icon = '🥇';
+                    if(badge.includes('Silver')) icon = '🥈';
+                    if(badge.includes('Brons')) icon = '🥉';
+                    
+                    // Räkna ut vilket nummer i ordningen det är (t.ex. 10:e, 20:e)
+                    const count = tempMedalCounts[badge]; 
+                    
+                    achievementsHtml += `<div class="flex items-center text-yellow-700 font-bold"><span class="text-2xl mr-2">🏆</span> GRATTIS! Du har klarat ${count} st ${badge}-serier!</div>`;
                     hasAchievements = true;
                 });
 
@@ -349,9 +358,8 @@ if (addResultForm) {
                             ${achievementsHtml}
                         </div>
                     `;
-                    // Konfetti bara om man presterat något extra
                     if (window.confetti) {
-                        window.confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                        window.confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
                     }
                 }
             }
