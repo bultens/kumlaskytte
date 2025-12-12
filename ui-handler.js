@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.35
+// Ver. 1.4
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -1104,6 +1104,168 @@ export function renderHomeAchievements(allResults, allShooters) {
                 <div class="flex flex-col gap-1 mt-auto">
                     ${badgeHtml}
                 </div>
+            </div>
+// --- NY: Rendera Admin-lista för klasser ---
+export function renderClassesAdmin(classes) {
+    const container = document.getElementById('admin-classes-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    classes.forEach(cls => {
+        let discLabel = cls.discipline === 'sitting' ? 'Sittande' : 'Stående';
+        container.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-white border rounded shadow-sm">
+                <div>
+                    <h4 class="font-bold text-blue-900">${cls.name}</h4>
+                    <p class="text-sm text-gray-600">${cls.description || ''} (${cls.minAge}-${cls.maxAge} år, ${discLabel})</p>
+                </div>
+                <div>
+                    <button class="edit-class-btn text-blue-600 font-bold mr-2 text-sm" 
+                        data-obj='${JSON.stringify(cls)}'>Ändra</button>
+                    <button class="delete-btn text-red-600 font-bold text-sm" 
+                        data-id="${cls.id}" data-type="competitionClasses">Ta bort</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// --- NY: Rendera Topplistor på publika sidan ---
+export function renderTopLists(classes, allResults, allShooters) {
+    const container = document.getElementById('top-lists-container');
+    if (!container) return;
+    
+    if (classes.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">Inga klasser konfigurerade än.</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    // 1. Filtrera ut resultat från SENASTE 7 DAGARNA som är DELADE
+    const now = new Date();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
+
+    const recentResults = allResults.filter(res => {
+        const d = new Date(res.date);
+        return d >= oneWeekAgo && res.sharedWithClub === true;
+    });
+
+    const currentYear = new Date().getFullYear();
+
+    // 2. Loopa igenom varje klass och bygg en lista
+    classes.forEach(cls => {
+        // Hitta resultat som passar i denna klass
+        const classResults = recentResults.filter(res => {
+            // Kolla skjutstil
+            if (res.discipline !== cls.discipline) return false;
+
+            // Kolla ålder på skytten
+            const shooter = allShooters.find(s => s.id === res.shooterId);
+            if (!shooter || !shooter.birthyear) return false; // Ingen skytt kopplad
+
+            const age = currentYear - shooter.birthyear;
+            return age >= cls.minAge && age <= cls.maxAge;
+        });
+
+        // Om listan är tom, visa inget (eller visa tom tabell)
+        if (classResults.length === 0) return;
+
+        // Sortera: Högst poäng först
+        classResults.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
+
+        // Ta topp 5
+        const top5 = classResults.slice(0, 5);
+
+        // Skapa HTML för kortet
+        let rowsHtml = '';
+        top5.forEach((res, index) => {
+            const shooter = allShooters.find(s => s.id === res.shooterId);
+            const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
+            
+            rowsHtml += `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                    <div class="flex items-center">
+                        <span class="w-6 font-bold text-gray-500">${medal}</span>
+                        <span class="font-semibold text-gray-800 truncate max-w-[120px]">${shooter.name}</span>
+                    </div>
+                    <span class="font-bold text-blue-900">${res.total}</span>
+                </div>
+            `;
+        });
+
+        container.innerHTML += `
+            <div class="bg-white rounded-xl shadow p-4 border-t-4 border-blue-600">
+                <div class="flex justify-between items-baseline mb-3">
+                    <h3 class="text-xl font-bold text-gray-800">${cls.name}</h3>
+                    <span class="text-xs text-gray-500 uppercase">${cls.discipline === 'sitting' ? 'Sittande' : 'Stående'}</span>
+                </div>
+                <div class="flex flex-col">
+                    ${rowsHtml}
+                </div>
+            </div>
+        `;
+    });
+    
+    if (container.innerHTML === '') {
+        container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Inga resultat registrerade den senaste veckan.</p>';
+    }
+}
+
+// --- NY: Rendera publika resultat för vald skytt ---
+export function renderPublicShooterStats(shooterId, allResults, allShooters) {
+    const container = document.getElementById('public-results-list');
+    const statsContainer = document.getElementById('public-shooter-stats');
+    if (!container || !statsContainer) return;
+
+    if (!shooterId) {
+        statsContainer.classList.add('hidden');
+        return;
+    }
+
+    const shooter = allShooters.find(s => s.id === shooterId);
+    if (!shooter) return;
+
+    document.getElementById('public-shooter-name').textContent = shooter.name;
+    statsContainer.classList.remove('hidden');
+
+    // Hämta DELADE resultat för skytten
+    const myResults = allResults.filter(r => r.shooterId === shooterId && r.sharedWithClub === true);
+    myResults.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Räkna PB/SB (Supersimpel variant baserat på total, oavsett gren, för översikt)
+    // Vill du ha mer avancerat (per gren) får vi kopiera logiken från Mina Resultat.
+    // Här tar vi bara absolut max poäng för enkelhetens skull i dropdownen.
+    let maxTotal = 0;
+    let maxYear = 0;
+    const currentYear = new Date().getFullYear();
+
+    myResults.forEach(r => {
+        if (r.total > maxTotal) maxTotal = r.total;
+        if (new Date(r.date).getFullYear() === currentYear) {
+            if (r.total > maxYear) maxYear = r.total;
+        }
+    });
+
+    document.getElementById('public-pb').textContent = maxTotal > 0 ? maxTotal : '-';
+    document.getElementById('public-sb').textContent = maxYear > 0 ? maxYear : '-';
+
+    container.innerHTML = '';
+    if (myResults.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 italic">Inga delade resultat än.</p>';
+        return;
+    }
+
+    myResults.slice(0, 10).forEach(res => {
+        container.innerHTML += `
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-100">
+                <div>
+                    <span class="font-bold text-gray-800">${res.total}p</span>
+                    <span class="text-xs text-gray-500 ml-2">${res.date} (${res.discipline})</span>
+                </div>
+                ${res.isPB ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">PB</span>' : ''}
             </div>
         `;
     });

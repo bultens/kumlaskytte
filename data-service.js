@@ -1,11 +1,10 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-import { renderShootersAdmin } from "./ui-handler.js";
 
-// Ver. 1.17
+// Ver. 1.3
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -15,12 +14,14 @@ export let usersData = [];
 export let sponsorsData = [];
 export let allShootersData = [];
 export let latestResultsCache = [];
+export let competitionClasses = [];
 
 export function initializeDataListeners() {
     // Hämtar currentUserId direkt från auth-objektet
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
-if (auth.currentUser) {
+    if (auth.currentUser) {
+        // --- SKYTTAR ---
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
             
@@ -29,48 +30,64 @@ if (auth.currentUser) {
                 renderShootersAdmin(allShootersData); 
             }
             
-            // Försök rendera achievements om vi har både resultat och skyttar
-            // (Detta anropas även från results-lyssnaren nedan)
+            // Uppdatera resultat-vyer om vi har resultat i cachen
              if (latestResultsCache.length > 0) {
                  renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
              }
         });
-    }
 
-onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
-onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
-onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
-onSnapshot(collection(db, 'users'), async (snapshot) => { 
-    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-    renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
-    renderUserReport(usersData);
+        // --- KLASSER (Topplistor) ---
+        onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
+            competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Sortera klasserna (t.ex. efter min-ålder)
+            competitionClasses.sort((a, b) => a.minAge - b.minAge);
+    
+            // Rendera admin-listan om vi är admin
+            if (isAdminLoggedIn) {
+                renderClassesAdmin(competitionClasses);
+            }
+            
+            // Rendera topplistorna
+            renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+        });
 
-    // Hämta min profil och mina skyttar för att visa i "Min Profil"
-    if (uid) {
-        const myProfile = usersData.find(u => u.id === uid);
-        // Vi måste hämta skyttarna separat här för att vara säkra
-        const myShooters = await getMyShooters(uid);
-        // OBS: renderProfileInfo måste nu ta emot 2 argument!
-        // Du måste skicka in ett "fake" doc-objekt eller ändra renderProfileInfo att ta data direkt.
-        // Enklast: Skicka docSnap om vi hade det, men nu har vi data.
-        // Vi gör en liten fuling och skickar ett objekt som "ser ut" som en snapshot:
-        const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
-        renderProfileInfo(fakeDocSnap, myShooters); 
-    }
-});
-// Vi hämtar alla resultat för att kunna visa "Senaste prestationer" på startsidan.
-    // I en större app hade vi gjort en specifik query för datum, men detta duger för nu.
-    if (auth.currentUser) {
+        // --- RESULTAT ---
         onSnapshot(collection(db, 'results'), (snapshot) => {
             const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            latestResultsCache = allResults; // Spara i en variabel (se nedan)
+            latestResultsCache = allResults; // Spara i en variabel för återanvändning
             
-            // Rendera startsidan om vi har skytt-data
+            // Rendera startsidan och topplistor om vi har skytt-data
             if (allShootersData.length > 0) {
                  renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
             }
         });
     }
+
+    // --- ÖVRIGA LYSSNARE ---
+    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
+    onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
+    
+    onSnapshot(collection(db, 'users'), async (snapshot) => { 
+        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
+        renderUserReport(usersData);
+
+        // Hämta min profil och mina skyttar för att visa i "Min Profil"
+        if (uid) {
+            const myProfile = usersData.find(u => u.id === uid);
+            // Vi måste hämta skyttarna separat här för att vara säkra
+            const myShooters = await getMyShooters(uid);
+            
+            // Skicka med profildata
+            const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
+            renderProfileInfo(fakeDocSnap, myShooters); 
+        }
+    });
+
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
@@ -90,6 +107,8 @@ onSnapshot(collection(db, 'users'), async (snapshot) => {
         }
     });
 }
+
+// --- STANDARD CRUD-FUNKTIONER ---
 
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
     if (!isAdminLoggedIn) {
@@ -324,6 +343,7 @@ export async function getShooterResults(shooterId) {
         return [];
     }
 }
+
 // Uppdatera ett resultat (för vanliga användare)
 export async function updateUserResult(resultId, data) {
     if (!auth.currentUser) return;
@@ -341,6 +361,7 @@ export async function updateUserResult(resultId, data) {
         showModal('errorModal', "Kunde inte uppdatera resultatet. Kontrollera att du äger posten.");
     }
 }
+
 // Uppdatera skytt-profil (Namn och inställningar)
 export async function updateShooterProfile(shooterId, data) {
     // Enkel säkerhetskoll i frontend, reglerna kollar backend
@@ -367,6 +388,7 @@ export async function linkUserToShooter(shooterId, userId) {
         showModal('errorModal', "Kunde inte koppla användaren.");
     }
 }
+
 // Beräkna statistik för en skytt
 export function calculateShooterStats(results) {
     const currentYear = new Date().getFullYear();
@@ -392,7 +414,7 @@ export function calculateShooterStats(results) {
         const bestSeries = parseFloat(res.bestSeries) || 0;
         const count = parseInt(res.shotCount);
 
-        // Rekord-logik (som förut)
+        // Rekord-logik
         if (bestSeries > stats.allTime.series) stats.allTime.series = bestSeries;
         if (isCurrentYear && bestSeries > stats.year.series) stats.year.series = bestSeries;
 

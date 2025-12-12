@@ -19,7 +19,7 @@
                 </a>
                 <div class="flex flex-col items-start">
                     <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 2.9</p>
+                    <p class="text-sm text-gray-300">Ver. 3.0 (shooter results)</p>
                 </div>
             </div>
             <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
@@ -50,15 +50,16 @@
                 <p class="text-lg text-blue-700">Vi är en klubb för entusiaster av skytte. Här kan du hitta information om vår historia, nyheter och kommande evenemang.</p>
             </div>
             
-            <div id="achievements-section" class="hidden mb-12 bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-400">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center">
-                    <span class="text-3xl mr-2">🏆</span> Senaste Prestationerna
-                </h2>
-                <p class="text-gray-600 mb-4 text-sm">Medaljresultat från medlemmar de senaste 30 dagarna.</p>
-                <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <p class="text-gray-500 italic">Laddar prestationer...</p>
-                </div>
-            </div>
+           <div id="achievements-section" class="hidden mb-12 bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-400 cursor-pointer hover:bg-gray-50 transition" onclick="window.location.hash='#topplistor'">
+    <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center justify-between">
+        <span><span class="text-3xl mr-2">🏆</span> Senaste Prestationerna</span>
+        <span class="text-sm font-normal text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Klicka för topplistor &rarr;</span>
+    </h2>
+    <p class="text-gray-600 mb-4 text-sm">Medaljresultat från medlemmar de senaste 30 dagarna.</p>
+    <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="text-gray-500 italic">Laddar prestationer...</p>
+    </div>
+</div>
             <h2 class="text-3xl font-bold mb-4">Senaste Nyheterna</h2>
             <div id="home-news-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 </div>
@@ -429,7 +430,44 @@
                         <button type="submit" id="save-settings-btn" class="mt-4 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara inställningar</button>
                     </form>
                 </div>
-                
+                <div class="card mt-6">
+    <h2 class="text-2xl font-bold mb-4">Tävlingsklasser</h2>
+    <p class="text-gray-600 mb-4">Ställ in åldersgränser för topplistorna. (Ålder räknas på det år man fyller).</p>
+    
+    <div id="admin-classes-list" class="space-y-2 mb-6"></div>
+
+    <h3 class="text-lg font-bold mb-2">Lägg till / Ändra klass</h3>
+    <form id="add-class-form" class="bg-gray-50 p-4 rounded border">
+        <input type="hidden" id="class-id">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold mb-1">Klassnamn</label>
+                <input type="text" id="class-name" placeholder="T.ex. Lsi11" required class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold mb-1">Beskrivning</label>
+                <input type="text" id="class-desc" placeholder="Sittande 11-12 år" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold mb-1">Min Ålder (fyller i år)</label>
+                <input type="number" id="class-min" placeholder="0" required class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold mb-1">Max Ålder (fyller i år)</label>
+                <input type="number" id="class-max" placeholder="99" required class="w-full p-2 border rounded">
+            </div>
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-xs font-bold mb-1">Skjutstil</label>
+                <select id="class-discipline" class="w-full p-2 border rounded">
+                    <option value="sitting">Sittande</option>
+                    <option value="standing">Stående</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">Spara Klass</button>
+        <button type="button" id="cancel-class-btn" class="ml-2 text-gray-500 hidden">Avbryt</button>
+    </form>
+</div>
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
                     <p class="text-gray-600 mb-4">Befintliga administratörer</p>
@@ -726,7 +764,43 @@
             <div id="results-history-container" class="space-y-4"></div>
             </div> </section>
 </section>
+<section id="topplistor" class="page">
+    <h1 class="text-4xl font-bold mb-6">Topplistor & Statistik</h1>
+    <p class="mb-6 text-gray-600">Här visas veckans bästa resultat baserat på våra tävlingsklasser, samt delad historik.</p>
+
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-4 text-blue-900">Veckans Topp 5 (Senaste 7 dagarna)</h2>
+        <div id="top-lists-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-gray-500">Laddar listor...</p>
+        </div>
+    </div>
+
+    <div class="card bg-white p-6 shadow-lg border-t-4 border-blue-500">
+        <h2 class="text-2xl font-bold mb-4">Sök Skytt</h2>
+        <p class="text-sm text-gray-600 mb-4">Välj en skytt för att se deras *delade* resultat och statistik.</p>
         
+        <div class="relative mb-6">
+            <select id="public-shooter-selector" class="block w-full p-4 rounded-lg border border-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Välj skytt i listan...</option>
+            </select>
+        </div>
+
+        <div id="public-shooter-stats" class="hidden">
+             <h3 class="text-xl font-bold mb-2" id="public-shooter-name"></h3>
+             <div class="grid grid-cols-2 gap-4 mb-4 text-center">
+                <div class="bg-green-50 p-2 rounded border border-green-200">
+                    <span class="block text-xs text-gray-500 uppercase">Personbästa</span>
+                    <span class="text-xl font-bold text-green-700" id="public-pb">-</span>
+                </div>
+                <div class="bg-blue-50 p-2 rounded border border-blue-200">
+                    <span class="block text-xs text-gray-500 uppercase">Årsbästa</span>
+                    <span class="text-xl font-bold text-blue-700" id="public-sb">-</span>
+                </div>
+             </div>
+             <div id="public-results-list" class="space-y-2"></div>
+        </div>
+    </div>
+</section>
         <div id="errorModal" class="modal">
             <div class="modal-content">
                 <span id="close-error-modal" class="modal-close-btn">&times;</span>

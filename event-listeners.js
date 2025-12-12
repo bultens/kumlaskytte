@@ -3,13 +3,13 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
-import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal } from "./ui-handler.js";
+import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.32
+// Ver. 1.4
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -88,6 +88,104 @@ export function setupEventListeners() {
     const closeEditResultBtn = document.getElementById('close-edit-result-modal');
     const editResultForm = document.getElementById('edit-result-form');
     const addResultForm = document.getElementById('add-result-form');
+    const addClassForm = document.getElementById('add-class-form');
+    const cancelClassBtn = document.getElementById('cancel-class-btn');
+    
+    if (addClassForm) {
+        addClassForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('class-id').value;
+            
+            const classData = {
+                name: document.getElementById('class-name').value,
+                description: document.getElementById('class-desc').value,
+                minAge: parseInt(document.getElementById('class-min').value),
+                maxAge: parseInt(document.getElementById('class-max').value),
+                discipline: document.getElementById('class-discipline').value
+            };
+
+            await addOrUpdateDocument('competitionClasses', id || null, classData, "Klass sparad!", "Fel vid sparande.");
+            
+            addClassForm.reset();
+            document.getElementById('class-id').value = '';
+            cancelClassBtn.classList.add('hidden');
+        });
+        
+        cancelClassBtn.addEventListener('click', () => {
+            addClassForm.reset();
+            document.getElementById('class-id').value = '';
+            cancelClassBtn.classList.add('hidden');
+        });
+    }
+
+    // Admin: Klick på "Ändra" i klass-listan
+    const adminClassesList = document.getElementById('admin-classes-list');
+    if (adminClassesList) {
+        adminClassesList.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-class-btn');
+            if (editBtn) {
+                const cls = JSON.parse(editBtn.dataset.obj);
+                document.getElementById('class-id').value = cls.id;
+                document.getElementById('class-name').value = cls.name;
+                document.getElementById('class-desc').value = cls.description;
+                document.getElementById('class-min').value = cls.minAge;
+                document.getElementById('class-max').value = cls.maxAge;
+                document.getElementById('class-discipline').value = cls.discipline;
+                cancelClassBtn.classList.remove('hidden');
+            }
+        });
+    }
+
+    // --- NY: Publika Sidan - Dropdown ---
+    const publicShooterSelect = document.getElementById('public-shooter-selector');
+    
+    // Funktion för att fylla dropdown (anropas när vi navigerar till #topplistor)
+    const populatePublicDropdown = () => {
+        if (!publicShooterSelect) return;
+        
+        // Hitta alla skyttar som har minst ETT delat resultat
+        // Vi använder latestResultsCache som redan är laddad
+        const activeShooterIds = new Set();
+        latestResultsCache.forEach(r => {
+            if (r.sharedWithClub) activeShooterIds.add(r.shooterId);
+        });
+
+        // Filtrera skytt-listan
+        const publicShooters = allShootersData.filter(s => activeShooterIds.has(s.id));
+        publicShooters.sort((a, b) => a.name.localeCompare(b.name));
+
+        publicShooterSelect.innerHTML = '<option value="">Välj skytt...</option>';
+        publicShooters.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            publicShooterSelect.appendChild(opt);
+        });
+    };
+
+    window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#topplistor') {
+            // Se till att data är laddad, eller vänta lite
+            if (allShootersData.length > 0) {
+                populatePublicDropdown();
+                // Trigga omrendering av topplistor
+                renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+            } else {
+                // Retry om en sekund ifall data inte hunnit komma
+                setTimeout(() => {
+                    populatePublicDropdown();
+                    renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+                }, 1000);
+            }
+        }
+    });
+
+    if (publicShooterSelect) {
+        publicShooterSelect.addEventListener('change', (e) => {
+            renderPublicShooterStats(e.target.value, latestResultsCache, allShootersData);
+        });
+    }
+}
 
     if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
