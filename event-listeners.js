@@ -1337,5 +1337,3 @@ let totalMedal = null;
             }
         };
     }
-
-}

@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.4
+// Ver. 1.5 (Fixed Syntax)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -194,12 +194,11 @@ export function renderCompetitions(data, isAdminLoggedIn) {
         });
     }
 
-    // 2. Hantera startsidan (Senaste tävlingarna) - NY KOD
+    // 2. Hantera startsidan (Senaste tävlingarna)
     const homeContainer = document.getElementById('home-competitions-container');
     if (homeContainer) {
         homeContainer.innerHTML = '';
 
-        // Hjälpfunktion för att ta fram ren text ur HTML (samma som för nyheter)
         const getFirstLineText = (htmlContent) => {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
@@ -213,11 +212,8 @@ export function renderCompetitions(data, isAdminLoggedIn) {
         // Ta de 2 senaste
         data.slice(0, 2).forEach(item => {
             const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-            // Ta fram en kort sammanfattning (max 150 tecken)
             const rawText = getFirstLineText(item.content);
             const shortContent = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
-            
-            // Länk som går till tävlingsfliken
             const compUrl = '#tavlingar';
 
             homeContainer.innerHTML += `
@@ -256,7 +252,6 @@ export function handleAdminUI(isAdmin) {
         if (adminPanel) adminPanel.classList.remove('hidden');
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
-        // Hämta användare direkt från auth istället för usersData för att undvika loop
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
@@ -568,7 +563,6 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     if (!sponsorsContainer) return;
     sponsorsContainer.innerHTML = '';
     
-    // Sort by size first, then by priority
     const sizeOrder = {'1/1': 1, '1/2': 2, '1/4': 3};
     sponsorsData.sort((a, b) => {
         const sizeDiff = sizeOrder[a.size] - sizeOrder[b.size];
@@ -578,7 +572,6 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
         return a.priority - b.priority;
     });
 
-    // Group sponsors by size
     const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
     const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
     const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
@@ -657,7 +650,6 @@ export function renderShootersAdmin(shootersData) {
     shootersData.sort((a, b) => a.name.localeCompare(b.name));
 
     shootersData.forEach(shooter => {
-        // Räkna hur många föräldrar som är kopplade
         const parentCount = shooter.parentUserIds ? shooter.parentUserIds.length : 0;
         
         container.innerHTML += `
@@ -720,7 +712,6 @@ export function renderUserReport(usersData) {
 
 
 export function renderContactInfo() {
-    // Använd querySelectorAll för att hitta ALLA element, eftersom ID:t nu finns på flera ställen (Footer + Om oss)
     const contactAddressEls = document.querySelectorAll('#contact-address');
     const contactLocationEls = document.querySelectorAll('#contact-location'); 
     const contactPhoneEls = document.querySelectorAll('#contact-phone');
@@ -779,9 +770,8 @@ export function renderProfileInfo(userDoc, myShooters = []) {
     profilePhoneInput.value = data.phone || '';
     profileBirthyearInput.value = data.birthyear || '';
     profileMailingListCheckbox.checked = data.mailingList || false;
-// NYTT: Visa kopplade skyttar
+
     const profileForm = document.getElementById('profile-form');
-    // Rensa eventuell gammal lista om den finns
     const oldList = document.getElementById('profile-linked-shooters');
     if (oldList) oldList.remove();
 
@@ -797,7 +787,6 @@ export function renderProfileInfo(userDoc, myShooters = []) {
         html += '</ul>';
         listHtml.innerHTML = html;
         
-        // Lägg in listan före spara-knappen
         const saveBtn = document.getElementById('save-profile-btn');
         profileForm.insertBefore(listHtml, saveBtn);
     }
@@ -835,11 +824,9 @@ export function navigate(hash) {
         link.classList.remove('active');
     });
 
-    // Dela upp hash men hantera eventuella frågetecken som råkat komma med
     const hashParts = hash.split('#');
     let targetPageId = hashParts[1];
     
-    // SÄKERHETSÅTGÄRD: Ta bort eventuella frågetecken och allt efter dem
     if (targetPageId) {
         targetPageId = targetPageId.split('?')[0];
     }
@@ -851,13 +838,11 @@ export function navigate(hash) {
         const homePage = document.getElementById(targetPageId);
         if (homePage) homePage.classList.add('active');
     } else {
-        // Nu är targetPageId rensat från '?', så querySelector kommer inte krascha
         try {
             const targetPage = document.querySelector(`#${targetPageId}`);
             if (targetPage) {
                 targetPage.classList.add('active');
             } else {
-                // Fallback till hem om sidan inte finns
                 targetPageId = 'hem';
                 document.getElementById('hem').classList.add('active');
             }
@@ -885,8 +870,6 @@ export function navigate(hash) {
     }
 }
 
-// ui-handler.js
-
 export function renderHomeAchievements(allResults, allShooters) {
     const container = document.getElementById('achievements-list');
     const section = document.getElementById('achievements-section');
@@ -899,11 +882,8 @@ export function renderHomeAchievements(allResults, allShooters) {
     }
     section.classList.remove('hidden');
 
-    // 1. "Spela upp historiken" för att hitta ÄKTA PB och Årsbästa (SB)
-    // Sortera äldst först
     const chronologicalResults = [...allResults].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    // Vi sparar vilka IDn som slog rekord för olika mätvärden
     const records = {
         totalPB: new Set(), totalSB: new Set(),
         seriesPB: new Set(), seriesSB: new Set(),
@@ -912,36 +892,29 @@ export function renderHomeAchievements(allResults, allShooters) {
         s60PB: new Set(), s60SB: new Set()
     };
     
-    // Trackers för PB (All time) och SB (Per år)
     const trackers = {
-        pb: {}, // Format: "SkytteID_Gren" -> { total, bestSeries, s20, s40, s60 }
-        sb: {}  // Format: "SkytteID_Gren_År" -> { total, bestSeries, s20, s40, s60 }
+        pb: {},
+        sb: {}
     };
 
     chronologicalResults.forEach(res => {
-        const key = `${res.shooterId}_${res.discipline}`; // Ex: "Kalle_sitting"
+        const key = `${res.shooterId}_${res.discipline}`;
         const year = new Date(res.date).getFullYear();
-        const yearKey = `${key}_${year}`; // Ex: "Kalle_sitting_2025"
+        const yearKey = `${key}_${year}`;
         
         const total = parseFloat(res.total);
         const bestSeries = parseFloat(res.bestSeries);
-        const shotCount = parseInt(res.shotCount); // 20, 40 eller 60
+        const shotCount = parseInt(res.shotCount);
 
-        // Initiera objekt om de inte finns
         if (!trackers.pb[key]) trackers.pb[key] = { maxTotal: 0, maxSeries: 0, max20: 0, max40: 0, max60: 0 };
         if (!trackers.sb[yearKey]) trackers.sb[yearKey] = { maxTotal: 0, maxSeries: 0, max20: 0, max40: 0, max60: 0 };
 
         const pb = trackers.pb[key];
         const sb = trackers.sb[yearKey];
 
-        // --- 1. Kolla Totalpoäng (Bara om det är det "vanliga" skjutprogrammet för skytten, 
-        // men här antar vi att totalen alltid är intressant för just det antalet skott)
-        // För att totalrekord ska vara rättvisande måste vi jämföra äpplen med äpplen (samma antal skott).
-        // Därför gör vi en unik nyckel för totalen baserat på shotCount också.
         const totalKey = `${key}_${shotCount}`; 
         const totalYearKey = `${yearKey}_${shotCount}`;
         
-        // Vi använder separata trackers för "Total per shotCount" för att inte jämföra 20 skott med 40 skott
         if (!trackers.pb[totalKey]) trackers.pb[totalKey] = 0;
         if (!trackers.sb[totalYearKey]) trackers.sb[totalYearKey] = 0;
 
@@ -954,7 +927,6 @@ export function renderHomeAchievements(allResults, allShooters) {
             records.totalSB.add(res.id);
         }
 
-        // --- 2. Kolla Bästa Serie (Oavsett om man sköt 20, 40 eller 60 skott)
         if (bestSeries > pb.maxSeries) {
             pb.maxSeries = bestSeries;
             records.seriesPB.add(res.id);
@@ -963,10 +935,6 @@ export function renderHomeAchievements(allResults, allShooters) {
             sb.maxSeries = bestSeries;
             records.seriesSB.add(res.id);
         }
-
-        // --- 3. Kolla Specifika distanser (20, 40, 60)
-        // Om man skjuter 40 skott, har man automatiskt skjutit 20 skott också? 
-        // Oftast räknas slutresultatet. Vi håller det enkelt: Sköt man 40 skott kollar vi rekordet för 40 skott.
         
         if (shotCount === 20) {
             if (total > pb.max20) { pb.max20 = total; records.s20PB.add(res.id); }
@@ -980,7 +948,6 @@ export function renderHomeAchievements(allResults, allShooters) {
         }
     });
 
-    // 2. Filtrering och Visning
     const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -991,7 +958,6 @@ export function renderHomeAchievements(allResults, allShooters) {
         const isShared = res.sharedWithClub === true;
         const hasEarnedBadge = res.earnedBadges && res.earnedBadges.length > 0;
         
-        // Har man slagit NÅGOT rekord?
         const isAnyRecord = 
             records.totalPB.has(res.id) || records.totalSB.has(res.id) ||
             records.seriesPB.has(res.id) || records.seriesSB.has(res.id) ||
@@ -1016,17 +982,14 @@ export function renderHomeAchievements(allResults, allShooters) {
         const shooterName = shooter ? shooter.name : "Okänd skytt";
         const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
 
-        // Helper för etiketter
         const getLabel = (isPB, isSB) => {
             if (isPB) return `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200 uppercase ml-2">PB 🚀</span>`;
             if (isSB) return `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-200 uppercase ml-2">ÅB 📅</span>`;
             return '';
         };
 
-        // 1. Totalpoäng
         const totalLabel = getLabel(records.totalPB.has(res.id), records.totalSB.has(res.id));
         
-        // 2. Bästa Serie
         let seriesRow = '';
         if (records.seriesPB.has(res.id) || records.seriesSB.has(res.id)) {
             const label = getLabel(records.seriesPB.has(res.id), records.seriesSB.has(res.id));
@@ -1036,7 +999,6 @@ export function renderHomeAchievements(allResults, allShooters) {
                          </div>`;
         }
 
-        // 3. Specifika distanser (visas om man sköt just det antalet skott OCH slog rekord)
         let countRow = '';
         const shotCount = parseInt(res.shotCount);
         let hasCountRecord = false;
@@ -1060,7 +1022,6 @@ export function renderHomeAchievements(allResults, allShooters) {
                         </div>`;
         }
 
-        // Taggar för MÄRKEN
         let badgeHtml = '';
         if (res.earnedBadges && res.earnedBadges.length > 0) {
             res.earnedBadges.forEach(badge => {
@@ -1075,7 +1036,6 @@ export function renderHomeAchievements(allResults, allShooters) {
             });
         }
 
-        // Bestäm bakgrundsfärg (Grön om PB på totalen, annars blå/vit)
         let bgClass = "bg-white border-gray-100";
         if (records.totalPB.has(res.id)) bgClass = "bg-green-50 border-green-200";
         else if (records.totalSB.has(res.id)) bgClass = "bg-blue-50 border-blue-200";
@@ -1105,7 +1065,12 @@ export function renderHomeAchievements(allResults, allShooters) {
                     ${badgeHtml}
                 </div>
             </div>
-// --- NY: Rendera Admin-lista för klasser ---
+        `;
+    });
+}
+
+// --- NYA FUNKTIONERNA ---
+
 export function renderClassesAdmin(classes) {
     const container = document.getElementById('admin-classes-list');
     if (!container) return;
@@ -1131,7 +1096,6 @@ export function renderClassesAdmin(classes) {
     });
 }
 
-// --- NY: Rendera Topplistor på publika sidan ---
 export function renderTopLists(classes, allResults, allShooters) {
     const container = document.getElementById('top-lists-container');
     if (!container) return;
@@ -1143,7 +1107,6 @@ export function renderTopLists(classes, allResults, allShooters) {
 
     container.innerHTML = '';
 
-    // 1. Filtrera ut resultat från SENASTE 7 DAGARNA som är DELADE
     const now = new Date();
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(now.getDate() - 7);
@@ -1155,31 +1118,23 @@ export function renderTopLists(classes, allResults, allShooters) {
 
     const currentYear = new Date().getFullYear();
 
-    // 2. Loopa igenom varje klass och bygg en lista
     classes.forEach(cls => {
-        // Hitta resultat som passar i denna klass
         const classResults = recentResults.filter(res => {
-            // Kolla skjutstil
             if (res.discipline !== cls.discipline) return false;
 
-            // Kolla ålder på skytten
             const shooter = allShooters.find(s => s.id === res.shooterId);
-            if (!shooter || !shooter.birthyear) return false; // Ingen skytt kopplad
+            if (!shooter || !shooter.birthyear) return false;
 
             const age = currentYear - shooter.birthyear;
             return age >= cls.minAge && age <= cls.maxAge;
         });
 
-        // Om listan är tom, visa inget (eller visa tom tabell)
         if (classResults.length === 0) return;
 
-        // Sortera: Högst poäng först
         classResults.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
 
-        // Ta topp 5
         const top5 = classResults.slice(0, 5);
 
-        // Skapa HTML för kortet
         let rowsHtml = '';
         top5.forEach((res, index) => {
             const shooter = allShooters.find(s => s.id === res.shooterId);
@@ -1214,7 +1169,6 @@ export function renderTopLists(classes, allResults, allShooters) {
     }
 }
 
-// --- NY: Rendera publika resultat för vald skytt ---
 export function renderPublicShooterStats(shooterId, allResults, allShooters) {
     const container = document.getElementById('public-results-list');
     const statsContainer = document.getElementById('public-shooter-stats');
@@ -1231,13 +1185,9 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
     document.getElementById('public-shooter-name').textContent = shooter.name;
     statsContainer.classList.remove('hidden');
 
-    // Hämta DELADE resultat för skytten
     const myResults = allResults.filter(r => r.shooterId === shooterId && r.sharedWithClub === true);
     myResults.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Räkna PB/SB (Supersimpel variant baserat på total, oavsett gren, för översikt)
-    // Vill du ha mer avancerat (per gren) får vi kopiera logiken från Mina Resultat.
-    // Här tar vi bara absolut max poäng för enkelhetens skull i dropdownen.
     let maxTotal = 0;
     let maxYear = 0;
     const currentYear = new Date().getFullYear();
