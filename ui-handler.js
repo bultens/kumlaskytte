@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.34
+// Ver. 1.35
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -885,6 +885,8 @@ export function navigate(hash) {
     }
 }
 
+// ui-handler.js
+
 export function renderHomeAchievements(allResults, allShooters) {
     const container = document.getElementById('achievements-list');
     const section = document.getElementById('achievements-section');
@@ -898,38 +900,87 @@ export function renderHomeAchievements(allResults, allShooters) {
     section.classList.remove('hidden');
 
     // 1. "Spela upp historiken" för att hitta ÄKTA PB och Årsbästa (SB)
-    // Vi sorterar äldst först för att bygga upp rekordhistoriken korrekt
+    // Sortera äldst först
     const chronologicalResults = [...allResults].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    const truePBIds = new Set(); // Här sparar vi ID på de resultat som faktiskt var PB
-    const trueSBIds = new Set(); // Här sparar vi ID på de resultat som faktiskt var SB
+    // Vi sparar vilka IDn som slog rekord för olika mätvärden
+    const records = {
+        totalPB: new Set(), totalSB: new Set(),
+        seriesPB: new Set(), seriesSB: new Set(),
+        s20PB: new Set(), s20SB: new Set(),
+        s40PB: new Set(), s40SB: new Set(),
+        s60PB: new Set(), s60SB: new Set()
+    };
     
-    const pbTracker = {}; // Håller koll på bästa resultatet per skytt/gren/antal skott
-    const sbTracker = {}; // Håller koll på bästa resultatet per skytt/gren/antal skott/år
+    // Trackers för PB (All time) och SB (Per år)
+    const trackers = {
+        pb: {}, // Format: "SkytteID_Gren" -> { total, bestSeries, s20, s40, s60 }
+        sb: {}  // Format: "SkytteID_Gren_År" -> { total, bestSeries, s20, s40, s60 }
+    };
 
     chronologicalResults.forEach(res => {
-        // Skapa unika nycklar för att skilja på grenar och antal skott (t.ex. "Kalle_sitting_20")
-        const key = `${res.shooterId}_${res.discipline}_${res.shotCount}`;
+        const key = `${res.shooterId}_${res.discipline}`; // Ex: "Kalle_sitting"
         const year = new Date(res.date).getFullYear();
-        const yearKey = `${key}_${year}`;
+        const yearKey = `${key}_${year}`; // Ex: "Kalle_sitting_2025"
         
-        const score = parseFloat(res.total);
+        const total = parseFloat(res.total);
+        const bestSeries = parseFloat(res.bestSeries);
+        const shotCount = parseInt(res.shotCount); // 20, 40 eller 60
 
-        // Kolla Personbästa (PB)
-        // Om inget tidigare resultat finns, eller om detta är högre än nuvarande max
-        if (!pbTracker[key] || score > pbTracker[key]) {
-            pbTracker[key] = score;
-            truePBIds.add(res.id); // Detta ID är ett äkta PB
+        // Initiera objekt om de inte finns
+        if (!trackers.pb[key]) trackers.pb[key] = { maxTotal: 0, maxSeries: 0, max20: 0, max40: 0, max60: 0 };
+        if (!trackers.sb[yearKey]) trackers.sb[yearKey] = { maxTotal: 0, maxSeries: 0, max20: 0, max40: 0, max60: 0 };
+
+        const pb = trackers.pb[key];
+        const sb = trackers.sb[yearKey];
+
+        // --- 1. Kolla Totalpoäng (Bara om det är det "vanliga" skjutprogrammet för skytten, 
+        // men här antar vi att totalen alltid är intressant för just det antalet skott)
+        // För att totalrekord ska vara rättvisande måste vi jämföra äpplen med äpplen (samma antal skott).
+        // Därför gör vi en unik nyckel för totalen baserat på shotCount också.
+        const totalKey = `${key}_${shotCount}`; 
+        const totalYearKey = `${yearKey}_${shotCount}`;
+        
+        // Vi använder separata trackers för "Total per shotCount" för att inte jämföra 20 skott med 40 skott
+        if (!trackers.pb[totalKey]) trackers.pb[totalKey] = 0;
+        if (!trackers.sb[totalYearKey]) trackers.sb[totalYearKey] = 0;
+
+        if (total > trackers.pb[totalKey]) {
+            trackers.pb[totalKey] = total;
+            records.totalPB.add(res.id);
+        }
+        if (total > trackers.sb[totalYearKey]) {
+            trackers.sb[totalYearKey] = total;
+            records.totalSB.add(res.id);
         }
 
-        // Kolla Årsbästa (SB)
-        if (!sbTracker[yearKey] || score > sbTracker[yearKey]) {
-            sbTracker[yearKey] = score;
-            trueSBIds.add(res.id); // Detta ID är ett äkta SB
+        // --- 2. Kolla Bästa Serie (Oavsett om man sköt 20, 40 eller 60 skott)
+        if (bestSeries > pb.maxSeries) {
+            pb.maxSeries = bestSeries;
+            records.seriesPB.add(res.id);
+        }
+        if (bestSeries > sb.maxSeries) {
+            sb.maxSeries = bestSeries;
+            records.seriesSB.add(res.id);
+        }
+
+        // --- 3. Kolla Specifika distanser (20, 40, 60)
+        // Om man skjuter 40 skott, har man automatiskt skjutit 20 skott också? 
+        // Oftast räknas slutresultatet. Vi håller det enkelt: Sköt man 40 skott kollar vi rekordet för 40 skott.
+        
+        if (shotCount === 20) {
+            if (total > pb.max20) { pb.max20 = total; records.s20PB.add(res.id); }
+            if (total > sb.max20) { sb.max20 = total; records.s20SB.add(res.id); }
+        } else if (shotCount === 40) {
+            if (total > pb.max40) { pb.max40 = total; records.s40PB.add(res.id); }
+            if (total > sb.max40) { sb.max40 = total; records.s40SB.add(res.id); }
+        } else if (shotCount === 60) {
+            if (total > pb.max60) { pb.max60 = total; records.s60PB.add(res.id); }
+            if (total > sb.max60) { sb.max60 = total; records.s60SB.add(res.id); }
         }
     });
 
-    // 2. Filtrering för visning (Senaste 30 dagarna, delat med klubben)
+    // 2. Filtrering och Visning
     const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -938,20 +989,19 @@ export function renderHomeAchievements(allResults, allShooters) {
         const resDate = new Date(res.date);
         const isRecent = resDate >= thirtyDaysAgo;
         const isShared = res.sharedWithClub === true;
-        
-        // Har tagit märke denna gång? 
         const hasEarnedBadge = res.earnedBadges && res.earnedBadges.length > 0;
         
-        // Är det ett ÄKTA PB eller SB (beräknat ovan)?
-        // Vi ignorerar res.isPB från databasen och litar på vår nya beräkning
-        const isTruePB = truePBIds.has(res.id);
-        const isTrueSB = trueSBIds.has(res.id);
+        // Har man slagit NÅGOT rekord?
+        const isAnyRecord = 
+            records.totalPB.has(res.id) || records.totalSB.has(res.id) ||
+            records.seriesPB.has(res.id) || records.seriesSB.has(res.id) ||
+            records.s20PB.has(res.id) || records.s20SB.has(res.id) ||
+            records.s40PB.has(res.id) || records.s40SB.has(res.id) ||
+            records.s60PB.has(res.id) || records.s60SB.has(res.id);
 
-        // Vi visar resultatet om det är nytt OCH delat OCH (Märke ELLER Rekord)
-        return isRecent && isShared && (hasEarnedBadge || isTruePB || isTrueSB);
+        return isRecent && isShared && (hasEarnedBadge || isAnyRecord);
     });
 
-    // Sortera för visning: Nyast först
     relevantResults.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     container.innerHTML = '';
@@ -966,54 +1016,89 @@ export function renderHomeAchievements(allResults, allShooters) {
         const shooterName = shooter ? shooter.name : "Okänd skytt";
         const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
 
-        // Kolla våra beräknade Sets istället för databas-värdet
-        const isTruePB = truePBIds.has(res.id);
-        const isTrueSB = trueSBIds.has(res.id);
+        // Helper för etiketter
+        const getLabel = (isPB, isSB) => {
+            if (isPB) return `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200 uppercase ml-2">PB 🚀</span>`;
+            if (isSB) return `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-200 uppercase ml-2">ÅB 📅</span>`;
+            return '';
+        };
 
-        // Taggar för PB / SB
-        let recordBadge = '';
-        if (isTruePB) {
-            recordBadge = `<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full border border-green-200 uppercase tracking-wide shadow-sm">PB 🚀</span>`;
-        } else if (isTrueSB) {
-            recordBadge = `<span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full border border-blue-200 uppercase tracking-wide shadow-sm">ÅB 📅</span>`;
+        // 1. Totalpoäng
+        const totalLabel = getLabel(records.totalPB.has(res.id), records.totalSB.has(res.id));
+        
+        // 2. Bästa Serie
+        let seriesRow = '';
+        if (records.seriesPB.has(res.id) || records.seriesSB.has(res.id)) {
+            const label = getLabel(records.seriesPB.has(res.id), records.seriesSB.has(res.id));
+            seriesRow = `<div class="flex justify-between items-center text-sm text-gray-600 mt-1">
+                            <span>Bästa serie: <b>${res.bestSeries}</b></span>
+                            ${label}
+                         </div>`;
+        }
+
+        // 3. Specifika distanser (visas om man sköt just det antalet skott OCH slog rekord)
+        let countRow = '';
+        const shotCount = parseInt(res.shotCount);
+        let hasCountRecord = false;
+        let countLabel = '';
+
+        if (shotCount === 20) {
+            hasCountRecord = records.s20PB.has(res.id) || records.s20SB.has(res.id);
+            countLabel = getLabel(records.s20PB.has(res.id), records.s20SB.has(res.id));
+        } else if (shotCount === 40) {
+            hasCountRecord = records.s40PB.has(res.id) || records.s40SB.has(res.id);
+            countLabel = getLabel(records.s40PB.has(res.id), records.s40SB.has(res.id));
+        } else if (shotCount === 60) {
+            hasCountRecord = records.s60PB.has(res.id) || records.s60SB.has(res.id);
+            countLabel = getLabel(records.s60PB.has(res.id), records.s60SB.has(res.id));
+        }
+
+        if (hasCountRecord) {
+            countRow = `<div class="flex justify-between items-center text-sm text-gray-600 mt-1">
+                            <span>${shotCount} skott: <b>${res.total}</b></span>
+                            ${countLabel}
+                        </div>`;
         }
 
         // Taggar för MÄRKEN
         let badgeHtml = '';
         if (res.earnedBadges && res.earnedBadges.length > 0) {
             res.earnedBadges.forEach(badge => {
-                let color = 'text-gray-600 bg-gray-50 border-gray-200';
-                let icon = '🏅';
+                let color = 'text-yellow-800 bg-yellow-50 border-yellow-200';
+                let icon = '🏆';
+                if(badge.includes('Silver')) { color = 'text-slate-700 bg-slate-50 border-slate-200'; icon = '🥈'; }
+                if(badge.includes('Brons')) { color = 'text-orange-800 bg-orange-50 border-orange-200'; icon = '🥉'; }
                 
-                if(badge.includes('Guld')) { color = 'text-yellow-800 bg-yellow-100 border-yellow-300'; icon = '🏆'; }
-                else if(badge.includes('Silver')) { color = 'text-slate-700 bg-slate-100 border-slate-300'; icon = '🥈'; }
-                else if(badge.includes('Brons')) { color = 'text-orange-800 bg-orange-100 border-orange-300'; icon = '🥉'; }
-                
-                badgeHtml += `<div class="${color} flex items-center justify-center font-bold text-xs border px-2 py-1 rounded-full shadow-sm mt-1 w-full">
-                    <span class="mr-1 text-sm">${icon}</span> ${badge}-märke fixat!
+                badgeHtml += `<div class="${color} flex items-center justify-center font-bold text-xs border px-2 py-1 rounded-md mt-1 w-full">
+                    <span class="mr-1">${icon}</span> ${badge}-märke!
                 </div>`;
             });
         }
 
-        // Bakgrundsfärg
+        // Bestäm bakgrundsfärg (Grön om PB på totalen, annars blå/vit)
         let bgClass = "bg-white border-gray-100";
-        if (isTruePB) bgClass = "bg-green-50 border-green-200";
-        else if (res.earnedBadges && res.earnedBadges.includes('Guld 3')) bgClass = "bg-yellow-50 border-yellow-200";
-        else if (isTrueSB) bgClass = "bg-blue-50 border-blue-200";
+        if (records.totalPB.has(res.id)) bgClass = "bg-green-50 border-green-200";
+        else if (records.totalSB.has(res.id)) bgClass = "bg-blue-50 border-blue-200";
+        else if (res.earnedBadges && res.earnedBadges.length > 0) bgClass = "bg-yellow-50 border-yellow-200";
 
         container.innerHTML += `
-            <div class="flex flex-col p-4 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-                <div class="flex justify-between items-start mb-2">
+            <div class="flex flex-col p-4 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative">
+                <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-gray-800 truncate text-lg">${shooterName}</span>
                     <span class="text-xs text-gray-400 whitespace-nowrap">${dateStr}</span>
                 </div>
                 
-                <div class="flex items-center justify-between mt-1 mb-2">
+                <div class="flex items-center justify-between mb-2 pb-2 border-b border-black/5">
                     <div class="flex flex-col">
-                        <span class="font-bold text-blue-900 text-2xl">${res.total}p</span>
-                        <span class="text-xs text-gray-500">${res.discipline}</span>
+                        <span class="font-bold text-blue-900 text-2xl leading-none">${res.total}p</span>
+                        <span class="text-[10px] text-gray-500 uppercase tracking-wide mt-1">${res.discipline} (${res.shotCount} skott)</span>
                     </div>
-                     <div>${recordBadge}</div>
+                     <div>${totalLabel}</div>
+                </div>
+
+                <div class="flex flex-col gap-0 mb-2">
+                    ${seriesRow}
+                    ${countRow}
                 </div>
 
                 <div class="flex flex-col gap-1 mt-auto">
