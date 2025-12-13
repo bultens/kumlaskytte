@@ -97,6 +97,7 @@ export function setupEventListeners() {
         achievementsSection.addEventListener('click', () => {
             window.location.hash = '#topplistor';
         });
+    }
     
     // --- Hantera Klasser (Admin) ---
     if (addClassForm) {
