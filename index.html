@@ -1048,6 +1048,30 @@
     <script type="module" src="form-validation.js"></script>
     <script type="module" src="event-listeners.js"></script>
     <script type="module" src="main.js"></script>
+
+    <div id="imageSelectionModal" class="modal">
+    <div class="modal-content w-11/12 max-w-4xl h-3/4 flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">Välj bild</h3>
+            <span id="close-image-selection-modal" class="modal-close-btn cursor-pointer text-2xl">&times;</span>
+        </div>
+
+        <div class="mb-4 pb-4 border-b border-gray-200">
+            <label class="block text-sm font-bold mb-2">Alternativ 1: Klistra in extern länk</label>
+            <div class="flex gap-2">
+                <input type="text" id="manual-image-url" placeholder="https://..." class="flex-grow p-2 border rounded">
+                <button id="use-manual-url-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Använd</button>
+            </div>
+        </div>
+
+        <div class="flex-grow overflow-hidden flex flex-col">
+            <label class="block text-sm font-bold mb-2">Alternativ 2: Klicka på en bild från galleriet</label>
+            <div id="gallery-selection-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 overflow-y-auto p-2 bg-gray-50 rounded border h-full">
+                </div>
+        </div>
+    </div>
+</div>
+
 </body>
 
 </html>

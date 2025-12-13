@@ -1043,11 +1043,74 @@ export function setupEventListeners() {
                         }
                     }
                 }
-            } else if (command === 'insertImage') {
-                const imageUrl = prompt("Ange bildens URL:");
-                if (imageUrl) {
-                    applyEditorCommand(editorElement, command, imageUrl);
-                }
+               } else if (command === 'insertImage') {
+                // Hämta referenser till modal-elementen
+                const modal = document.getElementById('imageSelectionModal');
+                const grid = document.getElementById('gallery-selection-grid');
+                const closeBtn = document.getElementById('close-image-selection-modal');
+                const manualInput = document.getElementById('manual-image-url');
+                const manualBtn = document.getElementById('use-manual-url-btn');
+
+                // Funktion för att slutföra (fråga om storlek och infoga)
+                const insertTheImage = (url) => {
+                    modal.classList.remove('active'); // Stäng modalen
+                    
+                    // Samma storleks-logik som vi gjorde nyss
+                    const sizeInput = prompt("Välj storlek:\nS = Liten (text flyter runt)\nM = Mellan (centrerad)\nL = Stor (full bredd)", "M");
+                    let sizeClass = "img-medium";
+                    
+                    if (sizeInput) {
+                        const s = sizeInput.toLowerCase().trim();
+                        if (s === 's' || s === 'liten') sizeClass = "img-small";
+                        else if (s === 'l' || s === 'stor') sizeClass = "img-large";
+                    }
+
+                    const imgHtml = `<img src="${url}" class="${sizeClass}" alt="Bild">`;
+                    applyEditorCommand(editorElement, 'insertHTML', imgHtml);
+                };
+
+                // 1. Fyll rutnätet med bilder från imageData
+                grid.innerHTML = '';
+                // Sortera nyast först
+                const sortedImages = [...imageData].sort((a, b) => {
+                    if (b.year !== a.year) return b.year - a.year;
+                    return b.month - a.month;
+                });
+
+                sortedImages.forEach(img => {
+                    const div = document.createElement('div');
+                    div.className = 'gallery-selection-item';
+                    div.innerHTML = `
+                        <img src="${img.url}" loading="lazy">
+                        <p>${img.title}</p>
+                    `;
+                    // När man klickar på en bild i galleriet
+                    div.onclick = () => insertTheImage(img.url);
+                    grid.appendChild(div);
+                });
+
+                // 2. Hantera "Använd länk"-knappen
+                // Ta bort gamla lyssnare genom att klona knappen (enkelt trick)
+                const newManualBtn = manualBtn.cloneNode(true);
+                manualBtn.parentNode.replaceChild(newManualBtn, manualBtn);
+                
+                newManualBtn.onclick = () => {
+                    const url = manualInput.value;
+                    if (url) insertTheImage(url);
+                };
+
+                // 3. Öppna modalen
+                manualInput.value = ''; // Töm input
+                modal.classList.add('active');
+
+                // Stäng-knapp
+                closeBtn.onclick = () => modal.classList.remove('active');
+                
+                // Stäng om man klickar utanför
+                modal.onclick = (e) => {
+                    if (e.target === modal) modal.classList.remove('active');
+                };
+                
             } else if (command === 'insertGold') {
                 applyEditorCommand(editorElement, 'insertHTML', '🥇 ');
             } else if (command === 'insertSilver') {
