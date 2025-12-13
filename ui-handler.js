@@ -64,7 +64,31 @@ export function showUserInfoModal(user) {
 export function showDeleteProfileModal() {
     const modal = document.getElementById('deleteProfileModal');
     if (modal) {
+        // Hämta kontaktmail från sidfoten
+        const emailEl = document.getElementById('contact-email');
+        const email = emailEl && emailEl.textContent ? emailEl.textContent.trim() : 'styrelsen';
+
+        const messageEl = document.getElementById('delete-profile-message');
+        if (messageEl) {
+            messageEl.innerHTML = `
+                <span class="block mb-2 font-bold text-lg">Är du säker på att du vill ta bort ditt konto?</span>
+                <span class="block mb-4 text-sm text-gray-700">
+                    Denna åtgärd tar bort din inloggning och profil omedelbart. Det går inte att ångra.
+                </span>
+                
+                <div class="text-left text-sm bg-blue-50 p-4 rounded-lg border border-blue-200 text-blue-900 mt-2">
+                    <strong class="block mb-1 text-blue-800">⚠️ Viktigt om dina resultat:</strong>
+                    All data under "Mina Resultat" sparas i föreningens databas för statistik och historik, även om du tar bort ditt konto.
+                    <br><br>
+                    Om du även vill att dina tidigare resultat ska raderas eller anonymiseras måste du kontakta administratören manuellt på:
+                    <br>
+                    👉 <a href="mailto:${email}" class="underline font-bold hover:text-blue-700">${email}</a>
+                </div>
+            `;
+        }
+
         modal.classList.add('active');
+        
         const cancelButton = document.getElementById('cancel-delete-profile-btn');
         if (cancelButton) {
             cancelButton.onclick = () => hideModal('deleteProfileModal');
@@ -647,17 +671,37 @@ export function renderShootersAdmin(shootersData) {
     if (!container) return;
 
     container.innerHTML = '';
-    shootersData.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Sortera: De som kräver åtgärd först, sen alfabetiskt
+    shootersData.sort((a, b) => {
+        if (a.requiresAdminAction && !b.requiresAdminAction) return -1;
+        if (!a.requiresAdminAction && b.requiresAdminAction) return 1;
+        return a.name.localeCompare(b.name);
+    });
 
     shootersData.forEach(shooter => {
         const parentCount = shooter.parentUserIds ? shooter.parentUserIds.length : 0;
         
+        // Kolla om den är "föräldralös"
+        const isOrphan = shooter.requiresAdminAction || parentCount === 0;
+        
+        let statusHtml = `<p class="text-xs text-gray-500">Administreras av ${parentCount} konton</p>`;
+        let bgClass = "bg-gray-100 border-gray-200";
+
+        if (isOrphan) {
+            bgClass = "bg-red-50 border-red-300"; // Röd bakgrund för att varna admin
+            statusHtml = `
+                <p class="text-xs text-red-600 font-bold">⚠️ SAKNAR KOPPLING (Föräldralös)</p>
+                <p class="text-xs text-red-500">Denna profil syns inte för någon medlem just nu.</p>
+            `;
+        }
+        
         container.innerHTML += `
-            <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg border border-gray-200">
+            <div class="flex items-center justify-between p-3 rounded-lg border ${bgClass}">
                 <div>
                     <span class="font-bold text-gray-800">${shooter.name}</span>
                     <span class="text-sm text-gray-500"> (Född: ${shooter.birthyear})</span>
-                    <p class="text-xs text-gray-500">Adminstreras av ${parentCount} konton</p>
+                    ${statusHtml}
                 </div>
                 <div class="flex space-x-2">
                     <button class="link-parent-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" 

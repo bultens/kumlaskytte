@@ -1,11 +1,11 @@
 // auth.js
 import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, getFirestore, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, getFirestore, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, updateDoc, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.07
+// Ver. 2.10
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -22,6 +22,7 @@ const userLoginPanel = document.getElementById('user-login-panel');
 const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
+
 
 function toggleProfileUI(user) {
     if (user) {
@@ -151,6 +152,67 @@ if (confirmDeleteProfileBtn) {
             } catch (error) {
                 console.error("Fel vid borttagning av konto:", error);
                 showModal('errorModal', "Ett fel uppstod när ditt konto skulle tas bort. Vänligen logga in igen för att bekräfta din behörighet.");
+            }
+        }
+    });
+}
+const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
+if (confirmDeleteProfileBtn) {
+    confirmDeleteProfileBtn.addEventListener('click', async () => {
+        // Stäng modalen direkt och visa laddning/feedback om du vill
+        hideModal('deleteProfileModal');
+        
+        const user = auth.currentUser;
+        if (!user) return;
+        const userId = user.uid;
+
+        try {
+            // 1. Hitta alla skyttar som denna användare är "förälder" till
+            const shootersRef = collection(db, "shooters");
+            const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
+            const querySnapshot = await getDocs(q);
+
+            const batch = writeBatch(db);
+
+            // 2. Loopa igenom skyttarna och ta bort kopplingen
+            querySnapshot.forEach((docSnap) => {
+                const shooterData = docSnap.data();
+                const parents = shooterData.parentUserIds || [];
+                
+                // Om användaren är den ENDA föräldern -> Flagga för admin
+                if (parents.length === 1 && parents.includes(userId)) {
+                    batch.update(docSnap.ref, {
+                        parentUserIds: arrayRemove(userId),
+                        requiresAdminAction: true, // NYTT FÄLT: Signalerar till admin
+                        adminNote: "Föräldern raderade sitt konto. Profilen är nu föräldralös."
+                    });
+                } else {
+                    // Om det finns fler föräldrar -> Bara ta bort denna användare
+                    batch.update(docSnap.ref, {
+                        parentUserIds: arrayRemove(userId)
+                    });
+                }
+            });
+
+            // 3. Ta bort användardatan i 'users'
+            const userDocRef = doc(db, "users", userId);
+            batch.delete(userDocRef);
+
+            // Kör alla databasändringar
+            await batch.commit();
+
+            // 4. Ta bort inloggningen (Auth) - Detta loggar ut användaren automatiskt
+            await deleteUser(user);
+
+            showModal('confirmationModal', "Ditt konto har tagits bort. Dina skyttprofiler har sparats men kopplats bort från din inloggning.");
+            
+        } catch (error) {
+            console.error("Fel vid borttagning av konto:", error);
+            // Om deleteUser kräver om-inloggning (vanligt säkerhetskrav från Firebase)
+            if (error.code === 'auth/requires-recent-login') {
+                showModal('errorModal', "Av säkerhetsskäl måste du logga ut och logga in igen innan du kan ta bort kontot.");
+            } else {
+                showModal('errorModal', "Ett fel uppstod: " + error.message);
             }
         }
     });
