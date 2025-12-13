@@ -9,7 +9,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 
-// Ver. 1.5 (Fixad SyntaxError)
+// Ver. 1.6 (Fixad SyntaxError)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -90,6 +90,13 @@ export function setupEventListeners() {
     const addResultForm = document.getElementById('add-result-form');
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
+    const achievementsSection = document.getElementById('achievements-section');
+    
+    // --- NYTT: Hantera klick på "Senaste Prestationer" (CSP Fix) ---
+    if (achievementsSection) {
+        achievementsSection.addEventListener('click', () => {
+            window.location.hash = '#topplistor';
+        });
     
     // --- Hantera Klasser (Admin) ---
     if (addClassForm) {

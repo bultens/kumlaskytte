@@ -1098,8 +1098,31 @@ export function renderClassesAdmin(classes) {
 
 export function renderTopLists(classes, allResults, allShooters) {
     const container = document.getElementById('top-lists-container');
+    const searchSection = document.getElementById('public-shooter-search-section'); // Om du har gett sök-diven ett ID, annars ignorera denna rad
+    
     if (!container) return;
     
+    // SÄKERHETSKOLL I UI:
+    if (!auth.currentUser) {
+        container.innerHTML = `
+            <div class="col-span-full text-center p-8 bg-blue-50 rounded-xl border border-blue-100">
+                <h3 class="text-2xl font-bold text-blue-900 mb-2">Endast för medlemmar</h3>
+                <p class="text-gray-600 mb-4">Du måste vara inloggad för att se topplistor och statistik.</p>
+                <button onclick="document.getElementById('user-nav-link').click(); window.location.hash='#profil';" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition">
+                    Gå till inloggning
+                </button>
+            </div>
+        `;
+        // Dölj sök-rutan om den finns
+        const searchCard = document.querySelector('#topplistor .card');
+        if(searchCard) searchCard.classList.add('hidden');
+        return;
+    }
+    
+    // Visa sök-rutan igen om man är inloggad
+    const searchCard = document.querySelector('#topplistor .card');
+    if(searchCard) searchCard.classList.remove('hidden');
+
     if (classes.length === 0) {
         container.innerHTML = '<p class="text-gray-500">Inga klasser konfigurerade än.</p>';
         return;
