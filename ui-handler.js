@@ -264,8 +264,14 @@ export function handleAdminUI(isAdmin) {
     const adminLoginPanel = document.getElementById('admin-login-panel');
     const adminUserInfo = document.getElementById('admin-user-info');
     
+    // NYTT: Hämta admin-länken i menyn
+    const adminNavLink = document.getElementById('admin-nav-link');
+    
     if (isAdmin) {
         isAdminLoggedIn = true;
+        // Visa admin-länken i menyn
+        if (adminNavLink) adminNavLink.classList.remove('hidden');
+
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (competitionEditSection) competitionEditSection.classList.remove('hidden');
@@ -282,6 +288,9 @@ export function handleAdminUI(isAdmin) {
         }
     } else {
         isAdminLoggedIn = false;
+        // Göm admin-länken i menyn
+        if (adminNavLink) adminNavLink.classList.add('hidden');
+
         if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
         if (competitionEditSection) competitionEditSection.classList.add('hidden');
