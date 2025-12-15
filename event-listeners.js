@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, competitionClasses } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, competitionClasses, toggleMemberStatus } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
@@ -820,6 +820,15 @@ export function setupEventListeners() {
             const adminId = deleteAdminBtn.getAttribute('data-id');
             deleteAdmin(adminId);
         }
+        
+        const toggleMemberBtn = e.target.closest('.toggle-member-btn');
+        if (toggleMemberBtn) {
+            const userId = toggleMemberBtn.getAttribute('data-id');
+            // Konvertera strängen "true"/"false" till boolean
+            const currentStatus = toggleMemberBtn.getAttribute('data-status') === 'true';
+            
+            toggleMemberStatus(userId, currentStatus);
+        }
 
         const editNewsBtn = e.target.closest('.edit-news-btn');
         if (editNewsBtn) {
@@ -1110,7 +1119,7 @@ export function setupEventListeners() {
                 modal.onclick = (e) => {
                     if (e.target === modal) modal.classList.remove('active');
                 };
-                
+
             } else if (command === 'insertGold') {
                 applyEditorCommand(editorElement, 'insertHTML', '🥇 ');
             } else if (command === 'insertSilver') {
