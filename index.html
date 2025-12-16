@@ -33,9 +33,10 @@
     <li><a href="#omoss" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Om oss</a></li>
     <li><a href="#bilder" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Bilder</a></li>
     <li id="sponsors-nav-link"><a href="#sponsorer" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Sponsorer</a></li>
-    
     <li id="user-nav-link"><a href="#profil" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Logga in</a></li>
-    
+    <li id="results-nav-link" class="hidden"><a href="#resultat" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Mina Resultat</a></li>
+    <li id="competition-nav-link" class="hidden"><a href="#tavling-user" class="nav-link text-lg py-1 text-purple-600 font-bold hover:text-purple-800 transition duration-300">🏆 Tävlingar Online</a></li>
+    <li id="admin-nav-link" class="hidden">...</li>
     <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Min Profil</a></li>
     <li id="results-nav-link" class="hidden"><a href="#resultat" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Mina Resultat</a></li>
     
@@ -569,11 +570,15 @@
             </div>
 
             <div id="admin-panel" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-4xl font-bold">Administrationspanel</h1>
-                    <button id="logout-btn" class="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
-                </div>
-                <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-4xl font-bold">Administrationspanel</h1>
+        <button id="logout-btn" class="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
+    </div>
+    <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
+
+    <a href="#tavling-admin" class="block w-full text-center bg-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-purple-700 transition duration-300 shadow-md mb-8 flex items-center justify-center text-lg">
+        <span class="mr-2">🏆</span> Gå till Tävlingsadministration &rarr;
+    </a>
 
                 <div class="card mt-6">
                     <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>

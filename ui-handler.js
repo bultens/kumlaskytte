@@ -952,11 +952,12 @@ export function renderHomeAchievements(allResults, allShooters, usersData = []) 
 
     const currentUser = auth.currentUser;
     const myProfile = currentUser ? usersData.find(u => u.id === currentUser.uid) : null;
+    
     const isMember = myProfile ? myProfile.isMember === true : false;
-    const isAdmin = myProfile ? myProfile.isAdmin === true : false;
+    const isAdminProfile = myProfile ? myProfile.isAdmin === true : false;
 
-    // Visa inte rutan om man inte är godkänd medlem
-    if (!currentUser || (!isMember && !isAdmin)) {
+    // ÄNDRAD IF-SATS: Lägg till !isAdminLoggedIn
+    if (!currentUser || (!isMember && !isAdminProfile && !isAdminLoggedIn)) {
         section.classList.add('hidden');
         return;
     }
@@ -1181,11 +1182,17 @@ export function renderTopLists(classes, allResults, allShooters, usersData = [])
     
     if (!container) return;
     
-    // Säkerhetskoll: Är användaren inloggad OCH medlem?
+    // Hämta inloggad status
     const currentUser = auth.currentUser;
     const myProfile = currentUser ? usersData.find(u => u.id === currentUser.uid) : null;
+    
+    // SÄKERHETSKOLL:
+    // Vi kollar tre saker:
+    // 1. Är profilen markerad som medlem? (isMember)
+    // 2. Är profilen markerad som admin? (isAdmin)
+    // 3. Är den globala admin-variabeln true? (isAdminLoggedIn) <- DETTA FIXAR DITT PROBLEM
     const isMember = myProfile ? myProfile.isMember === true : false;
-    const isAdmin = myProfile ? myProfile.isAdmin === true : false;
+    const isAdminProfile = myProfile ? myProfile.isAdmin === true : false;
 
     // Om man inte är inloggad alls
     if (!currentUser) {
@@ -1202,16 +1209,14 @@ export function renderTopLists(classes, allResults, allShooters, usersData = [])
         return;
     }
 
-    // Om man är inloggad men INTE medlem (och inte admin)
-    if (!isMember && !isAdmin) {
+    // Om man INTE är medlem OCH INTE är admin (varken i profil eller globalt)
+    if (!isMember && !isAdminProfile && !isAdminLoggedIn) {
         container.innerHTML = `
             <div class="col-span-full text-center p-8 bg-yellow-50 rounded-xl border border-yellow-200">
                 <h3 class="text-2xl font-bold text-yellow-800 mb-2">Medlemskap krävs</h3>
                 <p class="text-gray-700 mb-4">
                     Ditt konto väntar på godkännande av en administratör.
-                    <br>Du kan registrera dina egna resultat, men topplistor och andras resultat är dolda tills du är verifierad.
                 </p>
-                <p class="text-sm text-gray-500">Kontakta styrelsen om du väntat länge.</p>
             </div>
         `;
         if(searchCard) searchCard.classList.add('hidden');

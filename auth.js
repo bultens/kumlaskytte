@@ -12,7 +12,7 @@ const profileWelcomeMessage = document.getElementById('profile-welcome-message')
 const userNavLink = document.getElementById('user-nav-link');
 const profileNavLink = document.getElementById('profile-nav-link');
 const resultsNavLink = document.getElementById('results-nav-link');
-
+const competitionNavLink = document.getElementById('competition-nav-link'); // NY
 const showLoginLink = document.getElementById('show-login-link');
 const showRegisterLink = document.getElementById('show-register-link');
 const registerPanel = document.getElementById('register-panel');
@@ -21,7 +21,7 @@ const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
-// En enda version av denna funktion
+
 function toggleProfileUI(user) {
     if (user) {
         // INLOGGAD
@@ -31,16 +31,16 @@ function toggleProfileUI(user) {
         
         if (profileNavLink) profileNavLink.classList.remove('hidden');
         if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (userNavLink) userNavLink.classList.add('hidden'); // Gömmer "Logga in"
+        if (competitionNavLink) competitionNavLink.classList.remove('hidden'); // VISA
+        if (userNavLink) userNavLink.classList.add('hidden');
     } else {
         // UTLOGGAD
         profilePanel.classList.add('hidden');
-        // Vi tvingar inte fram login-panelen här om användaren är på en annan flik,
-        // men vi ser till att nav-länkarna är rätt.
         
         if (profileNavLink) profileNavLink.classList.add('hidden');
         if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (userNavLink) userNavLink.classList.remove('hidden'); // Visar "Logga in"
+        if (competitionNavLink) competitionNavLink.classList.add('hidden'); // DÖLJ
+        if (userNavLink) userNavLink.classList.remove('hidden');
     }
 }
 
