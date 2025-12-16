@@ -19,7 +19,7 @@
                 </a>
                 <div class="flex flex-col items-start">
                     <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 3.01 (Fixed Statpage)</p>
+                    <p class="text-sm text-gray-300">Ver. 3.10 (Comp pages added)</p>
                 </div>
             </div>
             <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
@@ -390,7 +390,178 @@
                 </form>
             </div>
         </section>
+        <section id="tavling-admin" class="page">
+    <h1 class="text-4xl font-bold mb-6">Tävlingsadministration</h1>
+    
+    <div class="card mb-6">
+        <h2 class="text-2xl font-bold mb-4">Skapa ny tävling</h2>
+        <form id="create-comp-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block font-bold mb-1">Tävlingens namn</label>
+                    <input type="text" id="new-comp-name" required class="w-full p-2 border rounded" placeholder="T.ex. Vintercupen 2025">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Swish-nummer</label>
+                    <input type="text" id="new-comp-swish" class="w-full p-2 border rounded" placeholder="123...">
+                </div>
+            </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block font-bold mb-1">Startdatum</label>
+                    <input type="date" id="new-comp-start" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Slutdatum</label>
+                    <input type="date" id="new-comp-end" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Kostnad (kr)</label>
+                    <input type="number" id="new-comp-cost" class="w-full p-2 border rounded" value="0">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-bold mb-2">Inställningar</label>
+                <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2 rounded border">
+                        <input type="checkbox" id="rule-decimals" checked class="w-5 h-5 text-blue-600">
+                        <span>Tillåt decimaler</span>
+                    </label>
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2 rounded border">
+                        <input type="checkbox" id="rule-image-req" class="w-5 h-5 text-blue-600">
+                        <span>Kräv alltid bild</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                 <label class="block font-bold mb-1">Omgångar/Perioder</label>
+                 <p class="text-xs text-gray-500 mb-2">Skapa deadlines för delmoment (t.ex. Vecka 1, Vecka 2). Lämna tomt för en enda öppen period.</p>
+                 <div id="comp-rounds-container" class="space-y-2">
+                     </div>
+                 <button type="button" id="add-round-btn" class="mt-2 text-sm text-blue-600 font-bold">+ Lägg till omgång</button>
+            </div>
+
+            <div class="mb-6">
+                <label class="block font-bold mb-1">Valbara Klasser</label>
+                <div id="comp-classes-select-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-gray-50">
+                    <p class="text-sm text-gray-400">Laddar klasser...</p>
+                </div>
+            </div>
+
+            <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded hover:bg-green-700">Skapa Tävling</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4">Hantera Anmälningar & Resultat</h2>
+        <div class="flex border-b border-gray-200 mb-4">
+            <button class="px-4 py-2 font-bold text-blue-600 border-b-2 border-blue-600" id="tab-admin-signups">Anmälningar (Swish)</button>
+            <button class="px-4 py-2 font-bold text-gray-500 hover:text-gray-700" id="tab-admin-reviews">Att Godkänna (Bilder)</button>
+        </div>
+        
+        <div id="admin-signups-list" class="space-y-2"></div>
+        <div id="admin-reviews-list" class="space-y-2 hidden"></div>
+    </div>
+</section>
+
+<section id="tavling-user" class="page">
+    <h1 class="text-4xl font-bold mb-6">Tävlingar Online</h1>
+    
+    <div id="active-competitions-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        </div>
+
+    <div class="card border-t-4 border-blue-600">
+        <h2 class="text-2xl font-bold mb-4">Mina Tävlingar & Rapportering</h2>
+        <p class="text-gray-600 mb-4">Här rapporterar du resultat för tävlingar du är anmäld till.</p>
+        
+        <div class="mb-4">
+            <label class="block font-bold text-gray-700 mb-2">Välj Tävling</label>
+            <select id="user-comp-select" class="w-full p-3 border rounded-lg bg-gray-50 font-bold text-lg">
+                <option value="">-- Välj i listan --</option>
+            </select>
+        </div>
+
+        <div id="comp-reporting-area" class="hidden">
+             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-lg text-blue-900" id="reporting-comp-name">-</h3>
+                        <p class="text-sm text-blue-700" id="reporting-round-info">-</p>
+                    </div>
+                    <span id="reporting-status-badge" class="bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Väntar på Swish</span>
+                </div>
+             </div>
+
+             <form id="submit-comp-result-form">
+                 <input type="hidden" id="report-comp-id">
+                 <input type="hidden" id="report-shooter-id">
+                 <input type="hidden" id="report-round-id">
+                 
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div>
+                        <label class="block font-bold mb-1">Skjutdatum</label>
+                        <input type="date" id="report-date" required class="w-full p-3 border rounded">
+                        <p class="text-xs text-red-500 hidden mt-1" id="late-warning">⚠️ Datumet är efter deadline. Bildkrav aktiverat.</p>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Totalpoäng</label>
+                        <input type="number" id="report-score" required step="0.01" class="w-full p-3 border rounded font-mono text-xl" placeholder="0.0">
+                    </div>
+                 </div>
+
+                 <div class="mb-4">
+                    <label class="block font-bold mb-1">Serier</label>
+                    <div id="report-series-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                 </div>
+
+                 <div class="mb-6 border-2 border-dashed border-gray-300 p-4 rounded bg-gray-50" id="report-image-section">
+                     <label class="block font-bold mb-2">Ladda upp Tavelbild <span id="img-req-label" class="text-gray-500 font-normal">(Valfritt)</span></label>
+                     <input type="file" id="report-image-upload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                     <div id="report-upload-progress" class="w-full bg-gray-200 rounded-full h-2.5 mt-2 hidden">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                     </div>
+                 </div>
+
+                 <button type="submit" id="send-report-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-lg">Skicka in Resultat</button>
+             </form>
+        </div>
+    </div>
+</section>
+
+<div id="compSignupModal" class="modal">
+    <div class="modal-content max-w-lg text-left">
+        <span id="close-signup-modal" class="modal-close-btn">&times;</span>
+        <h3 class="text-2xl font-bold mb-2">Anmälan till Tävling</h3>
+        <p id="signup-comp-name" class="text-gray-600 mb-6 font-bold"></p>
+
+        <form id="comp-signup-form">
+            <input type="hidden" id="signup-comp-id">
+            
+            <label class="block font-bold mb-1">Välj Skytt</label>
+            <select id="signup-shooter-select" class="w-full p-3 border rounded mb-4 bg-white">
+                </select>
+
+            <label class="block font-bold mb-1">Klubb/Förening</label>
+            <input type="text" id="signup-club-name" required class="w-full p-3 border rounded mb-4" placeholder="T.ex. Kumla Skytteförening">
+
+            <label class="block font-bold mb-1">Tävlingsklass</label>
+            <select id="signup-class-select" class="w-full p-3 border rounded mb-6 bg-white">
+                </select>
+            
+            <div id="swish-info-box" class="bg-green-50 border border-green-200 p-4 rounded mb-6 text-center hidden">
+                <p class="text-sm text-green-800 font-bold mb-2">Betala med Swish</p>
+                <img id="swish-qr-code" src="" class="mx-auto w-32 h-32 mb-2 bg-gray-200 object-contain">
+                <p class="font-mono text-lg font-bold" id="swish-msg-ref">REF-123</p>
+                <p class="text-xs text-gray-500">Ange koden ovan som meddelande</p>
+            </div>
+
+            <button type="submit" id="confirm-signup-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">Anmäl och Generera Swish-kod</button>
+        </form>
+    </div>
+</div>
         <section id="admin" class="page">
             <div id="admin-login-panel" class="card max-w-md mx-auto hidden">
                 <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
