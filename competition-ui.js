@@ -165,15 +165,14 @@ async function handleCreateCompetition() {
         swishNumber: document.getElementById('new-comp-swish').value,
         startDate: document.getElementById('new-comp-start').value,
         endDate: document.getElementById('new-comp-end').value,
+        // NYTT: Hämta anmälningsdatumet
+        signupDeadline: document.getElementById('new-comp-signup-deadline').value, 
         cost: parseInt(document.getElementById('new-comp-cost').value) || 0,
-        rules: {
-            allowDecimals: document.getElementById('rule-decimals').checked,
-            requireImageAlways: document.getElementById('rule-image-req').checked
-        },
+        rules: { /* ... */ },
         rounds: rounds,
         allowedClasses: selectedClasses
     };
-
+    
     await createCompetition(compData);
     document.getElementById('create-comp-form').reset();
     document.getElementById('comp-rounds-container').innerHTML = '';
@@ -247,6 +246,25 @@ function renderUserLobby() {
     }
 
     active.forEach(comp => {
+        // Kolla om anmälningstiden gått ut
+        const today = new Date().toISOString().split('T')[0];
+        const isSignupOpen = !comp.signupDeadline || today <= comp.signupDeadline;
+        
+        let buttonHtml = '';
+        
+        if (isSignupOpen) {
+            buttonHtml = `
+                <button class="signup-modal-btn w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700" data-id="${comp.id}">
+                    Anmäl dig här
+                </button>`;
+        } else {
+            buttonHtml = `
+                <button disabled class="w-full bg-gray-300 text-gray-500 font-bold py-2 rounded cursor-not-allowed">
+                    Anmälan stängd
+                </button>
+                <p class="text-xs text-center text-red-500 mt-1 font-bold">Gick ut: ${comp.signupDeadline}</p>`;
+        }
+
         const div = document.createElement('div');
         div.className = "card border-l-4 border-green-500 p-4 hover:shadow-lg transition";
         div.innerHTML = `
@@ -254,10 +272,10 @@ function renderUserLobby() {
                 <h3 class="text-xl font-bold text-blue-900">${comp.name}</h3>
                 <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Pris: ${comp.cost} kr</span>
             </div>
-            <p class="text-sm text-gray-600 mb-4">Pågår till: ${comp.endDate}</p>
-            <button class="signup-modal-btn w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700" data-id="${comp.id}">
-                Anmäl dig här
-            </button>
+            <p class="text-sm text-gray-600">Pågår till: ${comp.endDate}</p>
+            ${comp.signupDeadline ? `<p class="text-xs text-red-600 mb-4 font-bold">Anmälan senast: ${comp.signupDeadline}</p>` : '<div class="mb-4"></div>'}
+            
+            ${buttonHtml}
         `;
         container.appendChild(div);
     });
