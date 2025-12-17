@@ -91,6 +91,31 @@ export function setupEventListeners() {
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     const achievementsSection = document.getElementById('achievements-section');
+// --- MOBILMENY HANTERING ---
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if (mobileMenuBtn && mobileMenu) {
+        // Toggla menyn när man klickar på hamburgaren
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Förhindra att klicket bubblar upp
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Stäng menyn automatiskt när man klickar på en länk i den
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Stäng menyn om man klickar utanför den
+        document.addEventListener('click', (e) => {
+            if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+                mobileMenu.classList.add('hidden');
+            }
+        });
+    }
     
     // --- NYTT: Hantera klick på "Senaste Prestationer" (CSP Fix) ---
     if (achievementsSection) {

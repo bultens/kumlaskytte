@@ -692,10 +692,13 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
     const mobileAdminLink = document.getElementById('mobile-admin-link');
     
     if (isAdminLoggedIn) {
-        if (navAdminLink) navAdminLink.classList.remove('hidden');
+        if (navTavlingAdmin) navTavlingAdmin.classList.remove('hidden');
+        if (navSiteAdmin) navSiteAdmin.classList.remove('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
     } else {
-        if (navAdminLink) navAdminLink.classList.add('hidden');
+        // Dölj dem annars
+        if (navTavlingAdmin) navTavlingAdmin.classList.add('hidden');
+        if (navSiteAdmin) navSiteAdmin.classList.add('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
     }
 
