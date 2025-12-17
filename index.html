@@ -19,29 +19,70 @@
                 </a>
                 <div class="flex flex-col items-start">
                     <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 3.10 (Comp pages added)</p>
+                    <p class="text-sm text-gray-300">Ver. 3.15</p>
                 </div>
             </div>
             <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
         </div>
-        <div class="bg-white text-black shadow">
-            <nav class="container">
-                <ul class="flex space-x-8 font-medium">
-    <li><a href="#nyheter" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Nyheter</a></li>
-    <li><a href="#kalender" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Kalender</a></li>
-    <li><a href="#tavlingar" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Tävlingar</a></li>
-    <li><a href="#omoss" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Om oss</a></li>
-    <li><a href="#bilder" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Bilder</a></li>
-    <li id="sponsors-nav-link"><a href="#sponsorer" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Sponsorer</a></li>
-    <li id="user-nav-link"><a href="#profil" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Logga in</a></li>
-    <li id="results-nav-link" class="hidden"><a href="#resultat" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Mina Resultat</a></li>
-    <li id="profile-nav-link" class="hidden"><a href="#profil" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Min Profil</a></li>
-    <li id="results-nav-link" class="hidden"><a href="#resultat" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Mina Resultat</a></li>
+ <nav id="main-nav" class="hidden md:flex space-x-8 items-center">
     
-    <li id="admin-nav-link" class="hidden"><a href="#admin" class="nav-link text-lg py-1 hover:text-gray-600 transition duration-300">Admin</a></li>
-</ul>
-            </nav>
+    <a href="#hem" class="nav-link font-medium hover:text-blue-200 transition">Hem</a>
+
+    <div class="relative group py-4"> 
+        <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
+            Föreningen <span class="ml-1 text-xs">▼</span>
+        </button>
+        <div class="absolute left-0 mt-0 w-48 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+            <a href="#nyheter" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg">Nyheter</a>
+            <a href="#kalender" class="block px-4 py-2 hover:bg-gray-100">Kalender</a>
+            <a href="#om-oss" class="block px-4 py-2 hover:bg-gray-100">Om oss</a>
+            <a href="#styrelse" class="block px-4 py-2 hover:bg-gray-100">Styrelse & Kontakt</a>
+            <a href="#sponsorer" class="block px-4 py-2 hover:bg-gray-100">Sponsorer</a>
+            <a href="#galleri" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">Bilder</a>
         </div>
+    </div>
+
+    <div class="relative group py-4">
+        <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
+            Skytte & Tävling <span class="ml-1 text-xs">▼</span>
+        </button>
+        <div class="absolute left-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+            <a href="#tavling-user" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-100 font-bold text-purple-700">
+                🏆 Tävlingar Online
+            </a>
+            <a href="#topplistor" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">
+                Topplistor & Statistik
+            </a>
+        </div>
+    </div>
+
+    <div id="nav-my-pages" class="relative group py-4 hidden">
+        <button class="nav-link font-bold text-yellow-300 hover:text-yellow-100 flex items-center transition focus:outline-none">
+            Mina Sidor <span class="ml-1 text-xs">▼</span>
+        </button>
+        <div class="absolute right-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+            <a href="#profil" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg font-bold">Min Profil</a>
+            <a href="#resultat" class="block px-4 py-2 hover:bg-gray-100">Rapportera Resultat</a>
+            
+            <a href="#tavling-admin" id="nav-admin-link" class="hidden block px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold border-t">
+                Tävlingsadmin
+            </a>
+            <a href="#admin" id="nav-site-admin-link" class="hidden block px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 text-sm border-t rounded-b-lg">
+                Inställningar (Webbplats)
+            </a>
+        </div>
+    </div>
+
+    <button id="user-nav-link" class="bg-yellow-400 text-blue-900 px-4 py-2 rounded-full font-bold hover:bg-yellow-300 transition shadow-md">
+        Logga in
+    </button>
+</nav>
+
+<button id="mobile-menu-btn" class="md:hidden focus:outline-none ml-auto text-white">
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+    </svg>
+</button>
     </header>
 
     <main class="container">

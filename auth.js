@@ -4,7 +4,7 @@ import { doc, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, upda
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.12 (Fixad dubblett av toggleProfileUI)
+// Ver. 2.15
 let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -20,27 +20,48 @@ const userLoginPanel = document.getElementById('user-login-panel');
 const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
+const navMyPages = document.getElementById('nav-my-pages'); // Desktop dropdown
+const navAdminLink = document.getElementById('nav-admin-link'); // Länken i dropdownen
+const mobileMyPages = document.getElementById('mobile-my-pages'); // Mobil-sektionen
+const mobileLoginContainer = document.getElementById('mobile-login-btn-container'); // Mobil login-knapp
+const mobileAdminLink = document.getElementById('mobile-admin-link'); // Mobil admin-länk
 
 
 function toggleProfileUI(user) {
     if (user) {
-        // INLOGGAD
+        // --- INLOGGAD ---
+        
+        // UI Paneler
         profilePanel.classList.remove('hidden');
         userLoginPanel.classList.add('hidden');
         registerPanel.classList.add('hidden');
         
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
-        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (competitionNavLink) competitionNavLink.classList.remove('hidden'); // VISA
-        if (userNavLink) userNavLink.classList.add('hidden');
+        // Desktop Meny
+        if (navMyPages) navMyPages.classList.remove('hidden'); // Visa "Mina Sidor"
+        if (userNavLink) userNavLink.classList.add('hidden');  // Dölj "Logga in"
+        
+        // Mobil Meny
+        if (mobileMyPages) mobileMyPages.classList.remove('hidden');
+        if (mobileLoginContainer) mobileLoginContainer.classList.add('hidden');
+
+        // Admin Check (Visar admin-länken i dropdown om man är admin)
+        // Vi gör en snabbkoll mot usersData om den finns laddad, 
+        // annars hanteras detta av ui-handler.js senare.
+        // Men för säkerhets skull gömmer vi dem default och låter ui-handler tända dem.
+        
     } else {
-        // UTLOGGAD
+        // --- UTLOGGAD ---
+        
+        // UI Paneler
         profilePanel.classList.add('hidden');
         
-        if (profileNavLink) profileNavLink.classList.add('hidden');
-        if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (competitionNavLink) competitionNavLink.classList.add('hidden'); // DÖLJ
-        if (userNavLink) userNavLink.classList.remove('hidden');
+        // Desktop Meny
+        if (navMyPages) navMyPages.classList.add('hidden'); // Dölj "Mina Sidor"
+        if (userNavLink) userNavLink.classList.remove('hidden'); // Visa "Logga in"
+        
+        // Mobil Meny
+        if (mobileMyPages) mobileMyPages.classList.add('hidden');
+        if (mobileLoginContainer) mobileLoginContainer.classList.remove('hidden');
     }
 }
 

@@ -687,6 +687,18 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
             </div>
             ${actionButtons}
         `;
+        // NYTT: Uppdatera menyn om inloggad är admin
+    const navAdminLink = document.getElementById('nav-admin-link');
+    const mobileAdminLink = document.getElementById('mobile-admin-link');
+    
+    if (isAdminLoggedIn) {
+        if (navAdminLink) navAdminLink.classList.remove('hidden');
+        if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
+    } else {
+        if (navAdminLink) navAdminLink.classList.add('hidden');
+        if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
+    }
+
 
         if (isUserAdmin) {
             adminListEl.appendChild(userEl);
