@@ -5,12 +5,13 @@ import {
 } from "./data-service.js";
 import { 
     createCompetition, getAllCompetitions, signupForCompetition, 
-    getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment 
+    getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, updateCompetition, getCompetitionEntries
 } from "./competition-service.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Håller koll på laddad data lokalt för UI-uppdateringar
+let editingCompId = null;
 let activeCompetitions = [];
 let mySignups = [];
 let roundsCounter = 0;
@@ -29,7 +30,7 @@ export async function initCompetitionSystem() {
     
     if (isAdminLoggedIn) {
         renderAdminView();
-        populateClassCheckboxes(); // Fyller i klasserna i "Skapa tävling"
+        populateClassCheckboxes(); 
     }
 }
 
@@ -64,7 +65,6 @@ function setupEventListeners() {
             document.getElementById('admin-reviews-list').classList.remove('hidden');
             tabReviews.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
             tabSignups.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            // Här kan vi lägga till renderAdminReviewsList() senare
         });
     }
 
@@ -110,14 +110,14 @@ function setupEventListeners() {
 //              ADMIN FUNKTIONER
 // ==========================================
 
-function addRoundInput() {
+function addRoundInput(valName = '', valDate = '') {
     roundsCounter++;
     const container = document.getElementById('comp-rounds-container');
     const div = document.createElement('div');
-    div.className = "flex space-x-2 items-center";
+    div.className = "flex space-x-2 items-center mb-2";
     div.innerHTML = `
-        <input type="text" placeholder="Namn (t.ex. Omgång ${roundsCounter})" class="round-name w-1/2 p-2 border rounded text-sm">
-        <input type="date" class="round-deadline w-1/2 p-2 border rounded text-sm">
+        <input type="text" value="${valName}" placeholder="Namn (t.ex. Omgång ${roundsCounter})" class="round-name w-1/2 p-2 border rounded text-sm">
+        <input type="date" value="${valDate}" class="round-deadline w-1/2 p-2 border rounded text-sm">
         <button type="button" class="text-red-500 font-bold px-2 remove-round-btn">×</button>
     `;
     div.querySelector('.remove-round-btn').onclick = () => div.remove();
@@ -136,9 +136,9 @@ function populateClassCheckboxes() {
 
     competitionClasses.forEach(cls => {
         const label = document.createElement('label');
-        label.className = "flex items-center space-x-2 text-sm";
+        label.className = "flex items-center space-x-2 text-sm p-1 hover:bg-gray-50 rounded";
         label.innerHTML = `
-            <input type="checkbox" value="${cls.id}" class="comp-class-checkbox w-4 h-4 text-blue-600">
+            <input type="checkbox" value="${cls.id}" class="comp-class-checkbox w-4 h-4 text-blue-600 rounded">
             <span>${cls.name} (${cls.discipline})</span>
         `;
         container.appendChild(label);
@@ -146,7 +146,6 @@ function populateClassCheckboxes() {
 }
 
 async function handleCreateCompetition() {
-    // Samla in rounds
     const rounds = [];
     document.querySelectorAll('#comp-rounds-container > div').forEach(div => {
         const name = div.querySelector('.round-name').value;
@@ -154,7 +153,6 @@ async function handleCreateCompetition() {
         if (name && deadline) rounds.push({ name, deadline });
     });
 
-    // Samla in klasser
     const selectedClasses = [];
     document.querySelectorAll('.comp-class-checkbox:checked').forEach(cb => {
         selectedClasses.push(cb.value);
@@ -165,19 +163,35 @@ async function handleCreateCompetition() {
         swishNumber: document.getElementById('new-comp-swish').value,
         startDate: document.getElementById('new-comp-start').value,
         endDate: document.getElementById('new-comp-end').value,
-        // NYTT: Hämta anmälningsdatumet
+        resultsVisibility: document.getElementById('new-comp-visibility').value,
         signupDeadline: document.getElementById('new-comp-signup-deadline').value, 
         cost: parseInt(document.getElementById('new-comp-cost').value) || 0,
-        rules: { /* ... */ },
+        rules: { 
+            allowDecimals: document.getElementById('rule-decimals').checked,
+            requireImageAlways: document.getElementById('rule-image-req').checked
+        },
         rounds: rounds,
         allowedClasses: selectedClasses
     };
-    
-    await createCompetition(compData);
+
+    if (editingCompId) {
+        await updateCompetition(editingCompId, compData);
+        editingCompId = null;
+        
+        const btn = document.querySelector('#create-comp-form button[type="submit"]');
+        btn.textContent = "Skapa Tävling";
+        btn.classList.replace('bg-blue-600', 'bg-green-600');
+        btn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
+    } else {
+        await createCompetition(compData);
+    }
+
     document.getElementById('create-comp-form').reset();
     document.getElementById('comp-rounds-container').innerHTML = '';
-    activeCompetitions = await getAllCompetitions(); // Uppdatera listan
-    renderUserLobby(); // Uppdatera för användaren direkt
+    
+    activeCompetitions = await getAllCompetitions(); 
+    renderAdminCompetitionsList();
+    renderUserLobby();
 }
 
 async function renderAdminSignupsList() {
@@ -193,10 +207,8 @@ async function renderAdminSignupsList() {
     }
 
     pending.forEach(signup => {
-        // Hitta tävlingsnamn och skyttnamn (kräver att vi har datan laddad, förenklat här)
         const comp = activeCompetitions.find(c => c.id === signup.competitionId);
         const compName = comp ? comp.name : 'Okänd tävling';
-        // För shooterName behöver vi egentligen slå upp IDt, men vi visar ID/Ref så länge
         
         const div = document.createElement('div');
         div.className = "p-3 border rounded flex justify-between items-center bg-white";
@@ -216,13 +228,81 @@ async function renderAdminSignupsList() {
     document.querySelectorAll('.approve-payment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             await approveSignupPayment(e.target.dataset.id);
-            renderAdminSignupsList(); // Ladda om listan
+            renderAdminSignupsList(); 
         });
     });
 }
 
 function renderAdminView() {
     renderAdminSignupsList();
+    renderAdminCompetitionsList(); 
+}
+
+function renderAdminCompetitionsList() {
+    const container = document.getElementById('admin-competitions-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const sorted = [...activeCompetitions].sort((a, b) => b.createdAt - a.createdAt);
+
+    sorted.forEach(comp => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center p-3 bg-white border rounded hover:bg-gray-50";
+        
+        const statusDot = comp.isActive ? '🟢' : '🔴';
+        const visibilityIcon = comp.resultsVisibility === 'hidden' ? '🙈' : '👁️';
+
+        div.innerHTML = `
+            <div>
+                <span class="font-bold text-sm">${statusDot} ${comp.name}</span>
+                <div class="text-xs text-gray-500">
+                    ${comp.startDate} till ${comp.endDate} | ${visibilityIcon}
+                </div>
+            </div>
+            <button class="edit-comp-btn text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200" 
+                data-id="${comp.id}">
+                Redigera
+            </button>
+        `;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.edit-comp-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => loadCompetitionForEdit(e.target.dataset.id));
+    });
+}
+
+function loadCompetitionForEdit(compId) {
+    const comp = activeCompetitions.find(c => c.id === compId);
+    if (!comp) return;
+
+    editingCompId = compId;
+
+    document.getElementById('new-comp-name').value = comp.name;
+    document.getElementById('new-comp-swish').value = comp.swishNumber || '';
+    document.getElementById('new-comp-start').value = comp.startDate;
+    document.getElementById('new-comp-end').value = comp.endDate;
+    document.getElementById('new-comp-signup-deadline').value = comp.signupDeadline || '';
+    document.getElementById('new-comp-cost').value = comp.cost;
+    document.getElementById('new-comp-visibility').value = comp.resultsVisibility || 'public';
+    
+    if(comp.rules) {
+        document.getElementById('rule-decimals').checked = comp.rules.allowDecimals || false;
+        document.getElementById('rule-image-req').checked = comp.rules.requireImageAlways || false;
+    }
+
+    const roundsContainer = document.getElementById('comp-rounds-container');
+    roundsContainer.innerHTML = '';
+    if (comp.rounds) {
+        comp.rounds.forEach(r => addRoundInput(r.name, r.deadline));
+    }
+
+    const submitBtn = document.querySelector('#create-comp-form button[type="submit"]');
+    submitBtn.textContent = "Spara Ändringar";
+    submitBtn.classList.replace('bg-green-600', 'bg-blue-600');
+    submitBtn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700');
+
+    document.getElementById('create-comp-form').scrollIntoView({ behavior: 'smooth' });
 }
 
 
@@ -237,7 +317,6 @@ function renderUserLobby() {
     container.innerHTML = '';
     const today = new Date().toISOString().split('T')[0];
 
-    // Filtrera fram aktiva tävlingar
     const active = activeCompetitions.filter(c => c.isActive && c.endDate >= today);
 
     if (active.length === 0) {
@@ -246,10 +325,7 @@ function renderUserLobby() {
     }
 
     active.forEach(comp => {
-        // Kolla om anmälningstiden gått ut
-        const today = new Date().toISOString().split('T')[0];
         const isSignupOpen = !comp.signupDeadline || today <= comp.signupDeadline;
-        
         let buttonHtml = '';
         
         if (isSignupOpen) {
@@ -280,12 +356,10 @@ function renderUserLobby() {
         container.appendChild(div);
     });
 
-    // Koppla knappar
     document.querySelectorAll('.signup-modal-btn').forEach(btn => {
         btn.addEventListener('click', (e) => openSignupModal(e.target.dataset.id));
     });
 
-    // Uppdatera även dropdown för rapportering
     populateUserReportingDropdown();
 }
 
@@ -298,7 +372,6 @@ async function openSignupModal(compId) {
     document.getElementById('swish-info-box').classList.add('hidden');
     document.getElementById('confirm-signup-btn').classList.remove('hidden');
 
-    // Fyll skyttar
     const shooterSelect = document.getElementById('signup-shooter-select');
     shooterSelect.innerHTML = '';
     const myShooters = await getMyShooters(auth.currentUser.uid);
@@ -314,11 +387,9 @@ async function openSignupModal(compId) {
         });
     }
 
-    // Fyll klasser
     const classSelect = document.getElementById('signup-class-select');
     classSelect.innerHTML = '';
     if (comp.allowedClasses && comp.allowedClasses.length > 0) {
-        // Filtrera globala klasser mot tävlingens tillåtna IDn
         const allowed = competitionClasses.filter(c => comp.allowedClasses.includes(c.id));
         allowed.forEach(c => {
             const opt = document.createElement('option');
@@ -345,16 +416,14 @@ async function handleSignupSubmit() {
     
     if (result.success) {
         if (comp.cost > 0) {
-            // Visa Swish
             const swishData = `C${comp.swishNumber};${comp.cost};${result.refCode};0`;
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(swishData)}`;
             
             document.getElementById('swish-qr-code').src = qrUrl;
             document.getElementById('swish-msg-ref').textContent = result.refCode;
             document.getElementById('swish-info-box').classList.remove('hidden');
-            document.getElementById('confirm-signup-btn').classList.add('hidden'); // Göm anmäl-knappen så man inte klickar igen
+            document.getElementById('confirm-signup-btn').classList.add('hidden');
             
-            // Uppdatera lokal lista så vi kan rapportera när betalning är klar
             mySignups = await getMySignups(); 
         } else {
             showModal('confirmationModal', 'Anmälan klar!');
@@ -371,7 +440,6 @@ function populateUserReportingDropdown() {
     
     select.innerHTML = '<option value="">-- Välj Tävling --</option>';
     
-    // Hitta tävlingar där jag har en godkänd anmälan
     const approvedSignups = mySignups.filter(s => s.paymentStatus === 'approved');
 
     if (approvedSignups.length === 0) {
@@ -386,12 +454,11 @@ function populateUserReportingDropdown() {
         const comp = activeCompetitions.find(c => c.id === signup.competitionId);
         if (!comp) return;
         
-        // Hitta skyttens namn
         const shooter = allShootersData.find(s => s.id === signup.shooterId);
         const shooterName = shooter ? shooter.name : 'Okänd';
 
         const opt = document.createElement('option');
-        opt.value = signup.id; // Vi använder anmälnings-IDt som nyckel
+        opt.value = signup.id;
         opt.textContent = `${comp.name} - ${shooterName}`;
         opt.dataset.compId = comp.id;
         opt.dataset.shooterId = signup.shooterId;
@@ -399,7 +466,7 @@ function populateUserReportingDropdown() {
     });
 }
 
-function updateReportingUI(signupId) {
+async function updateReportingUI(signupId) {
     const area = document.getElementById('comp-reporting-area');
     if (!signupId) {
         area.classList.add('hidden');
@@ -415,24 +482,20 @@ function updateReportingUI(signupId) {
     document.getElementById('report-comp-id').value = comp.id;
     document.getElementById('report-shooter-id').value = signup.shooterId;
     
-    // Statusbadge
     const badge = document.getElementById('reporting-status-badge');
     badge.textContent = "Klar att rapportera";
     badge.className = "bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded";
 
-    // Omgångsinfo
     let roundInfo = "Öppen tävling (inga delmoment)";
     let currentRoundId = "open";
-    
+
     if (comp.rounds && comp.rounds.length > 0) {
-        // Hitta aktuell omgång baserat på datum
         const today = new Date().toISOString().split('T')[0];
-        const currentRound = comp.rounds.find(r => r.deadline >= today) || comp.rounds[comp.rounds.length - 1]; // Eller sista omgången
+        const currentRound = comp.rounds.find(r => r.deadline >= today) || comp.rounds[comp.rounds.length - 1];
         
         roundInfo = `Aktuell omgång: ${currentRound.name} (Deadline: ${currentRound.deadline})`;
         currentRoundId = currentRound.name;
         
-        // Sätt deadline på datumväljaren
         document.getElementById('report-date').max = currentRound.deadline;
         document.getElementById('report-date').dataset.deadline = currentRound.deadline;
     }
@@ -440,7 +503,6 @@ function updateReportingUI(signupId) {
     document.getElementById('reporting-round-info').textContent = roundInfo;
     document.getElementById('report-round-id').value = currentRoundId;
 
-    // Generera serie-inputs (standard 4 serier för tävling ofta, men vi kan göra det dynamiskt senare)
     const seriesContainer = document.getElementById('report-series-container');
     seriesContainer.innerHTML = '';
     for(let i=1; i<=4; i++) {
@@ -448,11 +510,10 @@ function updateReportingUI(signupId) {
         inp.type = "number";
         inp.placeholder = `S${i}`;
         inp.className = "p-2 border rounded text-center series-score-input";
-        if(comp.rules.allowDecimals) inp.step = "0.1";
+        if(comp.rules && comp.rules.allowDecimals) inp.step = "0.1";
         seriesContainer.appendChild(inp);
     }
     
-    // Uppdatera total live
     seriesContainer.querySelectorAll('input').forEach(inp => {
         inp.addEventListener('input', () => {
             let tot = 0;
@@ -462,6 +523,96 @@ function updateReportingUI(signupId) {
     });
 
     area.classList.remove('hidden');
+    
+    // Hämta historik och topplista
+    await renderUserCompetitionView(comp, signup.shooterId);
+}
+
+// Denna funktion ska ligga utanför updateReportingUI
+async function renderUserCompetitionView(comp, shooterId) {
+    const historyContainer = document.getElementById('user-entries-history');
+    const leaderboardContainer = document.getElementById('competition-leaderboard');
+    const visibilityBadge = document.getElementById('results-visibility-badge');
+    
+    if(!historyContainer || !leaderboardContainer) return;
+
+    historyContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar...</p>';
+    leaderboardContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar ställning...</p>';
+
+    const allEntries = await getCompetitionEntries(comp.id);
+    const myEntries = allEntries.filter(e => e.shooterId === shooterId);
+    
+    historyContainer.innerHTML = '';
+    if (myEntries.length === 0) {
+        historyContainer.innerHTML = '<p class="text-sm italic text-gray-500">Inga resultat inskickade än.</p>';
+    } else {
+        myEntries.sort((a, b) => new Date(b.submittedAt.seconds * 1000) - new Date(a.submittedAt.seconds * 1000));
+        
+        myEntries.forEach(entry => {
+            const date = new Date(entry.submittedAt.seconds * 1000).toLocaleDateString();
+            const statusIcon = entry.status === 'approved' ? '✅' : '⏳';
+            const roundLabel = entry.roundId !== 'open' ? `Omgång: ${entry.roundId}` : entry.date;
+            
+            historyContainer.innerHTML += `
+                <div class="flex justify-between items-center p-2 bg-white border rounded text-sm">
+                    <div>
+                        <span class="font-bold">${entry.score}p</span>
+                        <span class="text-gray-500">(${roundLabel})</span>
+                    </div>
+                    <span title="${entry.status}">${statusIcon}</span>
+                </div>
+            `;
+        });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const isEnded = comp.endDate < today;
+    const isHidden = comp.resultsVisibility === 'hidden';
+    
+    if (isHidden && !isEnded) {
+        visibilityBadge.textContent = "🔒 Resultat dolda tills tävlingens slut";
+        leaderboardContainer.innerHTML = `
+            <div class="p-4 bg-gray-100 rounded text-center text-gray-500 text-sm">
+                <p>Tävlingsledningen har valt att dölja andras resultat.</p>
+                <p>Resultatlistan publiceras efter ${comp.endDate}.</p>
+            </div>
+        `;
+        return; 
+    }
+
+    visibilityBadge.textContent = "🌐 Live Resultat";
+    
+    allEntries.sort((a, b) => b.score - a.score);
+
+    let tableHtml = `
+        <table class="w-full text-sm text-left">
+            <thead class="bg-gray-50 text-gray-700 font-bold">
+                <tr>
+                    <th class="p-2">Plats</th>
+                    <th class="p-2">Skytt</th>
+                    <th class="p-2 text-right">Poäng</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    allEntries.slice(0, 10).forEach((entry, index) => {
+        const shooter = allShootersData.find(s => s.id === entry.shooterId);
+        const name = shooter ? shooter.name : "Okänd";
+        const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
+        const isMe = entry.shooterId === shooterId ? "bg-blue-50 font-bold" : "";
+
+        tableHtml += `
+            <tr class="border-b last:border-0 ${isMe}">
+                <td class="p-2">${medal}</td>
+                <td class="p-2">${name}</td>
+                <td class="p-2 text-right">${entry.score}</td>
+            </tr>
+        `;
+    });
+
+    tableHtml += '</tbody></table>';
+    leaderboardContainer.innerHTML = tableHtml;
 }
 
 function checkDeadlineStatus() {
@@ -494,7 +645,6 @@ async function handleResultSubmit() {
     const fileInput = document.getElementById('report-image-upload');
     const file = fileInput.files[0];
 
-    // Validering
     if (isLate && !file) {
         showModal('errorModal', "Du MÅSTE ladda upp en bild eftersom deadline passerat.");
         return;
@@ -502,7 +652,6 @@ async function handleResultSubmit() {
     
     let imageUrl = null;
     if (file) {
-        // Ladda upp bild logic (förenklad)
         const progressDiv = document.getElementById('report-upload-progress');
         progressDiv.classList.remove('hidden');
         const progressBar = progressDiv.firstElementChild;
@@ -545,5 +694,9 @@ async function handleResultSubmit() {
         document.getElementById('submit-comp-result-form').reset();
         document.getElementById('comp-reporting-area').classList.add('hidden');
         document.getElementById('report-upload-progress').classList.add('hidden');
+        
+        // Uppdatera vyn direkt
+        const currentComp = activeCompetitions.find(c => c.id === compId);
+        await renderUserCompetitionView(currentComp, shooterId);
     }
 }

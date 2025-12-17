@@ -125,3 +125,27 @@ export async function approveSignupPayment(signupId) {
         showModal('errorModal', "Kunde inte godkänna.");
     }
 }
+
+// NYTT: Uppdatera en tävling
+export async function updateCompetition(compId, data) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await updateDoc(doc(db, 'competitions', compId), data);
+        showModal('confirmationModal', "Tävlingen har uppdaterats!");
+    } catch (error) {
+        console.error("Fel vid uppdatering:", error);
+        showModal('errorModal', "Kunde inte uppdatera.");
+    }
+}
+
+// NYTT: Hämta alla resultat för en specifik tävling (för leaderboard)
+export async function getCompetitionEntries(compId) {
+    try {
+        const q = query(collection(db, 'competition_entries'), where('competitionId', '==', compId));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Kunde inte hämta tävlingsresultat:", error);
+        return [];
+    }
+}

@@ -687,7 +687,7 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
             </div>
             ${actionButtons}
         `;
-// NYTT: Uppdatera menyn om inloggad är admin
+        // NYTT: Hantera Admin-länkar i menyn
         // Vi hämtar elementen här för att vara säkra
         const navTavlingAdminLink = document.getElementById('nav-admin-link');      // Tävlingsadmin
         const navSiteAdminLink = document.getElementById('nav-site-admin-link');    // Inställningar
