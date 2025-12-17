@@ -1,7 +1,7 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin, renderSelectableClasses } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.3
@@ -67,7 +67,20 @@ export function initializeDataListeners() {
             }
         });
     }
-
+    // --- KLASSER (Topplistor) ---
+        onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
+            competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            competitionClasses.sort((a, b) => a.minAge - b.minAge);
+    
+            // Om vi är admin, uppdatera både admin-listan OCH väljaren i "Skapa tävling"
+            if (isAdminLoggedIn) {
+                renderClassesAdmin(competitionClasses);
+                renderSelectableClasses(competitionClasses); // <--- NYTT ANROP HÄR
+            }
+            
+            renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+        });
     // --- ÖVRIGA LYSSNARE ---
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });

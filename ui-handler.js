@@ -1191,6 +1191,37 @@ export function renderClassesAdmin(classes) {
         `;
     });
 }
+// NY FUNKTION: Ritar ut kryssrutor för klasser i "Skapa tävling"-formuläret
+export function renderSelectableClasses(classes) {
+    const container = document.getElementById('comp-classes-select-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!classes || classes.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-400 italic">Inga klasser skapade än.</p>';
+        return;
+    }
+
+    // Sortera för snygghetens skull
+    const sortedClasses = [...classes].sort((a, b) => a.minAge - b.minAge);
+
+    sortedClasses.forEach(cls => {
+        const wrapper = document.createElement('div');
+        wrapper.className = "flex items-center space-x-2 p-1 hover:bg-gray-100 rounded";
+        
+        const discLabel = cls.discipline === 'sitting' ? 'Sit' : 'Stå';
+        
+        wrapper.innerHTML = `
+            <input type="checkbox" id="chk-cls-${cls.id}" value="${cls.id}" class="comp-class-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+            <label for="chk-cls-${cls.id}" class="text-sm text-gray-700 cursor-pointer select-none flex-grow">
+                <span class="font-bold">${cls.name}</span> 
+                <span class="text-xs text-gray-500">(${discLabel}, ${cls.minAge}-${cls.maxAge}år)</span>
+            </label>
+        `;
+        container.appendChild(wrapper);
+    });
+}
 
 export function renderTopLists(classes, allResults, allShooters, usersData = []) {
     const container = document.getElementById('top-lists-container');

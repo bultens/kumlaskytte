@@ -98,13 +98,13 @@ export function setupEventListeners() {
     if (mobileMenuBtn && mobileMenu) {
         // Toggla menyn när man klickar på hamburgaren
         mobileMenuBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Förhindra att klicket bubblar upp
+            e.stopPropagation(); 
             mobileMenu.classList.toggle('hidden');
         });
 
-        // Stäng menyn automatiskt när man klickar på en länk i den
-        mobileMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
+        // FIX: Stäng menyn när man klickar på en länk ELLER en knapp (t.ex. Logga in)
+        mobileMenu.querySelectorAll('a, button').forEach(element => {
+            element.addEventListener('click', () => {
                 mobileMenu.classList.add('hidden');
             });
         });
