@@ -687,21 +687,23 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
             </div>
             ${actionButtons}
         `;
-        // NYTT: Uppdatera menyn om inloggad är admin
-    const navAdminLink = document.getElementById('nav-admin-link');
-    const mobileAdminLink = document.getElementById('mobile-admin-link');
-    
-    if (isAdminLoggedIn) {
-        if (navTavlingAdmin) navTavlingAdmin.classList.remove('hidden');
-        if (navSiteAdmin) navSiteAdmin.classList.remove('hidden');
-        if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
-    } else {
-        // Dölj dem annars
-        if (navTavlingAdmin) navTavlingAdmin.classList.add('hidden');
-        if (navSiteAdmin) navSiteAdmin.classList.add('hidden');
-        if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
-    }
+// NYTT: Uppdatera menyn om inloggad är admin
+        // Vi hämtar elementen här för att vara säkra
+        const navTavlingAdminLink = document.getElementById('nav-admin-link');      // Tävlingsadmin
+        const navSiteAdminLink = document.getElementById('nav-site-admin-link');    // Inställningar
+        const mobileAdminLinkEl = document.getElementById('mobile-admin-link');     // Mobil
 
+        if (isAdminLoggedIn) {
+            // Visa länkarna om man är admin
+            if (navTavlingAdminLink) navTavlingAdminLink.classList.remove('hidden');
+            if (navSiteAdminLink) navSiteAdminLink.classList.remove('hidden');
+            if (mobileAdminLinkEl) mobileAdminLinkEl.classList.remove('hidden');
+        } else {
+            // Dölj dem annars
+            if (navTavlingAdminLink) navTavlingAdminLink.classList.add('hidden');
+            if (navSiteAdminLink) navSiteAdminLink.classList.add('hidden');
+            if (mobileAdminLinkEl) mobileAdminLinkEl.classList.add('hidden');
+        }
 
         if (isUserAdmin) {
             adminListEl.appendChild(userEl);
@@ -710,7 +712,6 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
         }
     });
 }
-
 export function renderShootersAdmin(shootersData) {
     const container = document.getElementById('admin-shooters-list');
     if (!container) return;
