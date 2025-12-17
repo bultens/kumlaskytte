@@ -486,8 +486,10 @@ async function updateReportingUI(signupId) {
     badge.textContent = "Klar att rapportera";
     badge.className = "bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded";
 
+ // Omgångsinfo och Deadline-hantering
     let roundInfo = "Öppen tävling (inga delmoment)";
     let currentRoundId = "open";
+    let activeDeadline = comp.endDate; // Default: Tävlingens slutdatum
 
     if (comp.rounds && comp.rounds.length > 0) {
         const today = new Date().toISOString().split('T')[0];
@@ -495,10 +497,13 @@ async function updateReportingUI(signupId) {
         
         roundInfo = `Aktuell omgång: ${currentRound.name} (Deadline: ${currentRound.deadline})`;
         currentRoundId = currentRound.name;
-        
-        document.getElementById('report-date').max = currentRound.deadline;
-        document.getElementById('report-date').dataset.deadline = currentRound.deadline;
+        activeDeadline = currentRound.deadline;
     }
+    
+    // Sätt deadline på datumväljaren (används för att räkna ut isLate)
+    const dateInput = document.getElementById('report-date');
+    dateInput.max = activeDeadline; 
+    dateInput.dataset.deadline = activeDeadline; // VIKTIGT: Nu sätts den alltid
     
     document.getElementById('reporting-round-info').textContent = roundInfo;
     document.getElementById('report-round-id').value = currentRoundId;
@@ -640,7 +645,7 @@ async function handleResultSubmit() {
     const date = document.getElementById('report-date').value;
     
     const deadline = document.getElementById('report-date').dataset.deadline;
-    const isLate = deadline && date > deadline;
+    const isLate = deadline ? (date > deadline) : false;
     
     const fileInput = document.getElementById('report-image-upload');
     const file = fileInput.files[0];
