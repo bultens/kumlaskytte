@@ -52,18 +52,20 @@ export async function updateCompetition(compId, data) {
 
 // --- ANMÄLAN (USER) ---
 
-export async function signupForCompetition(compId, shooterId, classId, clubName, cost) {
+// Uppdaterad för att hantera flera klasser (classIds är en array)
+export async function signupForCompetition(compId, shooterId, classIds, clubName, totalPrice) {
     try {
         const refCode = `T${compId.substring(0,3).toUpperCase()}-${shooterId.substring(0,3).toUpperCase()}-${Math.floor(Math.random()*100)}`;
-        const initialStatus = cost > 0 ? 'pending_payment' : 'approved';
+        const initialStatus = totalPrice > 0 ? 'pending_payment' : 'approved';
 
         const docRef = await addDoc(collection(db, 'competition_signups'), {
             competitionId: compId,
             userId: auth.currentUser.uid,
             shooterId: shooterId,
-            classId: classId,
+            classIds: classIds, // Sparar nu en array, t.ex. ["id1", "id2"]
             clubName: clubName,
             paymentStatus: initialStatus,
+            totalCost: totalPrice, // Sparar vad det kostade totalt
             paymentReference: refCode,
             signedUpAt: serverTimestamp()
         });

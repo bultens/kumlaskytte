@@ -166,6 +166,7 @@ async function handleCreateCompetition() {
         resultsVisibility: document.getElementById('new-comp-visibility').value,
         signupDeadline: document.getElementById('new-comp-signup-deadline').value, 
         cost: parseInt(document.getElementById('new-comp-cost').value) || 0,
+        extraCost: parseInt(document.getElementById('new-comp-extra-cost').value) || 0, 
         rules: { 
             allowDecimals: document.getElementById('rule-decimals').checked,
             requireImageAlways: document.getElementById('rule-image-req').checked
@@ -284,6 +285,8 @@ function loadCompetitionForEdit(compId) {
     document.getElementById('new-comp-end').value = comp.endDate;
     document.getElementById('new-comp-signup-deadline').value = comp.signupDeadline || '';
     document.getElementById('new-comp-cost').value = comp.cost;
+    // NYTT: Ladda in extra kostnad
+    document.getElementById('new-comp-extra-cost').value = comp.extraCost || 0;
     document.getElementById('new-comp-visibility').value = comp.resultsVisibility || 'public';
     
     if(comp.rules) {
@@ -371,7 +374,9 @@ async function openSignupModal(compId) {
     document.getElementById('signup-comp-id').value = comp.id;
     document.getElementById('swish-info-box').classList.add('hidden');
     document.getElementById('confirm-signup-btn').classList.remove('hidden');
+    document.getElementById('price-summary').textContent = "Totalt: 0 kr";
 
+    // Fyll skyttar
     const shooterSelect = document.getElementById('signup-shooter-select');
     shooterSelect.innerHTML = '';
     const myShooters = await getMyShooters(auth.currentUser.uid);
@@ -383,23 +388,80 @@ async function openSignupModal(compId) {
             const opt = document.createElement('option');
             opt.value = s.id;
             opt.textContent = s.name;
+            opt.dataset.birthyear = s.birthyear; // Spara födelseår för uträkning
             shooterSelect.appendChild(opt);
         });
     }
 
-    const classSelect = document.getElementById('signup-class-select');
-    classSelect.innerHTML = '';
-    if (comp.allowedClasses && comp.allowedClasses.length > 0) {
-        const allowed = competitionClasses.filter(c => comp.allowedClasses.includes(c.id));
-        allowed.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = `${c.name} (${c.discipline})`;
-            classSelect.appendChild(opt);
+    // --- NY LOGIK FÖR KLASSER (CHECKBOXAR) ---
+    const container = document.getElementById('signup-class-checkboxes');
+    container.innerHTML = '';
+    
+    // Funktion för att rendera klasser baserat på vald skytt
+    const renderClassesForShooter = () => {
+        container.innerHTML = '';
+        const selectedShooterOpt = shooterSelect.selectedOptions[0];
+        const birthYear = selectedShooterOpt ? parseInt(selectedShooterOpt.dataset.birthyear) : null;
+        const currentYear = new Date().getFullYear();
+        const shooterAge = birthYear ? currentYear - birthYear : null;
+
+        if (comp.allowedClasses && comp.allowedClasses.length > 0) {
+            const allowed = competitionClasses.filter(c => comp.allowedClasses.includes(c.id));
+            
+            allowed.forEach(c => {
+                const wrapper = document.createElement('div');
+                // Markera om skytten är i "rätt" ålder (visuellt hjälpmedel)
+                const isOptimalAge = shooterAge !== null && shooterAge >= c.minAge && shooterAge <= c.maxAge;
+                
+                const styleClass = isOptimalAge 
+                    ? "bg-blue-50 border-blue-200 font-bold" 
+                    : "bg-white border-gray-200 text-gray-500";
+
+                wrapper.className = `flex items-center p-2 border rounded ${styleClass}`;
+                
+                wrapper.innerHTML = `
+                    <input type="checkbox" id="cls-${c.id}" value="${c.id}" class="signup-class-cb w-5 h-5 mr-2">
+                    <label for="cls-${c.id}" class="cursor-pointer flex-grow text-sm">
+                        ${c.name} <span class="text-xs font-normal">(${c.discipline})</span>
+                        ${isOptimalAge ? '<span class="ml-1 text-blue-600 text-xs">★</span>' : ''}
+                    </label>
+                `;
+                container.appendChild(wrapper);
+            });
+        } else {
+            container.innerHTML = '<p class="text-sm text-gray-500 p-2">Inga specifika klasser (Öppen)</p>';
+        }
+        
+        // Lägg på lyssnare för prisuppdatering
+        container.querySelectorAll('.signup-class-cb').forEach(cb => {
+            cb.addEventListener('change', updatePrice);
         });
-    } else {
-        classSelect.innerHTML = '<option value="open">Öppen klass</option>';
-    }
+    };
+
+    // Funktion för att räkna pris
+    const updatePrice = () => {
+        const checkedCount = container.querySelectorAll('.signup-class-cb:checked').length;
+        if (checkedCount === 0) {
+            document.getElementById('price-summary').textContent = "Totalt: 0 kr";
+            document.getElementById('price-summary').dataset.total = 0;
+            return;
+        }
+        
+        const basePrice = comp.cost || 0;
+        const extraPrice = comp.extraCost || basePrice; // Fallback till fullt pris om rabatt saknas
+        
+        // Formel: Första klassen kostar Grundpris, resten kostar Extrapris
+        const total = basePrice + ((checkedCount - 1) * extraPrice);
+        
+        document.getElementById('price-summary').textContent = `Totalt: ${total} kr`;
+        document.getElementById('price-summary').dataset.total = total; // Spara värdet
+    };
+
+    // Uppdatera klasslistan när man byter skytt (för att visa åldersmarkering)
+    shooterSelect.addEventListener('change', renderClassesForShooter);
+    
+    // Kör en gång vid start
+    renderClassesForShooter();
 
     document.getElementById('compSignupModal').classList.add('active');
 }
@@ -407,22 +469,44 @@ async function openSignupModal(compId) {
 async function handleSignupSubmit() {
     const compId = document.getElementById('signup-comp-id').value;
     const shooterId = document.getElementById('signup-shooter-select').value;
-    const classId = document.getElementById('signup-class-select').value;
     const clubName = document.getElementById('signup-club-name').value;
     
+    // Hämta valda klasser
+    const selectedClasses = [];
+    document.querySelectorAll('.signup-class-cb:checked').forEach(cb => {
+        selectedClasses.push(cb.value);
+    });
+
+    if (selectedClasses.length === 0) {
+        // Om inga klasser finns definierade (Öppen tävling), skicka tom array eller dummy
+        // Men om klasser FINNS, kräv val
+        const checkboxes = document.querySelectorAll('.signup-class-cb');
+        if (checkboxes.length > 0) {
+            showModal('errorModal', "Du måste välja minst en klass.");
+            return;
+        }
+    }
+
     const comp = activeCompetitions.find(c => c.id === compId);
     
-    const result = await signupForCompetition(compId, shooterId, classId, clubName, comp.cost);
+    // Hämta uträknat pris (eller räkna om för säkerhets skull)
+    const priceText = document.getElementById('price-summary').dataset.total;
+    const totalPrice = priceText ? parseInt(priceText) : comp.cost; // Fallback
+
+    const result = await signupForCompetition(compId, shooterId, selectedClasses, clubName, totalPrice);
     
     if (result.success) {
-        if (comp.cost > 0) {
-            const swishData = `C${comp.swishNumber};${comp.cost};${result.refCode};0`;
+        if (totalPrice > 0) {
+            const swishData = `C${comp.swishNumber};${totalPrice};${result.refCode};0`;
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(swishData)}`;
             
             document.getElementById('swish-qr-code').src = qrUrl;
             document.getElementById('swish-msg-ref').textContent = result.refCode;
+            
+            // Visa Swish-boxen och dölj resten
             document.getElementById('swish-info-box').classList.remove('hidden');
             document.getElementById('confirm-signup-btn').classList.add('hidden');
+            document.getElementById('signup-class-checkboxes').classList.add('hidden'); // Dölj valen så det ser rent ut
             
             mySignups = await getMySignups(); 
         } else {
