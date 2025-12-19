@@ -5,7 +5,8 @@ import {
 } from "./data-service.js";
 import { createCompetition, getAllCompetitions, signupForCompetition, 
     getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, 
-    updateCompetition, getCompetitionEntries, deleteCompetitionFull
+    updateCompetition, getCompetitionEntries, deleteCompetitionFull,
+    createOnlineClass, getOnlineClasses, deleteOnlineClass
 } from "./competition-service.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
@@ -15,13 +16,17 @@ let editingCompId = null;
 let activeCompetitions = [];
 let mySignups = [];
 let roundsCounter = 0;
+let onlineClassesCache = [];
 
 export async function initCompetitionSystem() {
     console.log("Initierar Tävlingssystemet...");
     setupEventListeners();
     
-    // Ladda data
+    // Ladda tävlingar
     activeCompetitions = await getAllCompetitions();
+    
+    // NYTT: Ladda online-klasser
+    onlineClassesCache = await getOnlineClasses();
     
     if (auth.currentUser) {
         mySignups = await getMySignups();
@@ -30,7 +35,8 @@ export async function initCompetitionSystem() {
     
     if (isAdminLoggedIn) {
         renderAdminView();
-        populateClassCheckboxes(); 
+        populateClassCheckboxes(); // Använder nu onlineClassesCache
+        renderOnlineClassesList(); // NY: Ritar admin-listan för klasser
     }
 }
 
@@ -68,6 +74,28 @@ function setupEventListeners() {
         });
     }
 
+    // --- ADMIN: SKAPA KLASS ---
+    const createClassForm = document.getElementById('create-online-class-form');
+    if (createClassForm) {
+        createClassForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newClass = {
+                name: document.getElementById('new-class-name').value,
+                discipline: document.getElementById('new-class-disc').value,
+                minAge: parseInt(document.getElementById('new-class-min').value) || 0,
+                maxAge: parseInt(document.getElementById('new-class-max').value) || 99
+            };
+            
+            const success = await createOnlineClass(newClass);
+            if(success) {
+                createClassForm.reset();
+                onlineClassesCache = await getOnlineClasses(); // Ladda om
+                renderOnlineClassesList();
+                populateClassCheckboxes();
+            }
+        });
+    }
+    
     // --- USER: ANMÄLAN ---
     const signupForm = document.getElementById('comp-signup-form');
     if (signupForm) {
@@ -129,12 +157,15 @@ function populateClassCheckboxes() {
     if (!container) return;
     container.innerHTML = '';
     
-    if (competitionClasses.length === 0) {
-        container.innerHTML = '<p class="text-xs text-gray-500">Inga klasser hämtade än.</p>';
+    if (onlineClassesCache.length === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500">Inga klasser skapade än.</p>';
         return;
     }
 
-    competitionClasses.forEach(cls => {
+    // Sortera på ålder
+    onlineClassesCache.sort((a, b) => a.minAge - b.minAge);
+
+    onlineClassesCache.forEach(cls => {
         const label = document.createElement('label');
         label.className = "flex items-center space-x-2 text-sm p-1 hover:bg-gray-50 rounded";
         label.innerHTML = `
@@ -142,6 +173,36 @@ function populateClassCheckboxes() {
             <span>${cls.name} (${cls.discipline})</span>
         `;
         container.appendChild(label);
+    });
+}
+
+// NY FUNKTION: Ritar listan i "Hantera Klasser"
+function renderOnlineClassesList() {
+    const container = document.getElementById('online-classes-list');
+    if(!container) return;
+    
+    container.innerHTML = '';
+    onlineClassesCache.sort((a, b) => a.minAge - b.minAge);
+
+    onlineClassesCache.forEach(cls => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center bg-white p-2 rounded border text-sm";
+        div.innerHTML = `
+            <span><b>${cls.name}</b> (${cls.minAge}-${cls.maxAge} år)</span>
+            <button class="del-class-btn text-red-500 font-bold px-2 hover:bg-red-50 rounded" data-id="${cls.id}">×</button>
+        `;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.del-class-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            if(confirm("Ta bort klassen?")) {
+                await deleteOnlineClass(e.target.dataset.id);
+                onlineClassesCache = await getOnlineClasses();
+                renderOnlineClassesList();
+                populateClassCheckboxes();
+            }
+        });
     });
 }
 
@@ -445,7 +506,7 @@ async function openSignupModal(compId) {
         const shooterAge = birthYear ? currentYear - birthYear : null;
 
         if (comp.allowedClasses && comp.allowedClasses.length > 0) {
-            const allowed = competitionClasses.filter(c => comp.allowedClasses.includes(c.id));
+            const allowed = onlineClassesCache.filter(c => comp.allowedClasses.includes(c.id));
             
             allowed.forEach(c => {
                 const wrapper = document.createElement('div');
@@ -580,9 +641,24 @@ function populateUserReportingDropdown() {
         const shooter = allShootersData.find(s => s.id === signup.shooterId);
         const shooterName = shooter ? shooter.name : 'Okänd';
 
+        // Hämta klassnamn från IDs i signup.classIds
+        let classNames = "";
+        if (signup.classIds && signup.classIds.length > 0) {
+            const names = signup.classIds.map(id => {
+                const cls = onlineClassesCache.find(c => c.id === id);
+                return cls ? cls.name : id; // Visa namn om hittat, annars ID
+            });
+            classNames = ` (${names.join(', ')})`;
+        } else if (signup.classId) {
+            // Bakåtkompatibilitet om gamla anmälningar finns
+            const cls = onlineClassesCache.find(c => c.id === signup.classId);
+            classNames = cls ? ` (${cls.name})` : "";
+        }
+
         const opt = document.createElement('option');
         opt.value = signup.id;
-        opt.textContent = `${comp.name} - ${shooterName}`;
+        // HÄR ÄR FIXEN: Vi lägger till klassnamnen i texten
+        opt.textContent = `${comp.name} - ${shooterName}${classNames}`;
         opt.dataset.compId = comp.id;
         opt.dataset.shooterId = signup.shooterId;
         select.appendChild(opt);

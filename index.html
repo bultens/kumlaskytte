@@ -19,7 +19,7 @@
             </a>
             <div class="flex flex-col items-start">
                 <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300">Ver. 3.18</p>
+                <p class="text-sm text-gray-300">Ver. 3.19</p>
             </div>
         </div>
         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
@@ -554,7 +554,35 @@
             <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded hover:bg-green-700">Skapa Tävling</button>
         </form>
     </div>
-    
+    <div class="card mb-6 border-l-4 border-purple-500">
+                <h2 class="text-2xl font-bold mb-4 text-purple-900">Hantera Tävlingsklasser</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <div>
+                        <h3 class="font-bold mb-2">Befintliga klasser</h3>
+                        <div id="online-classes-list" class="bg-gray-50 rounded border h-48 overflow-y-auto p-2 space-y-1">
+                            <p class="text-gray-400 text-sm">Laddar...</p>
+                        </div>
+                    </div>
+
+                    <form id="create-online-class-form" class="bg-purple-50 p-4 rounded border border-purple-100">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <input type="text" id="new-class-name" placeholder="Namn (t.ex. Lsi 11)" class="p-2 border rounded" required>
+                            <select id="new-class-disc" class="p-2 border rounded">
+                                <option value="sitting">Sittande</option>
+                                <option value="standing">Stående</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <input type="number" id="new-class-min" placeholder="Min ålder" class="p-2 border rounded">
+                            <input type="number" id="new-class-max" placeholder="Max ålder" class="p-2 border rounded">
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-700">
+                            + Lägg till klass
+                        </button>
+                    </form>
+                </div>
+            </div>
     <div class="card mb-6">
         <h2 class="text-2xl font-bold mb-4">Befintliga Tävlingar</h2>
         <div id="admin-competitions-list" class="space-y-2 max-h-60 overflow-y-auto">

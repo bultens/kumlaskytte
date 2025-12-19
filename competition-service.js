@@ -179,3 +179,35 @@ export async function deleteCompetitionFull(compId) {
         return false;
     }
 }
+// --- HANTERA ONLINE-KLASSER ---
+
+export async function createOnlineClass(classData) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await addDoc(collection(db, 'online_competition_classes'), classData);
+        showModal('confirmationModal', "Ny tävlingsklass skapad!");
+        return true;
+    } catch (e) {
+        console.error(e);
+        showModal('errorModal', "Kunde inte skapa klass.");
+        return false;
+    }
+}
+
+export async function getOnlineClasses() {
+    // Hämtar de specifika klasserna för onlinetävlingar
+    const q = query(collection(db, 'online_competition_classes'), orderBy('minAge'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+export async function deleteOnlineClass(classId) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await deleteDoc(doc(db, 'online_competition_classes', classId));
+        return true;
+    } catch (e) {
+        showModal('errorModal', "Kunde inte ta bort klass.");
+        return false;
+    }
+}
