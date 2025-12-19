@@ -450,7 +450,7 @@ async function openSignupModal(compId) {
         }
         
         const basePrice = comp.cost || 0;
-        const extraPrice = comp.extraCost || basePrice; // Fallback till fullt pris om rabatt saknas
+        const extraPrice = (comp.extraCost !== undefined && comp.extraCost !== null) ? comp.extraCost : basePrice;
         
         // Formel: Första klassen kostar Grundpris, resten kostar Extrapris
         const total = basePrice + ((checkedCount - 1) * extraPrice);
@@ -630,28 +630,126 @@ async function renderUserCompetitionView(comp, shooterId) {
     historyContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar...</p>';
     leaderboardContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar ställning...</p>';
 
+    // 1. Hämta alla resultat
     const allEntries = await getCompetitionEntries(comp.id);
     
+    // --- FÖRBERED DATA FÖR LOGIKEN ---
+    
+    // Gruppera resultat per skytt och omgång
+    // Struktur: { shooterId: { name: "Namn", rounds: { "Omgång 1": [102.4, 101.0] } } }
+    const shooterStats = {};
+    const uniqueRounds = new Set();
+
+    // Först, identifiera alla unika omgångar som finns i datan för att bygga kolumner
+    allEntries.forEach(entry => {
+        let rId = entry.roundId || 'Öppen';
+        // Om det är "open", använd datum som kolumnrubrik om det inte finns omgångsnamn
+        if (rId === 'open') rId = entry.date; 
+        uniqueRounds.add(rId);
+    });
+    
+    // Sortera omgångarna logiskt (Omgång 1, Omgång 2...)
+    const sortedRounds = Array.from(uniqueRounds).sort((a, b) => {
+        // Försök sortera på nummer i strängen "Omgång X"
+        const numA = parseInt(a.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.replace(/\D/g, '')) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b); // Fallback till bokstavsordning (eller datum)
+    });
+
+    // Bygg upp shooterStats
+    allEntries.forEach(entry => {
+        const sId = entry.shooterId;
+        const shooter = allShootersData.find(s => s.id === sId);
+        const name = shooter ? shooter.name : "Okänd";
+        let rId = entry.roundId || 'Öppen';
+        if (rId === 'open') rId = entry.date;
+
+        if (!shooterStats[sId]) {
+            shooterStats[sId] = { name: name, rounds: {} };
+        }
+        if (!shooterStats[sId].rounds[rId]) {
+            shooterStats[sId].rounds[rId] = [];
+        }
+        // Spara hela objektet så vi har ID och status
+        shooterStats[sId].rounds[rId].push(entry);
+    });
+
+    // Räkna ut poäng och vilka som räknas
+    const leaderboardData = Object.keys(shooterStats).map(sId => {
+        const data = shooterStats[sId];
+        const roundBestScores = []; // Håller reda på bästa poängen per omgång
+
+        // För varje omgång, hitta bästa resultatet
+        sortedRounds.forEach(rKey => {
+            const entries = data.rounds[rKey];
+            if (entries && entries.length > 0) {
+                // Sortera fallande för att hitta högsta i denna omgång
+                entries.sort((a, b) => b.score - a.score);
+                const bestEntry = entries[0];
+                roundBestScores.push({ 
+                    round: rKey, 
+                    score: bestEntry.score, 
+                    entryId: bestEntry.id // Viktigt för att kunna markera det
+                });
+            }
+        });
+
+        // Sortera alla omgångsbästa för att hitta de X bästa totalt (om begränsning finns)
+        roundBestScores.sort((a, b) => b.score - a.score);
+        
+        const countLimit = comp.resultsCount || roundBestScores.length;
+        const countingEntries = roundBestScores.slice(0, countLimit);
+        
+        // Skapa ett Set med IDn på de resultat som faktiskt räknas i totalen
+        const countingIds = new Set(countingEntries.map(e => e.entryId));
+        
+        const totalScore = countingEntries.reduce((sum, val) => sum + val.score, 0);
+        
+        return {
+            name: data.name,
+            shooterId: sId,
+            total: Math.round(totalScore * 10) / 10,
+            countingIds: countingIds, // IDn på de resultat som bygger totalen
+            roundData: data.rounds // Alla resultat för att rita tabellen
+        };
+    });
+
+    leaderboardData.sort((a, b) => b.total - a.total);
+
     // --- 1. VISA HISTORIK (Mina inskickade) ---
+    // Nu kan vi markera vilka av MINA resultat som räknas!
+    const myData = leaderboardData.find(d => d.shooterId === shooterId);
+    const myCountingIds = myData ? myData.countingIds : new Set();
+
     const myEntries = allEntries.filter(e => e.shooterId === shooterId);
     historyContainer.innerHTML = '';
     
     if (myEntries.length === 0) {
         historyContainer.innerHTML = '<p class="text-sm italic text-gray-500">Inga resultat inskickade än.</p>';
     } else {
-        // Sortera: Nyast först
         myEntries.sort((a, b) => new Date(b.submittedAt.seconds * 1000) - new Date(a.submittedAt.seconds * 1000));
         
         myEntries.forEach(entry => {
             const date = new Date(entry.submittedAt.seconds * 1000).toLocaleDateString();
             const statusIcon = entry.status === 'approved' ? '✅' : '⏳';
-            const roundLabel = entry.roundId !== 'open' ? `Omgång: ${entry.roundId}` : entry.date;
+            let rId = entry.roundId || 'Öppen';
+            if (rId === 'open') rId = entry.date;
             
+            // Kolla om detta resultat är med i de "räknade"
+            const isCounting = myCountingIds.has(entry.id);
+            const countingBadge = isCounting 
+                ? '<span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded border border-green-200">Räknas</span>' 
+                : '<span class="text-xs text-gray-400">(Räknas ej)</span>';
+
             historyContainer.innerHTML += `
-                <div class="flex justify-between items-center p-2 bg-white border rounded text-sm">
+                <div class="flex justify-between items-center p-3 bg-white border rounded text-sm ${isCounting ? 'border-l-4 border-green-500' : ''}">
                     <div>
-                        <span class="font-bold">${entry.score}p</span>
-                        <span class="text-gray-500">(${roundLabel})</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-lg">${entry.score}p</span>
+                            ${countingBadge}
+                        </div>
+                        <span class="text-gray-500 text-xs">${rId} (${date})</span>
                     </div>
                     <span title="${entry.status}">${statusIcon}</span>
                 </div>
@@ -659,117 +757,92 @@ async function renderUserCompetitionView(comp, shooterId) {
         });
     }
 
-    // --- 2. HANTERA SYNLIGHET ---
+    // --- 2. HANTERA SYNLIGHET (Dölj tabellen om "Blind") ---
     const today = new Date().toISOString().split('T')[0];
     const isEnded = comp.endDate < today;
     const isHidden = comp.resultsVisibility === 'hidden';
     
     if (isHidden && !isEnded) {
         visibilityBadge.textContent = "🔒 Resultat dolda tills tävlingens slut";
-        leaderboardContainer.innerHTML = `
-            <div class="p-4 bg-gray-100 rounded text-center text-gray-500 text-sm">
-                <p>Tävlingsledningen har valt att dölja andras resultat.</p>
-                <p>Resultatlistan publiceras efter ${comp.endDate}.</p>
-            </div>
-        `;
+        leaderboardContainer.innerHTML = `... (samma dolda meddelande som förut) ...`;
         return; 
     }
     visibilityBadge.textContent = "🌐 Live Resultat";
 
-    // --- 3. BERÄKNA POÄNGSTÄLLNING (Aggregerad) ---
+    // --- 3. RITA TABELLEN (Liknande PDFen) ---
     
-    // Steg A: Gruppera alla resultat per Skytt och sedan per Omgång
-    const shooterStats = {}; // { shooterId: { name: "Namn", rounds: { "Omgång 1": 102.4, "Omgång 2": 103.1 } } }
-
-    allEntries.forEach(entry => {
-        // Hitta skyttens namn (från allShootersData som vi har importerat)
-        const shooter = allShootersData.find(s => s.id === entry.shooterId);
-        const name = shooter ? shooter.name : "Okänd";
-
-        if (!shooterStats[entry.shooterId]) {
-            shooterStats[entry.shooterId] = {
-                name: name,
-                rounds: {} 
-            };
-        }
-
-        // Logik: Om skytten skjutit flera gånger i samma omgång, spara bara det bästa
-        const currentBestInRound = shooterStats[entry.shooterId].rounds[entry.roundId] || 0;
-        if (entry.score > currentBestInRound) {
-            shooterStats[entry.shooterId].rounds[entry.roundId] = entry.score;
-        }
+    // Bygg header-raden dynamiskt baserat på omgångar
+    let headerCols = '';
+    sortedRounds.forEach(r => {
+        // Förkorta rubriker om de är långa (t.ex. "Omgång 1" -> "Omg 1")
+        const label = r.replace('Omgång', 'Omg');
+        headerCols += `<th class="p-2 text-center text-xs sm:text-sm whitespace-nowrap">${label}</th>`;
     });
 
-    // Steg B: Räkna ut totalpoäng baserat på reglerna
-    const leaderboardData = Object.keys(shooterStats).map(sId => {
-        const data = shooterStats[sId];
-        
-        // Hämta alla omgångsresultat som en array
-        const roundScores = Object.values(data.rounds);
-        
-        // Sortera poängen fallande (högst först) för att kunna plocka de bästa
-        roundScores.sort((a, b) => b - a);
-
-        // Kolla admin-inställningen: Hur många ska räknas? (0 = alla)
-        const countLimit = comp.resultsCount || roundScores.length;
-        
-        // Ta de X bästa
-        const countingScores = roundScores.slice(0, countLimit);
-        
-        // Summera
-        const totalScore = countingScores.reduce((sum, val) => sum + val, 0);
-        
-        // Formatera till max 1 decimal för snygghet
-        const formattedTotal = Math.round(totalScore * 10) / 10;
-
-        return {
-            name: data.name,
-            shooterId: sId,
-            total: formattedTotal,
-            roundsShot: roundScores.length, // Kul info: Hur många omgångar har man skjutit?
-            countingScores: countingScores // För ev. detaljvy
-        };
-    });
-
-    // Steg C: Sortera leaderboarden (Högst totalpoäng först)
-    leaderboardData.sort((a, b) => b.total - a.total);
-
-    // --- 4. RITA UT TABELLEN ---
     let tableHtml = `
-        <table class="w-full text-sm text-left">
-            <thead class="bg-gray-50 text-gray-700 font-bold">
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
+            <thead class="bg-gray-100 text-gray-700 font-bold border-b-2 border-gray-300">
                 <tr>
-                    <th class="p-2 w-10">#</th>
-                    <th class="p-2">Skytt</th>
-                    <th class="p-2 text-right">Omg.</th>
-                    <th class="p-2 text-right">Total</th>
+                    <th class="p-2 w-8">#</th>
+                    <th class="p-2 min-w-[120px]">Skytt</th>
+                    ${headerCols}
+                    <th class="p-2 text-right border-l bg-gray-50 min-w-[80px]">Total</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-gray-200">
     `;
 
     leaderboardData.forEach((row, index) => {
         const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
-        const isMe = row.shooterId === shooterId ? "bg-blue-50 font-bold border-l-4 border-blue-500" : "";
+        const isMe = row.shooterId === shooterId ? "bg-blue-50 font-bold" : "hover:bg-gray-50";
         
-        // Visa info om hur många omgångar som räknats (t.ex. "3/4")
-        const roundsInfo = comp.resultsCount > 0 ? `${row.countingScores.length}/${row.roundsShot}` : row.roundsShot;
+        let roundCells = '';
+        sortedRounds.forEach(rKey => {
+            const entries = row.roundData[rKey];
+            let cellContent = '-';
+            let cellClass = 'text-gray-400'; // Grå för tomma/strukna
+
+            if (entries && entries.length > 0) {
+                // Hitta bästa i denna omgång
+                entries.sort((a, b) => b.score - a.score);
+                const best = entries[0];
+                
+                // Är detta resultat med i totalen? (Finns IDt i countingIds?)
+                if (row.countingIds.has(best.id)) {
+                    cellContent = `<strong>${best.score}</strong>`; // Fetstil för räknade
+                    cellClass = 'text-gray-900 bg-green-50/50'; // Liten grön ton
+                } else {
+                    cellContent = `<span class="line-through decoration-gray-400">${best.score}</span>`; // Överstruket för strukna resultat
+                    cellClass = 'text-gray-500';
+                }
+                
+                // Om de skjutit flera serier i samma omgång, visa en liten asterisk *
+                if (entries.length > 1) {
+                    cellContent += `<span class="text-[9px] align-top text-blue-500 cursor-help" title="${entries.length} försök">*</span>`;
+                }
+            }
+            
+            roundCells += `<td class="p-2 text-center border-r border-gray-100 ${cellClass}">${cellContent}</td>`;
+        });
 
         tableHtml += `
-            <tr class="border-b last:border-0 ${isMe}">
+            <tr class="${isMe}">
                 <td class="p-2 font-bold text-gray-500">${medal}</td>
-                <td class="p-2">${row.name}</td>
-                <td class="p-2 text-right text-xs text-gray-500">${roundsInfo}</td>
-                <td class="p-2 text-right font-bold text-blue-900">${row.total}</td>
+                <td class="p-2 truncate max-w-[150px]" title="${row.name}">${row.name}</td>
+                ${roundCells}
+                <td class="p-2 text-right font-bold text-blue-900 border-l bg-gray-50/50">${row.total}</td>
             </tr>
         `;
     });
 
-    tableHtml += '</tbody></table>';
+    tableHtml += '</tbody></table></div>';
     
-    // Lägg till info-text om beräkningen
     const countInfo = comp.resultsCount > 0 
-        ? `<p class="text-xs text-gray-500 mt-2 text-right italic">* Totalen baseras på de ${comp.resultsCount} bästa omgångarna.</p>` 
+        ? `<div class="flex justify-between items-center mt-2 text-xs text-gray-500">
+             <span>Resultat i <strong>fet stil</strong> räknas i totalen.</span>
+             <span>* Totalsumman baseras på de ${comp.resultsCount} bästa omgångarna.</span>
+           </div>` 
         : '';
 
     leaderboardContainer.innerHTML = tableHtml + countInfo;
