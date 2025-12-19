@@ -164,6 +164,7 @@ async function handleCreateCompetition() {
         startDate: document.getElementById('new-comp-start').value,
         endDate: document.getElementById('new-comp-end').value,
         resultsVisibility: document.getElementById('new-comp-visibility').value,
+        resultsCount: parseInt(document.getElementById('new-comp-count-results').value) || 0,
         signupDeadline: document.getElementById('new-comp-signup-deadline').value, 
         cost: parseInt(document.getElementById('new-comp-cost').value) || 0,
         extraCost: parseInt(document.getElementById('new-comp-extra-cost').value) || 0, 
@@ -288,6 +289,7 @@ function loadCompetitionForEdit(compId) {
     // NYTT: Ladda in extra kostnad
     document.getElementById('new-comp-extra-cost').value = comp.extraCost || 0;
     document.getElementById('new-comp-visibility').value = comp.resultsVisibility || 'public';
+    document.getElementById('new-comp-count-results').value = comp.resultsCount || '';
     
     if(comp.rules) {
         document.getElementById('rule-decimals').checked = comp.rules.allowDecimals || false;
@@ -629,12 +631,15 @@ async function renderUserCompetitionView(comp, shooterId) {
     leaderboardContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar ställning...</p>';
 
     const allEntries = await getCompetitionEntries(comp.id);
-    const myEntries = allEntries.filter(e => e.shooterId === shooterId);
     
+    // --- 1. VISA HISTORIK (Mina inskickade) ---
+    const myEntries = allEntries.filter(e => e.shooterId === shooterId);
     historyContainer.innerHTML = '';
+    
     if (myEntries.length === 0) {
         historyContainer.innerHTML = '<p class="text-sm italic text-gray-500">Inga resultat inskickade än.</p>';
     } else {
+        // Sortera: Nyast först
         myEntries.sort((a, b) => new Date(b.submittedAt.seconds * 1000) - new Date(a.submittedAt.seconds * 1000));
         
         myEntries.forEach(entry => {
@@ -654,6 +659,7 @@ async function renderUserCompetitionView(comp, shooterId) {
         });
     }
 
+    // --- 2. HANTERA SYNLIGHET ---
     const today = new Date().toISOString().split('T')[0];
     const isEnded = comp.endDate < today;
     const isHidden = comp.resultsVisibility === 'hidden';
@@ -668,40 +674,105 @@ async function renderUserCompetitionView(comp, shooterId) {
         `;
         return; 
     }
-
     visibilityBadge.textContent = "🌐 Live Resultat";
-    
-    allEntries.sort((a, b) => b.score - a.score);
 
+    // --- 3. BERÄKNA POÄNGSTÄLLNING (Aggregerad) ---
+    
+    // Steg A: Gruppera alla resultat per Skytt och sedan per Omgång
+    const shooterStats = {}; // { shooterId: { name: "Namn", rounds: { "Omgång 1": 102.4, "Omgång 2": 103.1 } } }
+
+    allEntries.forEach(entry => {
+        // Hitta skyttens namn (från allShootersData som vi har importerat)
+        const shooter = allShootersData.find(s => s.id === entry.shooterId);
+        const name = shooter ? shooter.name : "Okänd";
+
+        if (!shooterStats[entry.shooterId]) {
+            shooterStats[entry.shooterId] = {
+                name: name,
+                rounds: {} 
+            };
+        }
+
+        // Logik: Om skytten skjutit flera gånger i samma omgång, spara bara det bästa
+        const currentBestInRound = shooterStats[entry.shooterId].rounds[entry.roundId] || 0;
+        if (entry.score > currentBestInRound) {
+            shooterStats[entry.shooterId].rounds[entry.roundId] = entry.score;
+        }
+    });
+
+    // Steg B: Räkna ut totalpoäng baserat på reglerna
+    const leaderboardData = Object.keys(shooterStats).map(sId => {
+        const data = shooterStats[sId];
+        
+        // Hämta alla omgångsresultat som en array
+        const roundScores = Object.values(data.rounds);
+        
+        // Sortera poängen fallande (högst först) för att kunna plocka de bästa
+        roundScores.sort((a, b) => b - a);
+
+        // Kolla admin-inställningen: Hur många ska räknas? (0 = alla)
+        const countLimit = comp.resultsCount || roundScores.length;
+        
+        // Ta de X bästa
+        const countingScores = roundScores.slice(0, countLimit);
+        
+        // Summera
+        const totalScore = countingScores.reduce((sum, val) => sum + val, 0);
+        
+        // Formatera till max 1 decimal för snygghet
+        const formattedTotal = Math.round(totalScore * 10) / 10;
+
+        return {
+            name: data.name,
+            shooterId: sId,
+            total: formattedTotal,
+            roundsShot: roundScores.length, // Kul info: Hur många omgångar har man skjutit?
+            countingScores: countingScores // För ev. detaljvy
+        };
+    });
+
+    // Steg C: Sortera leaderboarden (Högst totalpoäng först)
+    leaderboardData.sort((a, b) => b.total - a.total);
+
+    // --- 4. RITA UT TABELLEN ---
     let tableHtml = `
         <table class="w-full text-sm text-left">
             <thead class="bg-gray-50 text-gray-700 font-bold">
                 <tr>
-                    <th class="p-2">Plats</th>
+                    <th class="p-2 w-10">#</th>
                     <th class="p-2">Skytt</th>
-                    <th class="p-2 text-right">Poäng</th>
+                    <th class="p-2 text-right">Omg.</th>
+                    <th class="p-2 text-right">Total</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
-    allEntries.slice(0, 10).forEach((entry, index) => {
-        const shooter = allShootersData.find(s => s.id === entry.shooterId);
-        const name = shooter ? shooter.name : "Okänd";
+    leaderboardData.forEach((row, index) => {
         const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
-        const isMe = entry.shooterId === shooterId ? "bg-blue-50 font-bold" : "";
+        const isMe = row.shooterId === shooterId ? "bg-blue-50 font-bold border-l-4 border-blue-500" : "";
+        
+        // Visa info om hur många omgångar som räknats (t.ex. "3/4")
+        const roundsInfo = comp.resultsCount > 0 ? `${row.countingScores.length}/${row.roundsShot}` : row.roundsShot;
 
         tableHtml += `
             <tr class="border-b last:border-0 ${isMe}">
-                <td class="p-2">${medal}</td>
-                <td class="p-2">${name}</td>
-                <td class="p-2 text-right">${entry.score}</td>
+                <td class="p-2 font-bold text-gray-500">${medal}</td>
+                <td class="p-2">${row.name}</td>
+                <td class="p-2 text-right text-xs text-gray-500">${roundsInfo}</td>
+                <td class="p-2 text-right font-bold text-blue-900">${row.total}</td>
             </tr>
         `;
     });
 
     tableHtml += '</tbody></table>';
-    leaderboardContainer.innerHTML = tableHtml;
+    
+    // Lägg till info-text om beräkningen
+    const countInfo = comp.resultsCount > 0 
+        ? `<p class="text-xs text-gray-500 mt-2 text-right italic">* Totalen baseras på de ${comp.resultsCount} bästa omgångarna.</p>` 
+        : '';
+
+    leaderboardContainer.innerHTML = tableHtml + countInfo;
 }
 
 function checkDeadlineStatus() {
