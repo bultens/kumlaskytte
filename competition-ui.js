@@ -3,9 +3,9 @@ import { auth } from "./firebase-config.js";
 import { 
     competitionClasses, allShootersData, getMyShooters 
 } from "./data-service.js";
-import { 
-    createCompetition, getAllCompetitions, signupForCompetition, 
-    getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, updateCompetition, getCompetitionEntries
+import { createCompetition, getAllCompetitions, signupForCompetition, 
+    getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, 
+    updateCompetition, getCompetitionEntries, deleteCompetitionFull
 } from "./competition-service.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
@@ -261,16 +261,53 @@ function renderAdminCompetitionsList() {
                     ${comp.startDate} till ${comp.endDate} | ${visibilityIcon}
                 </div>
             </div>
-            <button class="edit-comp-btn text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200" 
-                data-id="${comp.id}">
-                Redigera
-            </button>
+            <div class="flex space-x-2">
+                <button class="edit-comp-btn text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200" 
+                    data-id="${comp.id}">
+                    Redigera
+                </button>
+                <button class="delete-comp-custom-btn text-xs bg-red-100 text-red-700 px-3 py-1 rounded font-bold hover:bg-red-200" 
+                    data-id="${comp.id}" data-name="${comp.name}">
+                    Ta bort
+                </button>
+            </div>
         `;
         container.appendChild(div);
     });
 
+    // Lyssna på edit
     container.querySelectorAll('.edit-comp-btn').forEach(btn => {
         btn.addEventListener('click', (e) => loadCompetitionForEdit(e.target.dataset.id));
+    });
+
+    // NYTT: Lyssna på delete
+    container.querySelectorAll('.delete-comp-custom-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.target.dataset.id;
+            const name = e.target.dataset.name;
+            
+            // Vi återanvänder din befintliga confirmationModal men lägger in egen logik på knappen
+            showModal('deleteConfirmationModal', `⚠️ VARNING! <br>Är du säker på att du vill radera <strong>"${name}"</strong>?<br><br>Detta tar även bort alla anmälningar och resultat kopplade till tävlingen.`);
+            
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            // Klona knappen för att bli av med gamla event listeners
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+            
+            newBtn.addEventListener('click', async () => {
+                await deleteCompetitionFull(id);
+                document.getElementById('deleteConfirmationModal').classList.remove('active');
+                // Uppdatera listan
+                activeCompetitions = await getAllCompetitions();
+                renderAdminCompetitionsList();
+                renderUserLobby();
+            });
+            
+            // Koppla även "Avbryt"-knappen för säkerhets skull (oftast redan kopplad globalt, men skadar inte)
+            document.getElementById('cancel-delete-btn').onclick = () => {
+                document.getElementById('deleteConfirmationModal').classList.remove('active');
+            };
+        });
     });
 }
 

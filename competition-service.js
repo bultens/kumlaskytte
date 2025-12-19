@@ -2,7 +2,7 @@
 import { db, auth } from "./firebase-config.js";
 import { 
     collection, addDoc, updateDoc, doc, query, where, getDocs, 
-    serverTimestamp, orderBy 
+    serverTimestamp, orderBy , writeBatch, deleteDoc
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 
@@ -141,5 +141,41 @@ export async function approveSignupPayment(signupId) {
         showModal('confirmationModal', "Betalning godkänd!");
     } catch (e) {
         showModal('errorModal', "Kunde inte godkänna.");
+    }
+}
+
+export async function deleteCompetitionFull(compId) {
+    if (!isAdminLoggedIn) return;
+
+    try {
+        const batch = writeBatch(db);
+
+        // 1. Hämta och radera tävlingen
+        const compRef = doc(db, 'online_competitions', compId);
+        batch.delete(compRef);
+
+        // 2. Hämta och radera alla anmälningar
+        const signupsQ = query(collection(db, 'competition_signups'), where('competitionId', '==', compId));
+        const signupsSnap = await getDocs(signupsQ);
+        signupsSnap.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // 3. Hämta och radera alla inskickade resultat
+        const entriesQ = query(collection(db, 'competition_entries'), where('competitionId', '==', compId));
+        const entriesSnap = await getDocs(entriesQ);
+        entriesSnap.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Kör allt
+        await batch.commit();
+        showModal('confirmationModal', "Tävlingen och all tillhörande data har raderats.");
+        return true;
+
+    } catch (error) {
+        console.error("Fel vid borttagning av tävling:", error);
+        showModal('errorModal', "Kunde inte ta bort tävlingen helt. Kontrollera behörigheter.");
+        return false;
     }
 }
