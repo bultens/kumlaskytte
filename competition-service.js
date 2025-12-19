@@ -52,29 +52,45 @@ export async function updateCompetition(compId, data) {
 
 // --- ANMÄLAN (USER) ---
 
-// Uppdaterad för att hantera flera klasser (classIds är en array)
-export async function signupForCompetition(compId, shooterId, classIds, clubName, totalPrice) {
+// Hanterar gruppanmälan (Batch)
+export async function submitBulkSignup(compId, signupsList, clubName, totalOrderCost) {
     try {
-        const refCode = `T${compId.substring(0,3).toUpperCase()}-${shooterId.substring(0,3).toUpperCase()}-${Math.floor(Math.random()*100)}`;
-        const initialStatus = totalPrice > 0 ? 'pending_payment' : 'approved';
+        const batch = writeBatch(db);
+        
+        // Skapa en gemensam referens för hela ordern
+        // Format: G (Group) - TävlingID - Random
+        const paymentRef = `G${compId.substring(0,3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        
+        // Status: Om det kostar något är det "pending", annars "approved"
+        const initialStatus = totalOrderCost > 0 ? 'pending_payment' : 'approved';
+        const timestamp = serverTimestamp();
 
-        const docRef = await addDoc(collection(db, 'competition_signups'), {
-            competitionId: compId,
-            userId: auth.currentUser.uid,
-            shooterId: shooterId,
-            classIds: classIds, // Sparar nu en array, t.ex. ["id1", "id2"]
-            clubName: clubName,
-            paymentStatus: initialStatus,
-            totalCost: totalPrice, // Sparar vad det kostade totalt
-            paymentReference: refCode,
-            signedUpAt: serverTimestamp()
+        // Loopa igenom varje skytt i listan och skapa en anmälan
+        signupsList.forEach(item => {
+            const docRef = doc(collection(db, 'competition_signups')); // Skapa nytt ID
+            
+            batch.set(docRef, {
+                competitionId: compId,
+                userId: auth.currentUser.uid, // Den som gör anmälan (admin för familjen/klubben)
+                shooterId: item.shooterId,
+                classIds: item.classIds,      // Array av klass-IDn
+                clubName: clubName,
+                paymentStatus: initialStatus,
+                paymentReference: paymentRef, // Alla får samma ref!
+                cost: item.cost,              // Vad just denna skytt kostade
+                isGroupSignup: true,          // Flagga för admin
+                signedUpAt: timestamp
+            });
         });
 
-        return { success: true, refCode: refCode, signupId: docRef.id };
+        // Kör allt mot databasen
+        await batch.commit();
+
+        return { success: true, refCode: paymentRef };
 
     } catch (error) {
-        console.error("Fel vid anmälan:", error);
-        showModal('errorModal', "Anmälan misslyckades.");
+        console.error("Fel vid gruppanmälan:", error);
+        showModal('errorModal', "Kunde inte genomföra anmälan.");
         return { success: false };
     }
 }

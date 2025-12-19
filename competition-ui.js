@@ -5,7 +5,7 @@ import {
 } from "./data-service.js";
 import { createCompetition, getAllCompetitions, signupForCompetition, 
     getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, 
-    updateCompetition, getCompetitionEntries, deleteCompetitionFull,
+    updateCompetition, getCompetitionEntries, deleteCompetitionFull, submitBulkSignup,
     createOnlineClass, getOnlineClasses, deleteOnlineClass
 } from "./competition-service.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
@@ -17,6 +17,7 @@ let activeCompetitions = [];
 let mySignups = [];
 let roundsCounter = 0;
 let onlineClassesCache = [];
+let currentRowId = 0; 
 
 export async function initCompetitionSystem() {
     console.log("Initierar Tävlingssystemet...");
@@ -97,21 +98,82 @@ function setupEventListeners() {
     }
     
     // --- USER: ANMÄLAN ---
-    const signupForm = document.getElementById('comp-signup-form');
-    if (signupForm) {
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await handleSignupSubmit();
+   const confirmBulkBtn = document.getElementById('confirm-bulk-signup-btn');
+if (confirmBulkBtn) {
+    confirmBulkBtn.addEventListener('click', handleBulkSignupSubmit);
+}
+
+// Den nya submit-funktionen
+async function handleBulkSignupSubmit() {
+    const compId = document.getElementById('signup-comp-id').value;
+    const clubName = document.getElementById('signup-club-name').value;
+    const totalOrderCost = parseInt(document.getElementById('bulk-total-price').dataset.value) || 0;
+    const comp = activeCompetitions.find(c => c.id === compId);
+
+    // Samla data
+    const signupsList = [];
+    let validationError = false;
+
+    document.querySelectorAll('.shooter-row').forEach(row => {
+        const shooterSelect = row.querySelector('.row-shooter-select');
+        const shooterId = shooterSelect.value;
+        const cost = parseInt(row.dataset.cost) || 0;
+        
+        const classIds = [];
+        row.querySelectorAll('.row-class-cb:checked').forEach(cb => classIds.push(cb.value));
+
+        if (!shooterId) return; // Hoppa över tomma
+        if (classIds.length === 0) {
+            validationError = true;
+            return;
+        }
+
+        signupsList.push({
+            shooterId: shooterId,
+            classIds: classIds,
+            cost: cost
         });
+    });
+
+    if (validationError) {
+        showModal('errorModal', "Alla valda skyttar måste ha minst en klass.");
+        return;
+    }
+    if (signupsList.length === 0) {
+        showModal('errorModal', "Lägg till minst en skytt.");
+        return;
     }
 
-    const closeSignupModal = document.getElementById('close-signup-modal');
-    if (closeSignupModal) {
-        closeSignupModal.addEventListener('click', () => {
-            document.getElementById('compSignupModal').classList.remove('active');
-        });
-    }
+    // Skicka till service
+    const result = await submitBulkSignup(compId, signupsList, clubName, totalOrderCost);
 
+    if (result.success) {
+        // Uppdatera UI till Kvitto-läge
+        document.getElementById('signup-form-section').classList.add('hidden');
+        document.getElementById('signup-success-section').classList.remove('hidden');
+        
+        // Footer-knappar
+        document.getElementById('confirm-bulk-signup-btn').classList.add('hidden');
+        document.getElementById('close-success-btn').classList.remove('hidden');
+        document.getElementById('close-success-btn').onclick = () => document.getElementById('compSignupModal').classList.remove('active');
+
+        document.getElementById('swish-msg-ref').textContent = result.refCode;
+        document.getElementById('final-total-sum').textContent = `${totalOrderCost} kr`;
+
+        if (totalOrderCost > 0) {
+            const swishData = `C${comp.swishNumber};${totalOrderCost};${result.refCode};0`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(swishData)}`;
+            document.getElementById('swish-qr-code').src = qrUrl;
+            document.getElementById('swish-container').classList.remove('hidden');
+        } else {
+            document.getElementById('swish-container').classList.add('hidden');
+        }
+        
+        // Uppdatera bakgrundsdata
+        mySignups = await getMySignups();
+        populateUserReportingDropdown();
+    }
+}
     // --- USER: RAPPORTERING ---
     const userCompSelect = document.getElementById('user-comp-select');
     if (userCompSelect) {
@@ -132,6 +194,52 @@ function setupEventListeners() {
             await handleResultSubmit();
         });
     }
+}
+
+function createShooterRowHtml(rowId, shooters, classes, compRules) {
+    // Skapa dropdown för skyttar
+    let shooterOptions = '<option value="">Välj skytt...</option>';
+    shooters.forEach(s => {
+        shooterOptions += `<option value="${s.id}" data-birthyear="${s.birthyear}">${s.name}</option>`;
+    });
+
+    // Skapa checkboxar för klasser (Gömda tills skytt vald, men vi renderar strukturen)
+    // Vi använder "data-" attribut för att enkelt räkna pris via JS senare
+    let classChecks = '';
+    classes.sort((a,b) => a.minAge - b.minAge).forEach(c => {
+        classChecks += `
+            <label class="flex items-center space-x-2 p-1 border rounded bg-white hover:bg-blue-50 cursor-pointer class-option hidden" data-min="${c.minAge}" data-max="${c.maxAge}">
+                <input type="checkbox" value="${c.id}" class="row-class-cb w-4 h-4 text-blue-600 rounded">
+                <span class="text-sm">${c.name} <span class="text-xs text-gray-500">(${c.discipline})</span></span>
+            </label>
+        `;
+    });
+
+    return `
+        <div class="shooter-row bg-white p-3 rounded shadow-sm border border-gray-200 relative" id="row-${rowId}">
+            <button class="remove-row-btn absolute top-2 right-2 text-gray-400 hover:text-red-500 font-bold text-xl leading-none">&times;</button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="col-span-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Skytt</label>
+                    <select class="row-shooter-select w-full p-2 border rounded bg-gray-50 focus:bg-white transition">
+                        ${shooterOptions}
+                    </select>
+                </div>
+                
+                <div class="col-span-1 md:col-span-2">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Klasser</label>
+                    <div class="row-classes-container grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                        <p class="text-sm text-gray-400 italic no-shooter-msg">Välj skytt först</p>
+                        ${classChecks}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2 text-right text-sm font-bold text-gray-600">
+                Radsumma: <span class="row-total">0</span> kr
+            </div>
+        </div>
+    `;
 }
 
 // ==========================================
@@ -269,29 +377,66 @@ async function renderAdminSignupsList() {
         return;
     }
 
-    pending.forEach(signup => {
-        const comp = activeCompetitions.find(c => c.id === signup.competitionId);
+    // Gruppera på paymentReference
+    const groups = {};
+    pending.forEach(s => {
+        const ref = s.paymentReference || 'Okänd';
+        if (!groups[ref]) {
+            groups[ref] = {
+                items: [],
+                totalCost: 0,
+                club: s.clubName,
+                compId: s.competitionId
+            };
+        }
+        groups[ref].items.push(s);
+        groups[ref].totalCost += (s.cost || 0);
+    });
+
+    Object.keys(groups).forEach(ref => {
+        const group = groups[ref];
+        const comp = activeCompetitions.find(c => c.id === group.compId);
         const compName = comp ? comp.name : 'Okänd tävling';
+        const shooterCount = group.items.length;
+        
+        // Hämta namn på skyttarna i gruppen för tooltip/info
+        // (Vi har inte namnen direkt i signup-objektet, men vi kan visa antal)
         
         const div = document.createElement('div');
-        div.className = "p-3 border rounded flex justify-between items-center bg-white";
+        div.className = "p-4 border-l-4 border-yellow-400 bg-white rounded shadow-sm mb-3";
         div.innerHTML = `
-            <div>
-                <p class="font-bold text-gray-800">${compName}</p>
-                <p class="text-sm text-gray-600">Referens: <span class="font-mono font-bold bg-yellow-100 px-1">${signup.paymentReference}</span></p>
-                <p class="text-xs text-gray-500">Klubb: ${signup.clubName || '-'}</p>
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="bg-yellow-100 text-yellow-800 text-xs font-mono px-2 py-1 rounded font-bold">${ref}</span>
+                    <h4 class="font-bold text-gray-800 mt-1">${compName}</h4>
+                    <p class="text-sm text-gray-600">${group.club || 'Ingen klubb angiven'}</p>
+                    <p class="text-xs text-gray-500 mt-1">${shooterCount} anmälda skyttar</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xl font-bold text-blue-900">${group.totalCost} kr</p>
+                    <button class="approve-group-btn mt-2 bg-green-500 text-white px-4 py-2 rounded font-bold hover:bg-green-600 shadow-sm text-sm" 
+                        data-ref="${ref}">
+                        Godkänn Allt
+                    </button>
+                </div>
             </div>
-            <button class="approve-payment-btn bg-green-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-green-600" data-id="${signup.id}">
-                Godkänn
-            </button>
         `;
         container.appendChild(div);
     });
 
-    document.querySelectorAll('.approve-payment-btn').forEach(btn => {
+    // Hantera klick på Godkänn (Batch-uppdatering)
+    container.querySelectorAll('.approve-group-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            await approveSignupPayment(e.target.dataset.id);
-            renderAdminSignupsList(); 
+            const ref = e.target.dataset.ref;
+            const groupItems = groups[ref].items; // Hämta alla signups i denna grupp
+            
+            if(confirm(`Godkänn betalning på ${groups[ref].totalCost} kr för referens ${ref}?`)) {
+                // Loopa och godkänn alla (vi kan göra en batch i service också, men detta funkar)
+                for (const item of groupItems) {
+                    await approveSignupPayment(item.id); 
+                }
+                renderAdminSignupsList(); // Ladda om listan
+            }
         });
     });
 }
@@ -469,101 +614,141 @@ function renderUserLobby() {
 async function openSignupModal(compId) {
     const comp = activeCompetitions.find(c => c.id === compId);
     if (!comp) return;
+    
 
+    // Återställ UI
+    document.getElementById('signup-form-section').classList.remove('hidden');
+    document.getElementById('signup-success-section').classList.add('hidden');
+    document.getElementById('signup-modal-footer').classList.remove('hidden');
+    document.getElementById('confirm-bulk-signup-btn').classList.remove('hidden');
+    document.getElementById('close-success-btn').classList.add('hidden');
+    
     document.getElementById('signup-comp-name').textContent = comp.name;
     document.getElementById('signup-comp-id').value = comp.id;
-    document.getElementById('swish-info-box').classList.add('hidden');
-    document.getElementById('confirm-signup-btn').classList.remove('hidden');
-    document.getElementById('price-summary').textContent = "Totalt: 0 kr";
+    document.getElementById('bulk-signup-list').innerHTML = ''; // Töm listan
+    updateBulkTotal();
 
-    // Fyll skyttar
-    const shooterSelect = document.getElementById('signup-shooter-select');
-    shooterSelect.innerHTML = '';
+    // Hämta mina skyttar
     const myShooters = await getMyShooters(auth.currentUser.uid);
     
-    if (myShooters.length === 0) {
-        shooterSelect.innerHTML = '<option>Inga profiler (skapa en först)</option>';
-    } else {
-        myShooters.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = s.name;
-            opt.dataset.birthyear = s.birthyear; // Spara födelseår för uträkning
-            shooterSelect.appendChild(opt);
-        });
-    }
-
-    // --- NY LOGIK FÖR KLASSER (CHECKBOXAR) ---
-    const container = document.getElementById('signup-class-checkboxes');
-    container.innerHTML = '';
-    
-    // Funktion för att rendera klasser baserat på vald skytt
-    const renderClassesForShooter = () => {
-        container.innerHTML = '';
-        const selectedShooterOpt = shooterSelect.selectedOptions[0];
-        const birthYear = selectedShooterOpt ? parseInt(selectedShooterOpt.dataset.birthyear) : null;
-        const currentYear = new Date().getFullYear();
-        const shooterAge = birthYear ? currentYear - birthYear : null;
-
-        if (comp.allowedClasses && comp.allowedClasses.length > 0) {
-            const allowed = onlineClassesCache.filter(c => comp.allowedClasses.includes(c.id));
-            
-            allowed.forEach(c => {
-                const wrapper = document.createElement('div');
-                // Markera om skytten är i "rätt" ålder (visuellt hjälpmedel)
-                const isOptimalAge = shooterAge !== null && shooterAge >= c.minAge && shooterAge <= c.maxAge;
-                
-                const styleClass = isOptimalAge 
-                    ? "bg-blue-50 border-blue-200 font-bold" 
-                    : "bg-white border-gray-200 text-gray-500";
-
-                wrapper.className = `flex items-center p-2 border rounded ${styleClass}`;
-                
-                wrapper.innerHTML = `
-                    <input type="checkbox" id="cls-${c.id}" value="${c.id}" class="signup-class-cb w-5 h-5 mr-2">
-                    <label for="cls-${c.id}" class="cursor-pointer flex-grow text-sm">
-                        ${c.name} <span class="text-xs font-normal">(${c.discipline})</span>
-                        ${isOptimalAge ? '<span class="ml-1 text-blue-600 text-xs">★</span>' : ''}
-                    </label>
-                `;
-                container.appendChild(wrapper);
-            });
-        } else {
-            container.innerHTML = '<p class="text-sm text-gray-500 p-2">Inga specifika klasser (Öppen)</p>';
-        }
+    // Funktion för att lägga till en ny rad
+    const addRow = () => {
+        currentRowId++;
+        const container = document.getElementById('bulk-signup-list');
+        const div = document.createElement('div');
+        // Använd onlineClassesCache som vi laddade i init
+        div.innerHTML = createShooterRowHtml(currentRowId, myShooters, onlineClassesCache, comp);
+        container.appendChild(div);
         
-        // Lägg på lyssnare för prisuppdatering
-        container.querySelectorAll('.signup-class-cb').forEach(cb => {
-            cb.addEventListener('change', updatePrice);
-        });
+        // Koppla events för den nya raden
+        const rowEl = container.lastElementChild;
+        setupRowEvents(rowEl, comp);
+        
+        // Scrolla ner
+        rowEl.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // Funktion för att räkna pris
-    const updatePrice = () => {
-        const checkedCount = container.querySelectorAll('.signup-class-cb:checked').length;
-        if (checkedCount === 0) {
-            document.getElementById('price-summary').textContent = "Totalt: 0 kr";
-            document.getElementById('price-summary').dataset.total = 0;
-            return;
-        }
-        
-        const basePrice = comp.cost || 0;
-        const extraPrice = (comp.extraCost !== undefined && comp.extraCost !== null) ? comp.extraCost : basePrice;
-        
-        // Formel: Första klassen kostar Grundpris, resten kostar Extrapris
-        const total = basePrice + ((checkedCount - 1) * extraPrice);
-        
-        document.getElementById('price-summary').textContent = `Totalt: ${total} kr`;
-        document.getElementById('price-summary').dataset.total = total; // Spara värdet
-    };
+    // Koppla "Lägg till"-knappen
+    const addBtn = document.getElementById('add-shooter-row-btn');
+    // Ta bort gamla listeners (kloningstricket)
+    const newAddBtn = addBtn.cloneNode(true);
+    addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+    newAddBtn.addEventListener('click', addRow);
 
-    // Uppdatera klasslistan när man byter skytt (för att visa åldersmarkering)
-    shooterSelect.addEventListener('change', renderClassesForShooter);
-    
-    // Kör en gång vid start
-    renderClassesForShooter();
+    // Lägg till första raden direkt
+    addRow();
 
     document.getElementById('compSignupModal').classList.add('active');
+}
+
+function setupRowEvents(rowEl, comp) {
+    const shooterSelect = rowEl.querySelector('.row-shooter-select');
+    const classesContainer = rowEl.querySelector('.row-classes-container');
+    const checkboxes = rowEl.querySelectorAll('.row-class-cb');
+    const removeBtn = rowEl.querySelector('.remove-row-btn');
+    const noShooterMsg = rowEl.querySelector('.no-shooter-msg');
+    const classLabels = rowEl.querySelectorAll('.class-option');
+
+    // Ta bort rad
+    removeBtn.addEventListener('click', () => {
+        rowEl.remove();
+        updateBulkTotal();
+    });
+
+    // När skytt väljs
+    shooterSelect.addEventListener('change', (e) => {
+        const selectedOpt = e.target.selectedOptions[0];
+        if (!selectedOpt || !selectedOpt.value) {
+            noShooterMsg.classList.remove('hidden');
+            classLabels.forEach(l => l.classList.add('hidden'));
+            // Avmarkera allt
+            checkboxes.forEach(cb => cb.checked = false);
+        } else {
+            noShooterMsg.classList.add('hidden');
+            
+            // Ålderslogik för att markera/visa relevanta klasser
+            const birthYear = parseInt(selectedOpt.dataset.birthyear);
+            const currentYear = new Date().getFullYear();
+            const age = currentYear - birthYear;
+
+            classLabels.forEach(label => {
+                label.classList.remove('hidden'); // Visa alla (eller dölj om du vill vara strikt)
+                
+                const min = parseInt(label.dataset.min);
+                const max = parseInt(label.dataset.max);
+                
+                // Markera rekommenderade
+                if (age >= min && age <= max) {
+                    label.classList.add('bg-green-50', 'border-green-200', 'font-bold');
+                    label.classList.remove('bg-white');
+                } else {
+                    label.classList.remove('bg-green-50', 'border-green-200', 'font-bold');
+                    label.classList.add('bg-white');
+                }
+            });
+        }
+        calculateRowPrice(rowEl, comp);
+    });
+
+    // När klass klickas
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => calculateRowPrice(rowEl, comp));
+    });
+}
+
+function calculateRowPrice(rowEl, comp) {
+    const checked = rowEl.querySelectorAll('.row-class-cb:checked').length;
+    let cost = 0;
+    
+    if (checked > 0) {
+        const basePrice = comp.cost || 0;
+        const extraPrice = (comp.extraCost !== undefined && comp.extraCost !== null) ? comp.extraCost : basePrice;
+        cost = basePrice + ((checked - 1) * extraPrice);
+    }
+    
+    rowEl.querySelector('.row-total').textContent = cost;
+    rowEl.dataset.cost = cost; // Spara på elementet för totalen
+    
+    updateBulkTotal();
+}
+
+function updateBulkTotal() {
+    let total = 0;
+    document.querySelectorAll('.shooter-row').forEach(row => {
+        total += parseInt(row.dataset.cost) || 0;
+    });
+    
+    document.getElementById('bulk-total-price').textContent = `${total} kr`;
+    document.getElementById('bulk-total-price').dataset.value = total;
+    
+    // Inaktivera knapp om 0 kr eller inga rader
+    const btn = document.getElementById('confirm-bulk-signup-btn');
+    const rows = document.querySelectorAll('.shooter-row');
+    if (rows.length === 0) {
+        btn.disabled = true;
+    } else {
+        btn.disabled = false;
+    }
 }
 
 async function handleSignupSubmit() {

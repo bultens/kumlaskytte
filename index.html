@@ -675,38 +675,70 @@
 </section>
 
 <div id="compSignupModal" class="modal">
-    <div class="modal-content max-w-lg text-left">
-        <span id="close-signup-modal" class="modal-close-btn">&times;</span>
-        <h3 class="text-2xl font-bold mb-2">Anmälan till Tävling</h3>
-        <p id="signup-comp-name" class="text-gray-600 mb-6 font-bold"></p>
+    <div class="modal-content w-11/12 max-w-4xl h-auto max-h-[90vh] flex flex-col p-0">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
+            <div>
+                <h3 class="text-xl font-bold" id="signup-comp-name">Anmälan</h3>
+                <p class="text-sm text-gray-500">Lägg till de skyttar du vill anmäla</p>
+            </div>
+            <span id="close-signup-modal" class="text-3xl cursor-pointer hover:text-red-500">&times;</span>
+        </div>
+        
+        <input type="hidden" id="signup-comp-id">
 
-        <form id="comp-signup-form">
-            <input type="hidden" id="signup-comp-id">
+        <div class="overflow-y-auto p-4 flex-grow">
             
-            <label class="block font-bold mb-1">Välj Skytt</label>
-            <select id="signup-shooter-select" class="w-full p-3 border rounded mb-4 bg-white">
-                </select>
-
-            <label class="block font-bold mb-1">Klubb/Förening</label>
-            <input type="text" id="signup-club-name" required class="w-full p-3 border rounded mb-4" placeholder="T.ex. Kumla Skytteförening">
-
-            <label class="block font-bold mb-1">Tävlingsklasser (Välj en eller flera)</label>
-            <div id="signup-class-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded mb-4 bg-gray-50">
+            <div id="signup-form-section">
+                <div class="mb-4">
+                    <label class="block font-bold text-sm mb-1">Klubb/Förening (Gäller alla)</label>
+                    <input type="text" id="signup-club-name" placeholder="T.ex. Kumla Skytteförening" class="w-full p-2 border rounded">
                 </div>
-            <p id="price-summary" class="text-right font-bold text-lg mb-6 text-blue-900">Totalt: 0 kr</p>
-            
-            <div id="swish-info-box" class="bg-green-50 border border-green-200 p-4 rounded mb-6 text-center hidden">
-                <p class="text-sm text-green-800 font-bold mb-2">Betala med Swish</p>
-                <img id="swish-qr-code" src="" class="mx-auto w-32 h-32 mb-2 bg-gray-200 object-contain">
-                <p class="font-mono text-lg font-bold" id="swish-msg-ref">REF-123</p>
-                <p class="text-xs text-gray-500">Ange koden ovan som meddelande</p>
+
+                <div class="bg-gray-50 border rounded p-2 mb-4">
+                    <div id="bulk-signup-list" class="space-y-4">
+                        </div>
+                    
+                    <button id="add-shooter-row-btn" class="mt-4 w-full py-2 border-2 border-dashed border-blue-300 text-blue-600 font-bold rounded hover:bg-blue-50 transition">
+                        + Lägg till skytt
+                    </button>
+                </div>
             </div>
 
-            <button type="submit" id="confirm-signup-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">Anmäl och Generera Swish-kod</button>
-        </form>
-        
+            <div id="signup-success-section" class="hidden text-center py-8">
+                <div class="inline-block bg-green-100 text-green-800 p-4 rounded-full mb-4">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800">Tack för anmälan!</h3>
+                <p class="text-gray-600 mb-6">Din gruppanmälan är mottagen.</p>
+                
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg max-w-md mx-auto mb-6 text-left">
+                    <p class="text-sm font-bold text-gray-700">Betalningsreferens:</p>
+                    <p id="swish-msg-ref" class="text-2xl font-mono font-bold text-center my-2 tracking-widest bg-white border p-2 rounded select-all"></p>
+                    <p class="text-xs text-gray-500 text-center">Ange denna kod som meddelande vid betalning.</p>
+                </div>
+
+                <div id="swish-container" class="hidden">
+                    <img id="swish-qr-code" class="mx-auto border-4 border-white shadow-lg rounded-lg mb-4" width="180">
+                    <p class="text-sm text-gray-600">Scanna för att betala <strong><span id="final-total-sum"></span></strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t bg-gray-50 rounded-b-lg flex justify-between items-center" id="signup-modal-footer">
+            <div class="text-left">
+                <p class="text-xs text-gray-500 uppercase font-bold">Att betala</p>
+                <p id="bulk-total-price" class="text-2xl font-bold text-blue-900">0 kr</p>
+            </div>
+            <button id="confirm-bulk-signup-btn" class="bg-green-600 text-white px-8 py-3 rounded font-bold hover:bg-green-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                Slutför anmälan
+            </button>
+            <button id="close-success-btn" class="hidden bg-gray-200 text-gray-800 px-8 py-3 rounded font-bold hover:bg-gray-300">
+                Stäng
+            </button>
+        </div>
     </div>
 </div>
+
         <section id="admin" class="page">
             <div id="admin-login-panel" class="card max-w-md mx-auto hidden">
                 <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
