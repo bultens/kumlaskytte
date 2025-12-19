@@ -1,10 +1,7 @@
 // competition-ui.js
 import { auth } from "./firebase-config.js";
-import { 
-    competitionClasses, allShootersData, getMyShooters 
-} from "./data-service.js";
-import { createCompetition, getAllCompetitions, signupForCompetition, 
-    getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, 
+import { allShootersData, getMyShooters } from "./data-service.js";
+import { createCompetition, getAllCompetitions, getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, 
     updateCompetition, getCompetitionEntries, deleteCompetitionFull, submitBulkSignup,
     createOnlineClass, getOnlineClasses, deleteOnlineClass
 } from "./competition-service.js";
