@@ -632,13 +632,15 @@ async function openSignupModal(compId) {
     const addRow = () => {
         currentRowId++;
         const container = document.getElementById('bulk-signup-list');
-        const div = document.createElement('div');
-        // Använd onlineClassesCache som vi laddade i init
-        div.innerHTML = createShooterRowHtml(currentRowId, myShooters, onlineClassesCache, comp);
-        container.appendChild(div);
         
-        // Koppla events för den nya raden
+        // FIX: Vi lägger in HTML-koden direkt i listan istället för att skapa en wrapper-div först.
+        // Detta gör att .shooter-row blir det faktiska elementet vi jobbar med.
+        const html = createShooterRowHtml(currentRowId, myShooters, onlineClassesCache, comp);
+        container.insertAdjacentHTML('beforeend', html);
+        
+        // Nu pekar rowEl på rätt element (div.shooter-row)
         const rowEl = container.lastElementChild;
+        
         setupRowEvents(rowEl, comp);
         
         // Scrolla ner
