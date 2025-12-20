@@ -1466,30 +1466,52 @@ async function loadResultsHistory(shooterId) {
             }
         };
     }
+// --- SKJUTKLASSER (ADMIN - STATISTIK) ---
     const addClassForm = document.getElementById('add-class-form');
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const name = document.getElementById('class-name').value;
-        const discipline = document.getElementById('class-discipline').value;
-        const minAge = parseInt(document.getElementById('class-min-age').value);
-        const maxAge = parseInt(document.getElementById('class-max-age').value);
-        const desc = document.getElementById('class-desc').value;
+            e.preventDefault();
+            
+            const name = document.getElementById('class-name').value;
+            const discipline = document.getElementById('class-discipline').value;
+            const minAge = parseInt(document.getElementById('class-min-age').value);
+            const maxAge = parseInt(document.getElementById('class-max-age').value);
+            const desc = document.getElementById('class-desc').value;
 
-        const classData = {
-            name: name,
-            discipline: discipline,
-            minAge: minAge,
-            maxAge: maxAge,
-            description: desc
-        };
+            const classData = {
+                name: name,
+                discipline: discipline,
+                minAge: isNaN(minAge) ? 0 : minAge,
+                maxAge: isNaN(maxAge) ? 99 : maxAge,
+                description: desc
+            };
 
-        // 'competitionClasses' är namnet på samlingen i Firebase för statistik-grupper
-        await addOrUpdateDocument('competitionClasses', null, classData, "Ny klass tillagd!", "Kunde inte lägga till klass.");
-        
-        addClassForm.reset();
+            // 'competitionClasses' är namnet på samlingen i Firebase
+            await addOrUpdateDocument('competitionClasses', null, classData, "Ny klass tillagd!", "Kunde inte lägga till klass.");
+            
+            addClassForm.reset();
         });
     }
+
+    // Hantera klick på "Ändra" för klasser (Fyller i formuläret igen för enkel redigering)
+    document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('edit-class-btn')) {
+            const cls = JSON.parse(e.target.dataset.obj);
+            
+            // Vi återanvänder "Lägg till"-formuläret för att redigera genom att ta bort den gamla och skapa ny
+            // (Detta är en förenkling eftersom vi inte har en separat Edit Modal för klasser än)
+            if(confirm(`Vill du redigera klassen "${cls.name}"?\n\nDetta tar bort den nuvarande och fyller i formuläret så du kan spara den på nytt.`)) {
+                await deleteDocument(cls.id, 'competitionClasses');
+                
+                document.getElementById('class-name').value = cls.name;
+                document.getElementById('class-discipline').value = cls.discipline;
+                document.getElementById('class-min-age').value = cls.minAge;
+                document.getElementById('class-max-age').value = cls.maxAge;
+                document.getElementById('class-desc').value = cls.description || '';
+                
+                document.getElementById('add-class-form').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
 
 }
