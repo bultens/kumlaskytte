@@ -4,18 +4,27 @@ import { collection, query, where, getDocs, orderBy } from "https://www.gstatic.
 
 let resultsChart = null;
 
-// Lyssnare för dropdowns
+// Lyssnare för dropdowns (Nu inkluderas även chart-shot-count)
 document.addEventListener('DOMContentLoaded', () => {
-    ['chart-data-source', 'chart-grouping', 'chart-type'].forEach(id => {
+    ['chart-data-source', 'chart-grouping', 'chart-type', 'chart-shot-count'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('change', () => {
                 const shooterId = document.getElementById('shooter-selector')?.value;
+                // Om vi redan har data i minnet (i en riktig app) kunde vi rita om direkt,
+                // men här anropar vi loadAndRender för enkelhetens skull (eller en render-funktion om vi sparat datan).
+                // Eftersom vi inte sparar datan globalt i denna fil, hämtar vi den igen eller (bättre) vi sparar den.
+                
+                // För att göra det snabbt: Vi anropar loadAndRenderChart igen. 
+                // Firestore cachen gör att det går fort ändå.
                 if(shooterId) loadAndRenderChart(shooterId);
             });
         }
     });
 });
+
+// Variabel för att spara hämtad data så vi slipper hämta om när man bara byter filter
+let currentShooterData = [];
 
 export async function loadAndRenderChart(shooterId) {
     if (!shooterId) return;
@@ -27,17 +36,17 @@ export async function loadAndRenderChart(shooterId) {
         const q = query(collection(db, 'results'), where('shooterId', '==', shooterId), orderBy('date', 'asc'));
         const querySnapshot = await getDocs(q);
         
-        const results = [];
+        currentShooterData = [];
         querySnapshot.forEach((doc) => {
-            results.push(doc.data());
+            currentShooterData.push(doc.data());
         });
 
-        if (results.length === 0) {
+        if (currentShooterData.length === 0) {
             if (resultsChart) resultsChart.destroy();
             return;
         }
 
-        renderChart(results);
+        renderChart(currentShooterData);
     } catch (error) {
         console.error("Fel vid hämtning av statistik:", error);
     }
@@ -48,8 +57,24 @@ function renderChart(data) {
     const dataSource = document.getElementById('chart-data-source').value;
     const grouping = document.getElementById('chart-grouping').value;
     const chartType = document.getElementById('chart-type').value;
+    const shotCountFilter = document.getElementById('chart-shot-count').value; // Hämta filter
 
-    const processed = processData(data, dataSource, grouping);
+    // 1. FILTRERA DATA
+    let filteredData = data;
+    if (shotCountFilter !== 'all') {
+        const targetCount = parseInt(shotCountFilter);
+        // Filtrera så vi bara behåller resultat med rätt antal skott
+        filteredData = data.filter(item => item.shotCount === targetCount);
+    }
+
+    // Om filtret gjorde att det blev tomt
+    if (filteredData.length === 0) {
+        if (resultsChart) resultsChart.destroy();
+        return;
+    }
+
+    // 2. BEARBETNING
+    const processed = processData(filteredData, dataSource, grouping);
 
     if (resultsChart) {
         resultsChart.destroy();
@@ -66,6 +91,21 @@ function renderChart(data) {
             maintainAspectRatio: false,
             scales: {
                 y: { beginAtZero: false, title: { display: true, text: 'Poäng' } }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            
+                            if (context.parsed.y !== null) {
+                                label += Math.round(context.parsed.y * 10) / 10;
+                            }
+                            return label;
+                        }
+                    }
+                }
             }
         }
     };
@@ -107,7 +147,8 @@ function renderChart(data) {
                 borderColor: 'rgba(54, 162, 235, 0.4)',
                 borderDash: [5, 5],
                 fill: false,
-                tension: 0.3
+                tension: 0.3,
+                pointRadius: 0
             });
             config.data.datasets.push({
                 label: 'Min',
@@ -115,7 +156,8 @@ function renderChart(data) {
                 borderColor: 'rgba(255, 99, 132, 0.4)',
                 borderDash: [5, 5],
                 fill: false,
-                tension: 0.3
+                tension: 0.3,
+                pointRadius: 0
             });
         }
     }
