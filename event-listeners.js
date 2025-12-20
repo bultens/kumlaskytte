@@ -8,8 +8,9 @@ import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./re
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
+// NYTT: Importera statistikfunktionen
+import { loadAndRenderChart } from "./statistics-chart.js";
 
-// Ver. 1.6 (Fixad SyntaxError)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -91,25 +92,23 @@ export function setupEventListeners() {
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     const achievementsSection = document.getElementById('achievements-section');
-// --- MOBILMENY HANTERING ---
+
+    // --- MOBILMENY HANTERING ---
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
 
     if (mobileMenuBtn && mobileMenu) {
-        // Toggla menyn när man klickar på hamburgaren
         mobileMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation(); 
             mobileMenu.classList.toggle('hidden');
         });
 
-        // FIX: Stäng menyn när man klickar på en länk ELLER en knapp (t.ex. Logga in)
         mobileMenu.querySelectorAll('a, button').forEach(element => {
             element.addEventListener('click', () => {
                 mobileMenu.classList.add('hidden');
             });
         });
 
-        // Stäng menyn om man klickar utanför den
         document.addEventListener('click', (e) => {
             if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
                 mobileMenu.classList.add('hidden');
@@ -117,7 +116,6 @@ export function setupEventListeners() {
         });
     }
     
-    // --- NYTT: Hantera klick på "Senaste Prestationer" (CSP Fix) ---
     if (achievementsSection) {
         achievementsSection.addEventListener('click', () => {
             window.location.hash = '#topplistor';
@@ -152,7 +150,6 @@ export function setupEventListeners() {
         });
     }
 
-    // Admin: Klick på "Ändra" i klass-listan
     const adminClassesList = document.getElementById('admin-classes-list');
     if (adminClassesList) {
         adminClassesList.addEventListener('click', (e) => {
@@ -287,6 +284,9 @@ export function setupEventListeners() {
                     shareCheckbox.checked = settings.defaultShareResults || false;
                 }
                 loadResultsHistory(e.target.value);
+                
+                // NYTT: Ladda grafen när skytt ändras
+                loadAndRenderChart(e.target.value);
             }
         });
     }
@@ -306,7 +306,11 @@ export function setupEventListeners() {
                     await deleteDocument(docId, 'results');
                     hideModal('deleteConfirmationModal');
                     const shooterId = document.getElementById('shooter-selector').value;
-                    if (shooterId) loadResultsHistory(shooterId);
+                    if (shooterId) {
+                        loadResultsHistory(shooterId);
+                        // NYTT: Uppdatera grafen
+                        loadAndRenderChart(shooterId);
+                    }
                 });
             }
 
@@ -345,7 +349,11 @@ export function setupEventListeners() {
             editResultModal.classList.remove('active');
             
             const shooterId = document.getElementById('shooter-selector').value;
-            if (shooterId) loadResultsHistory(shooterId);
+            if (shooterId) {
+                loadResultsHistory(shooterId);
+                // NYTT: Uppdatera grafen
+                loadAndRenderChart(shooterId);
+            }
         });
     }
 
@@ -411,6 +419,9 @@ export function setupEventListeners() {
             } else if (shotCount === 60) {
                 currentPB = stats.allTime.s60;
                 currentSB = stats.year.s60;
+            } else if (shotCount === 100) {
+                currentPB = stats.allTime.s100 || 0;
+                currentSB = stats.year.s100 || 0;
             }
 
             if (total > currentPB) isPB = true;
@@ -481,6 +492,9 @@ export function setupEventListeners() {
             addResultForm.reset();
             setupResultFormListeners(); 
             loadResultsHistory(shooterId);
+            
+            // NYTT: Uppdatera grafen
+            loadAndRenderChart(shooterId);
         });
     }
 
@@ -849,7 +863,6 @@ export function setupEventListeners() {
         const toggleMemberBtn = e.target.closest('.toggle-member-btn');
         if (toggleMemberBtn) {
             const userId = toggleMemberBtn.getAttribute('data-id');
-            // Konvertera strängen "true"/"false" till boolean
             const currentStatus = toggleMemberBtn.getAttribute('data-status') === 'true';
             
             toggleMemberStatus(userId, currentStatus);
@@ -1078,18 +1091,15 @@ export function setupEventListeners() {
                     }
                 }
                } else if (command === 'insertImage') {
-                // Hämta referenser till modal-elementen
                 const modal = document.getElementById('imageSelectionModal');
                 const grid = document.getElementById('gallery-selection-grid');
                 const closeBtn = document.getElementById('close-image-selection-modal');
                 const manualInput = document.getElementById('manual-image-url');
                 const manualBtn = document.getElementById('use-manual-url-btn');
 
-                // Funktion för att slutföra (fråga om storlek och infoga)
                 const insertTheImage = (url) => {
-                    modal.classList.remove('active'); // Stäng modalen
+                    modal.classList.remove('active'); 
                     
-                    // Samma storleks-logik som vi gjorde nyss
                     const sizeInput = prompt("Välj storlek:\nS = Liten (text flyter runt)\nM = Mellan (centrerad)\nL = Stor (full bredd)", "M");
                     let sizeClass = "img-medium";
                     
@@ -1103,9 +1113,7 @@ export function setupEventListeners() {
                     applyEditorCommand(editorElement, 'insertHTML', imgHtml);
                 };
 
-                // 1. Fyll rutnätet med bilder från imageData
                 grid.innerHTML = '';
-                // Sortera nyast först
                 const sortedImages = [...imageData].sort((a, b) => {
                     if (b.year !== a.year) return b.year - a.year;
                     return b.month - a.month;
@@ -1118,13 +1126,10 @@ export function setupEventListeners() {
                         <img src="${img.url}" loading="lazy">
                         <p>${img.title}</p>
                     `;
-                    // När man klickar på en bild i galleriet
                     div.onclick = () => insertTheImage(img.url);
                     grid.appendChild(div);
                 });
 
-                // 2. Hantera "Använd länk"-knappen
-                // Ta bort gamla lyssnare genom att klona knappen (enkelt trick)
                 const newManualBtn = manualBtn.cloneNode(true);
                 manualBtn.parentNode.replaceChild(newManualBtn, manualBtn);
                 
@@ -1133,14 +1138,11 @@ export function setupEventListeners() {
                     if (url) insertTheImage(url);
                 };
 
-                // 3. Öppna modalen
-                manualInput.value = ''; // Töm input
+                manualInput.value = '';
                 modal.classList.add('active');
 
-                // Stäng-knapp
                 closeBtn.onclick = () => modal.classList.remove('active');
                 
-                // Stäng om man klickar utanför
                 modal.onclick = (e) => {
                     if (e.target === modal) modal.classList.remove('active');
                 };
@@ -1291,7 +1293,7 @@ export function setupEventListeners() {
                             <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
                         </div>
                         <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
-                        <p class="text-xs tloadShootersIntoDropdownxt-gray-400">Serier: ${res.series.join(', ')}</p>
+                        <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
@@ -1403,5 +1405,4 @@ export function setupEventListeners() {
             }
         };
     }
-
 }
