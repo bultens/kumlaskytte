@@ -649,8 +649,8 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
 }
 
 export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
-    const adminListEl = document.getElementById('admin-list');
-    const allUsersContainer = document.getElementById('all-users-container');
+    const adminListEl = document.getElementById('admin-users-list');
+    const allUsersContainer = document.getElementById('all-users-list');
     if (!adminListEl || !allUsersContainer) return;
 
     adminListEl.innerHTML = '';
