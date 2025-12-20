@@ -7,7 +7,7 @@ import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initCompetitionSystem } from "./competition-ui.js";
 
-// Ver. 3.2
+// Ver. 3.21
 export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
@@ -33,18 +33,27 @@ async function checkAdminStatus(user) {
 function initializeAuthListener() {
     onAuthStateChanged(auth, async (user) => {
         const isAdmin = await checkAdminStatus(user);
-        handleAdminUI(isAdmin);
+        handleAdminUI(isAdmin); // Visar/döljer admin-länkar
         initializeDataListeners();
         initCompetitionSystem();
+        
         if (user) {
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getFirestoreDoc(docRef);
             renderProfileInfo(docSnap);
+            
             const name = docSnap.data()?.name || user.email;
             const profileWelcomeMessage = document.getElementById('profile-welcome-message');
             if (profileWelcomeMessage) {
                 profileWelcomeMessage.textContent = `Välkommen, ${name}`;
             }
+
+            // FIX: Om vi står på en sida som kräver inloggning (t.ex. #resultat),
+            // ladda om logiken nu när vi vet vem användaren är.
+            if (window.location.hash === '#resultat' || window.location.hash === '#bilder') {
+                window.dispatchEvent(new Event('hashchange'));
+            }
+
         } else {
             renderProfileInfo(null);
         }
@@ -54,6 +63,8 @@ function initializeAuthListener() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeAuthListener();
     setupEventListeners();
+    
+    // Hantera navigation
     navigate(window.location.hash || '#hem');
     window.addEventListener('hashchange', () => {
         navigate(window.location.hash || '#hem');
@@ -80,5 +91,4 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const userInfoModal = document.getElementById('userInfoModal');
     if (userInfoModal) userInfoModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('userInfoModal'); });
-
 });
