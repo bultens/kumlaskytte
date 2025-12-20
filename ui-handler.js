@@ -265,13 +265,20 @@ export function handleAdminUI(isAdmin) {
     const adminLoginPanel = document.getElementById('admin-login-panel');
     const adminUserInfo = document.getElementById('admin-user-info');
     
-    // NYTT: Hämta admin-länken i menyn
-    const adminNavLink = document.getElementById('admin-nav-link');
+    // --- HÄR ÄR ÄNDRINGEN ---
+    // Hämta de korrekta länkarna från index.html
+    const navTavlingAdminLink = document.getElementById('nav-admin-link');      // Tävlingsadmin
+    const navSiteAdminLink = document.getElementById('nav-site-admin-link');    // Inställningar (Webbplats) - Den du saknade
+    const mobileAdminLinkEl = document.getElementById('mobile-admin-link');     // Mobil-länken
     
     if (isAdmin) {
         isAdminLoggedIn = true;
-        // Visa admin-länken i menyn
-        if (adminNavLink) adminNavLink.classList.remove('hidden');
+        
+        // Visa admin-länkarna i menyn
+        if (navTavlingAdminLink) navTavlingAdminLink.classList.remove('hidden');
+        if (navSiteAdminLink) navSiteAdminLink.classList.remove('hidden'); // Tänd "Inställningar"
+        if (mobileAdminLinkEl) mobileAdminLinkEl.classList.remove('hidden');
+
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (competitionEditSection) competitionEditSection.classList.remove('hidden');
@@ -288,8 +295,11 @@ export function handleAdminUI(isAdmin) {
         }
     } else {
         isAdminLoggedIn = false;
-        // Göm admin-länken i menyn
-        if (adminNavLink) adminNavLink.classList.add('hidden');
+        
+        // Göm admin-länkarna i menyn
+        if (navTavlingAdminLink) navTavlingAdminLink.classList.add('hidden');
+        if (navSiteAdminLink) navSiteAdminLink.classList.add('hidden');
+        if (mobileAdminLinkEl) mobileAdminLinkEl.classList.add('hidden');
 
         if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
