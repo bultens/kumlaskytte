@@ -1403,3 +1403,48 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
         `;
     });
 }
+export function renderShooterSelector(shooters) {
+    const selector = document.getElementById('shooter-selector');
+    if (!selector) return;
+    
+    // Spara valt värde om det finns
+    const currentValue = selector.value;
+    
+    selector.innerHTML = '<option value="">-- Välj Skytt --</option>';
+    
+    shooters.forEach(shooter => {
+        const opt = document.createElement('option');
+        opt.value = shooter.id;
+        opt.textContent = `${shooter.name} (${shooter.birthyear})`;
+        selector.appendChild(opt);
+    });
+    
+    // Återställ värde eller välj automatiskt om bara en finns
+    if (currentValue && shooters.find(s => s.id === currentValue)) {
+        selector.value = currentValue;
+    } else if (shooters.length === 1) {
+        selector.value = shooters[0].id;
+        // Trigga change event för att ladda grafen direkt
+        selector.dispatchEvent(new Event('change'));
+    }
+}
+
+export function renderPublicShooterSelector(shooters) {
+    const selector = document.getElementById('public-shooter-selector');
+    if (!selector) return;
+    
+    const currentValue = selector.value;
+    selector.innerHTML = '<option value="">Välj skytt i listan...</option>';
+    
+    // Sortera alfabetiskt
+    const sorted = [...shooters].sort((a,b) => a.name.localeCompare(b.name));
+    
+    sorted.forEach(shooter => {
+        const opt = document.createElement('option');
+        opt.value = shooter.id;
+        opt.textContent = `${shooter.name} (${shooter.birthyear})`;
+        selector.appendChild(opt);
+    });
+
+    if (currentValue) selector.value = currentValue;
+}

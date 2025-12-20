@@ -1,7 +1,7 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin, renderSelectableClasses } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.3
@@ -17,7 +17,6 @@ export let latestResultsCache = [];
 export let competitionClasses = [];
 
 export function initializeDataListeners() {
-    // Hämtar currentUserId direkt från auth-objektet
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
     if (auth.currentUser) {
@@ -25,17 +24,17 @@ export function initializeDataListeners() {
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
             
-            // Om man är admin, rendera admin-listan
+            // Uppdatera den publika sök-listan (Topplistor)
+            renderPublicShooterSelector(allShootersData); 
+
             if (isAdminLoggedIn) {
                 renderShootersAdmin(allShootersData); 
             }
             
-            // Uppdatera resultat-vyer om vi har resultat i cachen
-             if (latestResultsCache.length > 0) {
-                 // VIKTIGT: Skicka med usersData här
+            if (latestResultsCache.length > 0) {
                  renderHomeAchievements(latestResultsCache, allShootersData, usersData);
                  renderTopLists(competitionClasses, latestResultsCache, allShootersData, usersData);
-             }
+            }
         });
 
         // --- KLASSER (Topplistor) ---
@@ -86,18 +85,21 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
     
-    onSnapshot(collection(db, 'users'), async (snapshot) => { 
+onSnapshot(collection(db, 'users'), async (snapshot) => { 
         usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
         renderUserReport(usersData);
 
         if (uid) {
             const myProfile = usersData.find(u => u.id === uid);
-            const myShooters = await getMyShooters(uid);
+            const myShooters = await getMyShooters(uid); // Hämtar dina skyttar
+            
             const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
             renderProfileInfo(fakeDocSnap, myShooters); 
             
-            // Uppdatera topplistor när användardata (t.ex. isMember) ändras
+            // HÄR ÄR NYCKELN: Rendera din dropdown på "Mina Resultat"
+            renderShooterSelector(myShooters); 
+            
             if (latestResultsCache.length > 0 && allShootersData.length > 0) {
                 renderHomeAchievements(latestResultsCache, allShootersData, usersData);
                 renderTopLists(competitionClasses, latestResultsCache, allShootersData, usersData);

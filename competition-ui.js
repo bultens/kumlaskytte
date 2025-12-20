@@ -18,7 +18,7 @@ let currentRowId = 0;
 
 export async function initCompetitionSystem() {
     console.log("Initierar Tävlingssystemet...");
-    setupEventListeners();
+  
     
     // Ladda tävlingar
     activeCompetitions = await getAllCompetitions();
