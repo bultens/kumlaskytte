@@ -3,6 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
+
 // Ver. 1.5 (Fixed Syntax)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
@@ -271,7 +272,6 @@ export function handleAdminUI(isAdmin) {
         isAdminLoggedIn = true;
         // Visa admin-länken i menyn
         if (adminNavLink) adminNavLink.classList.remove('hidden');
-
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (competitionEditSection) competitionEditSection.classList.remove('hidden');
