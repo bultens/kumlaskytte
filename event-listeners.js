@@ -17,6 +17,8 @@ let editingImageId = null;
 let editingEventId = null;
 let editingSponsorId = null;
 let editingCompId = null;
+let currentHistoryPage = 1;
+const historyItemsPerPage = 10;
 
 export function setupEventListeners() {
     const newsAddBtn = document.getElementById('add-news-btn');
@@ -283,9 +285,8 @@ export function setupEventListeners() {
                 if (shareCheckbox) {
                     shareCheckbox.checked = settings.defaultShareResults || false;
                 }
+                currentHistoryPage = 1;
                 loadResultsHistory(e.target.value);
-                
-                // NYTT: Ladda grafen när skytt ändras
                 loadAndRenderChart(e.target.value);
             }
         });
@@ -1201,31 +1202,43 @@ export function setupEventListeners() {
         });
     }
 
-    async function loadResultsHistory(shooterId) {
+async function loadResultsHistory(shooterId) {
         const container = document.getElementById('results-history-container');
         if (!container) return;
         
         container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
         
+        // Hämta alla resultat
         const results = await getShooterResults(shooterId);
         
+        // Uppdatera statistik-boxen (samma som förut)
         const stats = calculateShooterStats(results);
-        document.getElementById('stats-current-year').textContent = new Date().getFullYear();
+        const currentYearEl = document.getElementById('stats-current-year');
+        if (currentYearEl) currentYearEl.textContent = new Date().getFullYear();
         
         const show = (val) => val > 0 ? val : '-';
 
-        document.getElementById('stats-year-series').textContent = show(stats.year.series);
-        document.getElementById('stats-year-20').textContent = show(stats.year.s20);
-        document.getElementById('stats-year-40').textContent = show(stats.year.s40);
-        document.getElementById('stats-year-60').textContent = show(stats.year.s60);
+        const setStat = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = show(val);
+        };
 
-        document.getElementById('stats-all-series').textContent = show(stats.allTime.series);
-        document.getElementById('stats-all-20').textContent = show(stats.allTime.s20);
-        document.getElementById('stats-all-40').textContent = show(stats.allTime.s40);
-        document.getElementById('stats-all-60').textContent = show(stats.allTime.s60);
+        setStat('stats-year-series', stats.year.series);
+        setStat('stats-year-20', stats.year.s20);
+        setStat('stats-year-40', stats.year.s40);
+        setStat('stats-year-60', stats.year.s60);
+        setStat('stats-year-100', stats.year.s100); // Glöm inte 100 skott
 
-        const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
-        const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
+        setStat('stats-all-series', stats.allTime.series);
+        setStat('stats-all-20', stats.allTime.s20);
+        setStat('stats-all-40', stats.allTime.s40);
+        setStat('stats-all-60', stats.allTime.s60);
+        setStat('stats-all-100', stats.allTime.s100);
+
+        // Hantera medaljer (samma logik som förut)
+        const select = document.getElementById('shooter-selector');
+        const selectedShooterOption = select ? select.selectedOptions[0] : null;
+        const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings || '{}') : {};
         const medalSection = document.getElementById('medal-league-section');
 
         if (currentSettings.trackMedals === false) {
@@ -1233,36 +1246,30 @@ export function setupEventListeners() {
         } else {
             if (medalSection) {
                 medalSection.classList.remove('hidden');
+                // ... (Din befintliga medalj-kod här, jag kortar ner den för läsbarhet, men behåll din logik för updateBadgeUI) ...
+                // OBS: Kopiera in din "updateBadgeUI"-logik här från din gamla fil om du vill ha kvar den visuella medalj-statistiken
+                // För att göra det enkelt i detta svar antar jag att den delen är oförändrad.
                 
+                // KORT REPETITION AV MEDALJ-LOGIKEN (Klistra in din gamla här om den saknas):
                 const updateBadgeUI = (type, elementId, icon) => {
                     const count = stats.medals[type] || 0;
                     const countEl = document.getElementById(`count-${elementId}`);
                     if(countEl) countEl.textContent = count;
-
                     const statusEl = document.getElementById(`badge-status-${elementId}`);
                     if(!statusEl) return;
-
                     const earnedBadges = Math.floor(count / 10);
                     const progress = count % 10;
-
                     if (earnedBadges > 0) {
                         statusEl.innerHTML = `
                             <div class="bg-green-100 text-green-600 rounded-full p-1 mb-1 border-2 border-green-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                             </div>
                             <div class="text-xs font-bold text-gray-700">${earnedBadges} st klara</div>
-                            <div class="text-[10px] text-gray-500">${progress} / 10 mot nästa</div>
-                        `;
+                            <div class="text-[10px] text-gray-500">${progress} / 10 mot nästa</div>`;
                     } else {
-                        statusEl.innerHTML = `
-                            <div class="text-2xl mb-1 opacity-50 grayscale">${icon}</div>
-                            <div class="font-bold text-lg leading-none">${progress} / 10</div>
-                        `;
+                        statusEl.innerHTML = `<div class="text-2xl mb-1 opacity-50 grayscale">${icon}</div><div class="font-bold text-lg leading-none">${progress} / 10</div>`;
                     }
                 };
-
                 updateBadgeUI('Guld 3', 'gold3', '🏆');
                 updateBadgeUI('Guld 2', 'gold2', '🥇');
                 updateBadgeUI('Guld 1', 'gold1', '🥇');
@@ -1271,13 +1278,31 @@ export function setupEventListeners() {
                 updateBadgeUI('Brons',  'bronze', '🥉');
             }
         }      
+
+        // --- PAGINERING & LISTNING ---
         container.innerHTML = '';
+        
         if (results.length === 0) {
             container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
             return;
         }
 
-        results.slice(0, 10).forEach(res => { 
+        // 1. Sortera ALLA resultat först
+        results.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // 2. Beräkna paginering
+        const totalPages = Math.ceil(results.length / historyItemsPerPage);
+        
+        // Säkerställ att vi inte är på en sida som inte finns (t.ex. efter radering)
+        if (currentHistoryPage > totalPages) currentHistoryPage = totalPages;
+        if (currentHistoryPage < 1) currentHistoryPage = 1;
+
+        const startIndex = (currentHistoryPage - 1) * historyItemsPerPage;
+        const endIndex = startIndex + historyItemsPerPage;
+        const currentSlice = results.slice(startIndex, endIndex);
+
+        // 3. Rendera resultaten för denna sida
+        currentSlice.forEach(res => { 
             const date = new Date(res.date).toLocaleDateString();
             const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
             const shareTitle = res.sharedWithClub ? 'Delad med klubben' : 'Privat';
@@ -1286,7 +1311,7 @@ export function setupEventListeners() {
             }));
 
             container.innerHTML += `
-                <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'}">
+                <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'} mb-2">
                     <div class="flex-grow">
                         <div class="flex items-center space-x-2">
                             <p class="font-bold text-gray-800 text-lg">${res.total} p</p>
@@ -1307,6 +1332,42 @@ export function setupEventListeners() {
                 </div>
             `;
         });
+
+        // 4. Lägg till Paginering-knappar om det finns mer än 1 sida
+        if (totalPages > 1) {
+            const paginationDiv = document.createElement('div');
+            paginationDiv.className = "flex justify-center items-center space-x-4 mt-4 pt-2 border-t border-gray-100";
+            
+            const prevDisabled = currentHistoryPage === 1 ? 'disabled class="opacity-50 cursor-not-allowed text-gray-400"' : 'class="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"';
+            const nextDisabled = currentHistoryPage === totalPages ? 'disabled class="opacity-50 cursor-not-allowed text-gray-400"' : 'class="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"';
+
+            paginationDiv.innerHTML = `
+                <button id="hist-prev-btn" ${prevDisabled}>&larr; Föregående</button>
+                <span class="text-sm font-bold text-gray-600">Sida ${currentHistoryPage} av ${totalPages}</span>
+                <button id="hist-next-btn" ${nextDisabled}>Nästa &rarr;</button>
+            `;
+            
+            container.appendChild(paginationDiv);
+
+            // Koppla events
+            const prevBtn = document.getElementById('hist-prev-btn');
+            const nextBtn = document.getElementById('hist-next-btn');
+
+            if (prevBtn && !prevBtn.disabled) {
+                prevBtn.addEventListener('click', () => {
+                    currentHistoryPage--;
+                    loadResultsHistory(shooterId);
+                    document.getElementById('results-history-container').scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+            if (nextBtn && !nextBtn.disabled) {
+                nextBtn.addEventListener('click', () => {
+                    currentHistoryPage++;
+                    loadResultsHistory(shooterId);
+                    document.getElementById('results-history-container').scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+        }
     }
 
     const editShooterBtn = document.getElementById('edit-shooter-btn');
