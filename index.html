@@ -1279,7 +1279,46 @@
                     <button type="submit" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Spara Inställningar</button>
                 </form>
             </div>
+            <div class="card max-w-2xl mx-auto mt-8 border-t-4 border-green-500">
 
+                
+    <h2 class="text-2xl font-bold mb-4">Hantera Skjutklasser (Statistik & Topplistor)</h2>
+    <p class="text-sm text-gray-600 mb-4">Dessa klasser används för att gruppera resultat i "Topplistor" och statistik på hemsidan. (Skiljer sig från Online-tävlingar).</p>
+
+    <div id="admin-classes-list" class="space-y-2 mb-6">
+        <p class="text-gray-500 italic">Laddar klasser...</p>
+    </div>
+
+    <form id="add-class-form" class="bg-green-50 p-4 rounded border border-green-100">
+        <h3 class="font-bold mb-2">Lägg till ny klass</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500">Namn</label>
+                <input type="text" id="class-name" placeholder="T.ex. L11" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500">Skjutstil</label>
+                <select id="class-discipline" class="w-full p-2 border rounded bg-white">
+                    <option value="sitting">Sittande</option>
+                    <option value="standing">Stående</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500">Min ålder</label>
+                <input type="number" id="class-min-age" placeholder="0" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500">Max ålder</label>
+                <input type="number" id="class-max-age" placeholder="99" class="w-full p-2 border rounded" required>
+            </div>
+        </div>
+        <div class="mb-4">
+            <label class="block text-xs font-bold text-gray-500">Beskrivning (Valfritt)</label>
+            <input type="text" id="class-desc" placeholder="T.ex. Sittande med stöd" class="w-full p-2 border rounded">
+        </div>
+        <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700">Lägg till Klass</button>
+    </form>
+</div>
             <div class="card max-w-2xl mx-auto">
                 <h2 class="text-2xl font-bold mb-4">Medlemshantering & Behörighet</h2>
                 

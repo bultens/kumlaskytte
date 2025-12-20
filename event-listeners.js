@@ -1466,4 +1466,30 @@ async function loadResultsHistory(shooterId) {
             }
         };
     }
+    const addClassForm = document.getElementById('add-class-form');
+    if (addClassForm) {
+        addClassForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('class-name').value;
+        const discipline = document.getElementById('class-discipline').value;
+        const minAge = parseInt(document.getElementById('class-min-age').value);
+        const maxAge = parseInt(document.getElementById('class-max-age').value);
+        const desc = document.getElementById('class-desc').value;
+
+        const classData = {
+            name: name,
+            discipline: discipline,
+            minAge: minAge,
+            maxAge: maxAge,
+            description: desc
+        };
+
+        // 'competitionClasses' är namnet på samlingen i Firebase för statistik-grupper
+        await addOrUpdateDocument('competitionClasses', null, classData, "Ny klass tillagd!", "Kunde inte lägga till klass.");
+        
+        addClassForm.reset();
+        });
+    }
+
 }
