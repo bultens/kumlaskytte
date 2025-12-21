@@ -510,6 +510,7 @@ export async function uploadDocumentFile(file, name, category) {
         // Skapa en sökväg: documents/Kategori/filnamn_timestamp
         // Ersätt mellanslag i filnamn för att undvika URL-problem
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storage = getStorage();
         const storageRef = ref(storage, `documents/${category}/${timestamp}_${safeName}`);
         
         // Starta uppladdning
