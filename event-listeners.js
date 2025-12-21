@@ -12,6 +12,8 @@ import {
     showUserInfoModal, navigate
 } from "./ui-handler.js";
 
+import { checkNewsForm } from "./form-validation.js";
+
 import { auth } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { loadAndRenderChart } from "./statistics-chart.js";
@@ -25,7 +27,6 @@ export function setupEventListeners() {
         btn.addEventListener('click', () => {
             menu.classList.toggle('hidden');
         });
-        // Stäng menyn när man klickar på en länk
         menu.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
                 menu.classList.add('hidden');
@@ -34,12 +35,12 @@ export function setupEventListeners() {
     }
 
     // --- LOGGA UT ---
-    const logoutBtn = document.getElementById('logout-btn'); // Om denna finns i menyn
+    const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                window.location.hash = '#hem'; // Skicka till hem vid utloggning
+                window.location.hash = '#hem';
                 showModal('confirmationModal', "Du har loggats ut.");
             } catch (error) {
                 console.error("Fel vid utloggning:", error);
@@ -47,14 +48,17 @@ export function setupEventListeners() {
         });
     }
 
-// --- SKAPA / UPPDATERA NYHET ---
+    // --- SKAPA / UPPDATERA NYHET ---
     const addNewsForm = document.getElementById('add-news-form');
     if (addNewsForm) {
+        // Kör validering när man skriver (så knappen tänds för nya nyheter)
+        document.getElementById('news-title').addEventListener('input', checkNewsForm);
+        document.getElementById('news-content-editor').addEventListener('input', checkNewsForm);
+
         addNewsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const contentDiv = document.getElementById('news-content-editor');
             const hiddenInput = document.getElementById('news-content-hidden');
-            // Hämta eventuellt ID om vi redigerar
             const editId = document.getElementById('news-edit-id').value || null; 
             
             hiddenInput.value = contentDiv.innerHTML;
@@ -63,15 +67,11 @@ export function setupEventListeners() {
                 title: document.getElementById('news-title').value,
                 date: document.getElementById('news-date').value,
                 content: hiddenInput.value,
-                // Om vi uppdaterar vill vi inte skriva över likes, men addOrUpdate hanterar merge om vi använder updateDoc.
-                // För enkelhetens skull i denna struktur: Vi skickar med likes: {} endast vid NYSKAPANDET, inte vid update om logiken i backend inte stödjer merge. 
-                // Men din 'addOrUpdateDocument' använder updateDoc om ID finns, vilket mergar. Så vi behöver inte skicka likes.
             };
             
-            // Om det är en ny nyhet (inget ID), sätt default likes
             if (!editId) {
                 newsData.likes = {};
-                newsData.createdAt = new Date(); // Bra att ha
+                newsData.createdAt = new Date(); 
             } else {
                  newsData.updatedAt = new Date();
             }
@@ -79,17 +79,25 @@ export function setupEventListeners() {
             let msg = editId ? "Nyheten har uppdaterats!" : "Nyheten har publicerats!";
             await addOrUpdateDocument('news', editId, newsData, msg, "Kunde inte spara nyheten.");
             
-            // Återställ formuläret
+            // Återställ formuläret och knappen
             addNewsForm.reset();
             contentDiv.innerHTML = '';
-            document.getElementById('news-edit-id').value = ''; // VIKTIGT: Töm ID
+            document.getElementById('news-edit-id').value = ''; 
+            document.getElementById('news-form-title').textContent = "Lägg till Nyhet";
+            
+            const btn = document.getElementById('add-news-btn');
+            if(btn) {
+                btn.textContent = "Lägg till";
+                btn.disabled = true;
+                btn.classList.add('bg-gray-400');
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            }
         });
     }
 
     // --- SKAPA KALENDERHÄNDELSE ---
     const addEventForm = document.getElementById('add-event-form');
     if (addEventForm) {
-        // Visa/dölj fält för återkommande händelser
         const isRecurringCheckbox = document.getElementById('is-recurring');
         const singleEventFields = document.getElementById('single-event-fields');
         const recurringEventFields = document.getElementById('recurring-event-fields');
@@ -123,11 +131,10 @@ export function setupEventListeners() {
             const description = hiddenInput.value;
 
             if (isRecurring) {
-                // Hantera återkommande händelser
                 const startDate = new Date(document.getElementById('start-date').value);
                 const endDate = new Date(document.getElementById('end-date').value);
                 const weekday = parseInt(document.getElementById('weekday-select').value);
-                const seriesId = Date.now().toString(); // Unikt ID för serien
+                const seriesId = Date.now().toString(); 
 
                 let currentDate = new Date(startDate);
                 let eventsCreated = 0;
@@ -140,8 +147,6 @@ export function setupEventListeners() {
                             description: description,
                             seriesId: seriesId
                         };
-                        // Vi kör dessa parallellt men väntar inte på varje för UI-flyt, 
-                        // men i en riktig app borde man kanske använda batch.
                         addOrUpdateDocument('events', null, eventData, "Serie skapad", "Fel vid skapande");
                         eventsCreated++;
                     }
@@ -157,7 +162,6 @@ export function setupEventListeners() {
                 }
 
             } else {
-                // Enskild händelse
                 const eventData = {
                     title: title,
                     date: document.getElementById('event-date').value,
@@ -221,19 +225,6 @@ export function setupEventListeners() {
     if (addImageForm) {
         addImageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            // Kolla om vi har en uppladdad bild-URL eller en manuell länk
-            // I upload-handler.js sätter vi dataset.uploadedUrl på formen eller liknande, 
-            // men här verkar vi behöva hantera logiken.
-            // Förenkling: Vi kollar om det finns en URL i "image-url"-fältet. 
-            // Om upload-handler har kört, borde den ha fyllt i det fältet eller så litar vi på upload-handlerns state.
-            
-            // OBS: I din upload-handler fylls oftast ett input-fält eller så returneras URLen.
-            // Låt oss anta att upload-handler sätter värdet i 'image-url' inputen om man klistrar in,
-            // men för file-upload hanteras det oftast via en hidden input eller direkt.
-            
-            // Kontrollera om en uppladdning gjorts via upload-handler logic (som vi inte ser här i detalj men antar sätter hidden field eller liknande).
-            // Vi använder input-fältet 'image-url' som "master" för URLen här.
             const url = document.getElementById('image-url').value;
             
             if (!url) {
@@ -247,8 +238,6 @@ export function setupEventListeners() {
                 month: parseInt(document.getElementById('image-month').value),
                 priority: parseInt(document.getElementById('image-priority').value),
                 url: url,
-                // Om det var en filuppladdning kanske vi har en storagePath sparad i ett hidden field?
-                // För enkelhetens skull här, om det inte finns hidden field, blir det null.
                 storagePath: document.getElementById('image-url').dataset.storagePath || null 
             };
 
@@ -289,8 +278,7 @@ export function setupEventListeners() {
         });
     }
 
-    // --- SKAPA SKJUTKLASS (ADMIN - STATISTIK) ---
-    // Detta är koden du efterfrågade för att få formuläret att fungera
+    // --- SKAPA SKJUTKLASS ---
     const addClassForm = document.getElementById('add-class-form');
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
@@ -310,13 +298,11 @@ export function setupEventListeners() {
                 description: desc
             };
 
-            // 'competitionClasses' är namnet på samlingen i Firebase
             await addOrUpdateDocument('competitionClasses', null, classData, "Ny klass tillagd!", "Kunde inte lägga till klass.");
             
             addClassForm.reset();
         });
     }
-
 
     // --- INSTÄLLNINGAR (ADMIN) ---
     const settingsForm = document.getElementById('settings-form');
@@ -369,22 +355,8 @@ export function setupEventListeners() {
 
             const seriesInputs = document.querySelectorAll('.series-input');
             const series = Array.from(seriesInputs).map(input => parseFloat(input.value) || 0);
-            
-            // Hämta total och bestSeries från det som räknats ut live
             const totalScore = parseFloat(document.getElementById('live-total-display').textContent) || 0;
             const bestSeries = parseFloat(document.getElementById('live-best-series').textContent) || 0;
-
-            // Hämta badges som räknats ut av result-handler (sparas temporärt på formuläret eller via global state)
-            // För enkelhetens skull, låt oss anta att vi räknar ut dem igen i backend eller att de sparas med resultatet.
-            // I din result-handler.js verkar logiken för märken köras live. 
-            // Vi hämtar "tjing"-statusen från UI om möjligt, eller låter data-service räkna.
-            // Här: Vi litar på att data-service.js eller result-handler.js hanterar logiken.
-            // Men för att spara märken måste vi veta vilka det blev.
-            // Lösning: Vi hämtar de badges som visas i UI just nu (om vi har implementerat visning vid inmatning).
-            // Annars skickar vi bara datan och låter en Cloud Function eller klienten vid visning räkna ut det.
-            // I ditt fall verkar `result-handler.js` ha `checkBadges`-funktionen.
-            
-            // Vi hämtar den array av märken som eventuellt sparats på formuläret av result-handler
             const earnedBadges = resultForm.dataset.earnedBadges ? JSON.parse(resultForm.dataset.earnedBadges) : [];
             const seriesMedals = resultForm.dataset.seriesMedals ? JSON.parse(resultForm.dataset.seriesMedals) : [];
 
@@ -399,13 +371,12 @@ export function setupEventListeners() {
                 total: totalScore,
                 bestSeries: bestSeries,
                 sharedWithClub: document.getElementById('result-share-checkbox').checked,
-                earnedBadges: earnedBadges, // Array med namn på märken (t.ex. "Guld", "Silver")
-                seriesMedals: seriesMedals // Array med märken per serie (för statistik)
+                earnedBadges: earnedBadges, 
+                seriesMedals: seriesMedals 
             };
 
             await saveResult(resultData);
             
-            // Nollställ formuläret men behåll datum och skytt för smidighet
             const currentDate = document.getElementById('result-date').value;
             const currentShooter = document.getElementById('shooter-selector').value;
             resultForm.reset();
@@ -414,32 +385,28 @@ export function setupEventListeners() {
             document.getElementById('live-total-display').textContent = '0';
             document.getElementById('live-best-series').textContent = '-';
             
-            // Uppdatera grafen
             loadAndRenderChart(currentShooter);
         });
     }
 
-    // --- LÄGG TILL SKYTT (ADD SHOOTER MODAL) ---
+    // --- MODALER (SKYTTAR & ANVÄNDARE) ---
     const addShooterForm = document.getElementById('add-shooter-form');
     if (addShooterForm) {
         addShooterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('new-shooter-name').value;
             const birthyear = document.getElementById('new-shooter-birthyear').value;
-            
             await createShooterProfile(auth.currentUser.uid, name, birthyear);
             hideModal('addShooterModal');
             addShooterForm.reset();
         });
     }
 
-    // --- KOPPLA SKYTT TILL ANVÄNDARE (ADMIN) ---
     const confirmLinkBtn = document.getElementById('confirm-link-parent-btn');
     if (confirmLinkBtn) {
         confirmLinkBtn.addEventListener('click', async () => {
             const shooterId = document.getElementById('link-shooter-id').value;
             const userId = document.getElementById('link-parent-select').value;
-            
             if (shooterId && userId) {
                 await linkUserToShooter(shooterId, userId);
                 hideModal('linkParentModal');
@@ -447,7 +414,6 @@ export function setupEventListeners() {
         });
     }
 
-    // --- INSTÄLLNINGAR FÖR SKYTT (EDIT SHOOTER MODAL) ---
     const editShooterForm = document.getElementById('edit-shooter-form');
     if (editShooterForm) {
         editShooterForm.addEventListener('submit', async (e) => {
@@ -466,7 +432,6 @@ export function setupEventListeners() {
         });
     }
 
-    // --- REDIGERA ANVÄNDARE (ADMIN MODAL) ---
     const editUserForm = document.getElementById('edit-user-form');
     if (editUserForm) {
         editUserForm.addEventListener('submit', async (e) => {
@@ -484,7 +449,6 @@ export function setupEventListeners() {
         });
     }
 
-    // --- REDIGERA RESULTAT (USER MODAL) ---
     const editResultForm = document.getElementById('edit-result-form');
     if (editResultForm) {
         editResultForm.addEventListener('submit', async (e) => {
@@ -498,36 +462,62 @@ export function setupEventListeners() {
             };
             await updateUserResult(resultId, data);
             hideModal('editResultModal');
-            // Uppdatera listan/grafen
             const shooterId = document.getElementById('shooter-selector').value;
             if(shooterId) loadAndRenderChart(shooterId);
         });
     }
 
-    // --- GLOBAL DELETE / ACTION LISTENER (Dynamiska element) ---
+    // --- GLOBAL CLICK LISTENER ---
     document.addEventListener('click', async (e) => {
         
-        // Ta bort-knappar (Generell funktion)
+        // ADMIN: REDIGERA NYHET (Fix för att fylla formuläret och tända knappen)
+        if (e.target.classList.contains('edit-news-btn')) {
+            const id = e.target.dataset.id;
+            const { newsData } = await import("./data-service.js");
+            const item = newsData.find(n => n.id === id);
+            
+            if (item) {
+                document.getElementById('news-title').value = item.title;
+                document.getElementById('news-date').value = item.date;
+                document.getElementById('news-content-editor').innerHTML = item.content;
+                document.getElementById('news-edit-id').value = item.id;
+                
+                // Scrolla upp
+                const form = document.getElementById('add-news-form');
+                form.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('news-form-title').textContent = `Redigera: ${item.title}`;
+                
+                // Tänd knappen manuellt och byt text
+                const btn = document.getElementById('add-news-btn');
+                if(btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('bg-gray-400');
+                    btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    btn.textContent = "Spara ändringar";
+                }
+                
+                // Trigga validering för säkerhets skull
+                checkNewsForm();
+            }
+        }
+
+        // TA BORT-KNAPPAR
         if (e.target.classList.contains('delete-btn')) {
             const id = e.target.getAttribute('data-id');
             const type = e.target.getAttribute('data-type');
             
             if (id && type) {
-                // Särskild hantering för events (serier)
                 if (type === 'events') {
                     const seriesId = e.target.getAttribute('data-series-id');
                     if (seriesId) {
-                        // Visa modal för serie-borttagning
                         const modal = document.getElementById('deleteEventModal');
                         document.getElementById('delete-event-message').textContent = "Detta är en del av en återkommande serie.";
                         modal.classList.add('active');
                         
-                        // Koppla knapparna i modalen
                         const delSingle = document.getElementById('delete-single-event-btn');
                         const delSeries = document.getElementById('delete-series-event-btn');
                         const cancel = document.getElementById('cancel-event-delete-btn');
                         
-                        // Kloning för att ta bort gamla listeners
                         const newDelSingle = delSingle.cloneNode(true);
                         const newDelSeries = delSeries.cloneNode(true);
                         const newCancel = cancel.cloneNode(true);
@@ -538,35 +528,24 @@ export function setupEventListeners() {
 
                         newDelSingle.addEventListener('click', async () => {
                             hideModal('deleteEventModal');
-                            if(confirm("Radera denna enskilda händelse?")) {
-                                await deleteDocument(id, 'events');
-                            }
+                            if(confirm("Radera denna enskilda händelse?")) await deleteDocument(id, 'events');
                         });
-                        
                         newDelSeries.addEventListener('click', async () => {
                             hideModal('deleteEventModal');
-                            if(confirm("Radera HELA serien av händelser?")) {
-                                await deleteDocument(null, 'events', seriesId);
-                            }
+                            if(confirm("Radera HELA serien av händelser?")) await deleteDocument(null, 'events', seriesId);
                         });
-
                         newCancel.addEventListener('click', () => hideModal('deleteEventModal'));
 
                     } else {
-                        if (confirm("Är du säker på att du vill ta bort denna händelse?")) {
-                            await deleteDocument(id, 'events');
-                        }
+                        if (confirm("Är du säker på att du vill ta bort denna händelse?")) await deleteDocument(id, 'events');
                     }
                 } else {
-                    // Standard borttagning
-                    if (confirm("Är du säker på att du vill ta bort detta?")) {
-                        await deleteDocument(id, type);
-                    }
+                    if (confirm("Är du säker på att du vill ta bort detta?")) await deleteDocument(id, type);
                 }
             }
         }
 
-        // Like-knapp
+        // LIKE & SHARE
         if (e.target.closest('.like-btn')) {
             const btn = e.target.closest('.like-btn');
             const id = btn.getAttribute('data-id');
@@ -579,21 +558,25 @@ export function setupEventListeners() {
             }
         }
         
-        // Dela-knapp
         if (e.target.closest('.share-btn')) {
             const btn = e.target.closest('.share-btn');
             const id = btn.getAttribute('data-id');
             const title = btn.getAttribute('data-title');
             
-            // Skapa en länk till specifikt inlägg (använder hash-navigering)
-            // T.ex. https://sidan.se/#nyheter#news-123
-            const url = `${window.location.origin}${window.location.pathname}#${window.location.hash.split('#')[1] || 'nyheter'}#news-${id}`;
+            // Fixad länkstruktur: sidan.se/#nyheter#news-ID
+            let page = 'nyheter'; 
+            // Om man är på startsidan (#hem) och klickar dela på en nyhet, vill vi att länken ska gå till #nyheter
+            // Vi kollar vilken sektion knappen ligger i för att avgöra sida om det behövs, men för nyheter är det alltid #nyheter
+            if(btn.closest('.calendar-post')) page = 'kalender';
+            
+            // Bygg URL: origin + pathname + #sida + #id
+            const url = `${window.location.origin}${window.location.pathname}#${page}#${page === 'nyheter' ? 'news' : 'event'}-${id}`;
             showShareModal(title, url);
         }
 
-        // --- EDITOR KNAPPAR ---
+        // EDITOR
         if (e.target.closest('.editor-toolbar button')) {
-            e.preventDefault(); // Förhindra formulär-submit
+            e.preventDefault(); 
             const btn = e.target.closest('button');
             const command = btn.getAttribute('data-command');
             const toolbar = btn.parentElement;
@@ -606,8 +589,7 @@ export function setupEventListeners() {
             } else if (command === 'insertImage') {
                 const url = prompt("Ange bildens URL:", "https://");
                 if (url) applyEditorCommand(editor, command, url);
-            } else if (command === 'insertGold' || command === 'insertSilver' || command === 'insertBronze') {
-                // Special för tävlingsrapport - infoga medalj-emoji
+            } else if (['insertGold', 'insertSilver', 'insertBronze'].includes(command)) {
                 const emoji = btn.textContent;
                 editor.focus();
                 document.execCommand('insertText', false, emoji);
@@ -617,199 +599,84 @@ export function setupEventListeners() {
             updateToolbarButtons(editor);
         }
 
-        // Admin: Lägg till administratör
+        // ADMIN-KNAPPAR
         if (e.target.classList.contains('add-admin-btn')) {
-            const userId = e.target.getAttribute('data-id');
-            if (confirm("Är du säker på att du vill ge denna användare administratörsrättigheter?")) {
-                await addAdminFromUser(userId);
-            }
+            if (confirm("Ge admin-rättigheter?")) await addAdminFromUser(e.target.getAttribute('data-id'));
         }
-
-        // Admin: Ta bort administratör
         if (e.target.classList.contains('delete-admin-btn')) {
-            const userId = e.target.getAttribute('data-id');
-            if (confirm("Är du säker på att du vill ta bort admin-rättigheterna för denna användare?")) {
-                await deleteAdmin(userId);
-            }
+            if (confirm("Ta bort admin-rättigheter?")) await deleteAdmin(e.target.getAttribute('data-id'));
         }
-        
-        // Admin: Hantera medlemskap (Toggle)
         if (e.target.classList.contains('toggle-member-btn')) {
-            const userId = e.target.dataset.id;
-            const currentStatus = e.target.dataset.status === "true"; // Konvertera sträng till boolean
-            await toggleMemberStatus(userId, currentStatus);
+            await toggleMemberStatus(e.target.dataset.id, e.target.dataset.status === "true");
         }
-
-        // Admin: Visa redigera användare modal
         if (e.target.classList.contains('edit-user-btn')) {
-            const userId = e.target.getAttribute('data-user-id');
-            // Hämta användardata från UI (lite fult, men sparar en db-läsning) 
-            // Bättre vore att hämta från usersData arrayen i data-service om den exporterades.
-            // Vi gör en sökning i DOM eller hämtar via ID om vi har tillgång. 
-            // Enklast här: Vi har ingen global users-lista tillgänglig direkt i event-listener utan import.
-            // Lösning: Vi letar upp knappen och dess förälder för att hitta data? Nej.
-            // Vi importerar usersData från data-service.js? Nej, det är en live-array.
-            // Vi skickar med datan på knappen? Ja, det vore bäst i render-funktionen.
-            // FALLBACK: Vi gör inget här för jag kan inte garantera datan. 
-            // FIX: I ui-handler.js renderAdminsAndUsers måste vi lägga till logik för att öppna modalen.
-            // Det verkar redan finnas showEditUserModal i ui-handler.
-            // Vi behöver hämta användaren. 
-            // Vi importerar usersData från data-service.js (det är en export)
             const { usersData } = await import("./data-service.js");
-            const user = usersData.find(u => u.id === userId);
+            const user = usersData.find(u => u.id === e.target.getAttribute('data-user-id'));
             if(user) showEditUserModal(user);
         }
-        
-        // Visa användarinfo modal
         if (e.target.classList.contains('show-user-info-btn')) {
-             const userId = e.target.getAttribute('data-id');
              const { usersData } = await import("./data-service.js");
-             const user = usersData.find(u => u.id === userId);
+             const user = usersData.find(u => u.id === e.target.getAttribute('data-id'));
              if(user) showUserInfoModal(user);
         }
         
-        // Admin: Redigera tävling (Ladda in i formuläret)
-        if (e.target.classList.contains('edit-comp-btn')) {
-            const compId = e.target.dataset.id;
-            const { competitionsData } = await import("./data-service.js");
-            const comp = competitionsData.find(c => c.id === compId);
-            if (comp) {
-                if(confirm("Vill du redigera denna rapport? (Formuläret fylls i och den gamla tas bort vid sparning om du inte ändrar logiken, men här gör vi det enkelt: Ta bort gammal manuellt eller skapa update-funktion. \n\nI denna version: Vi tar bort den gamla och du får spara en ny.)")) {
-                    await deleteDocument(compId, 'competitions');
-                    document.getElementById('comp-title').value = comp.title;
-                    document.getElementById('comp-date').value = comp.date;
-                    document.getElementById('comp-location').value = comp.location;
-                    document.getElementById('comp-content-editor').innerHTML = comp.content;
-                    document.getElementById('comp-pdf-url').value = comp.pdfUrl || '';
-                    document.getElementById('add-competition-form').scrollIntoView();
-                }
-            }
-        }
-        
-        // Admin: Redigera skjutklass (Den nya koden du ville ha)
+        // ADMIN: REDIGERA KLASS
         if (e.target.classList.contains('edit-class-btn')) {
             const cls = JSON.parse(e.target.dataset.obj);
             if(confirm(`Vill du redigera klassen "${cls.name}"?\n\nDetta tar bort den nuvarande och fyller i formuläret så du kan spara den på nytt.`)) {
                 await deleteDocument(cls.id, 'competitionClasses');
-                
                 document.getElementById('class-name').value = cls.name;
                 document.getElementById('class-discipline').value = cls.discipline;
                 document.getElementById('class-min-age').value = cls.minAge;
                 document.getElementById('class-max-age').value = cls.maxAge;
                 document.getElementById('class-desc').value = cls.description || '';
-                
                 document.getElementById('add-class-form').scrollIntoView({ behavior: 'smooth' });
             }
         }
-
-        // Öppna modaler
-        if (e.target.id === 'open-add-shooter-modal-btn') {
-            document.getElementById('addShooterModal').classList.add('active');
+        
+        // ADMIN: REDIGERA TÄVLINGSRAPPORT
+        if (e.target.classList.contains('edit-comp-btn')) {
+            const compId = e.target.dataset.id;
+            const { competitionsData } = await import("./data-service.js");
+            const comp = competitionsData.find(c => c.id === compId);
+            if (comp && confirm("Redigera rapport? Den gamla tas bort när du sparar den nya.")) {
+                await deleteDocument(compId, 'competitions');
+                document.getElementById('comp-title').value = comp.title;
+                document.getElementById('comp-date').value = comp.date;
+                document.getElementById('comp-location').value = comp.location;
+                document.getElementById('comp-content-editor').innerHTML = comp.content;
+                document.getElementById('comp-pdf-url').value = comp.pdfUrl || '';
+                document.getElementById('add-competition-form').scrollIntoView();
+            }
         }
+
+        // ÖVRIGA MODAL- OCH UI-HANDLINGAR
+        if (e.target.id === 'open-add-shooter-modal-btn') document.getElementById('addShooterModal').classList.add('active');
+        
         if (e.target.id === 'edit-shooter-btn') {
              const shooterId = document.getElementById('shooter-selector').value;
-             if (!shooterId) {
-                 showModal('errorModal', "Ingen skytt vald.");
-                 return;
-             }
-             // Hämta data
+             if (!shooterId) { showModal('errorModal', "Ingen skytt vald."); return; }
              const { allShootersData } = await import("./data-service.js");
              const shooter = allShootersData.find(s => s.id === shooterId);
-             
              document.getElementById('edit-shooter-id').value = shooter.id;
              document.getElementById('edit-shooter-name').value = shooter.name;
              document.getElementById('edit-shooter-birthyear').value = shooter.birthyear;
-             
              if (shooter.settings) {
                  document.getElementById('edit-shooter-gamification').checked = shooter.settings.trackMedals || false;
                  document.getElementById('edit-shooter-share').checked = shooter.settings.defaultShareResults || false;
              }
-             
              document.getElementById('editShooterModal').classList.add('active');
         }
         
-        // Stänga modaler (generic)
         if (e.target.classList.contains('modal-close-btn')) {
-            const modal = e.target.closest('.modal');
-            modal.classList.remove('active');
+            e.target.closest('.modal').classList.remove('active');
         }
-        // Admin: Redigera Nyhet
-        if (e.target.classList.contains('edit-news-btn')) {
-            const id = e.target.dataset.id;
-            // Vi hämtar datan dynamiskt
-            const { newsData } = await import("./data-service.js");
-            const item = newsData.find(n => n.id === id);
-            
-            if (item) {
-                document.getElementById('news-title').value = item.title;
-                document.getElementById('news-date').value = item.date;
-                document.getElementById('news-content-editor').innerHTML = item.content;
-                document.getElementById('news-edit-id').value = item.id; // Spara ID i formuläret
-                
-                // Scrolla upp och visa att vi redigerar
-                const form = document.getElementById('add-news-form');
-                form.scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('news-form-title').textContent = `Redigera: ${item.title}`;
-                
-                // (Valfritt) Byt text på knappen temporärt om du vill, men behövs inte för funktionen.
-            }
-        }
-    });
-
-    // --- ÖVRIGA UI-EVENTS ---
-    
-    // Hantera val av skytt (uppdatera graf)
-    const shooterSelector = document.getElementById('shooter-selector');
-    if (shooterSelector) {
-        shooterSelector.addEventListener('change', (e) => {
-            const shooterId = e.target.value;
-            loadAndRenderChart(shooterId);
-        });
-    }
-
-    // Hantera val av publik skytt (topplistor)
-    const publicShooterSelector = document.getElementById('public-shooter-selector');
-    if (publicShooterSelector) {
-        publicShooterSelector.addEventListener('change', async (e) => {
-            const shooterId = e.target.value;
-            // Vi behöver importera hjälpfunktioner för detta
-            const { renderPublicShooterStats } = await import("./ui-handler.js");
-            const { latestResultsCache, allShootersData } = await import("./data-service.js");
-            renderPublicShooterStats(shooterId, latestResultsCache, allShootersData);
-        });
-    }
-    
-    // Kopiera maillista
-    const copyMailBtn = document.getElementById('copy-mailing-list-btn');
-    if (copyMailBtn) {
-        copyMailBtn.addEventListener('click', () => {
-             const listDiv = document.getElementById('mailing-list-report');
-             // Extrahera alla e-postadresser
-             const text = listDiv.innerText.replace(/E-post: /g, '').replace(/\n\n/g, '; '); 
-             // Enkel regex-städning om det behövs, men innerText brukar funka ok här
-             
-             navigator.clipboard.writeText(text).then(() => {
-                 showModal('confirmationModal', "E-postadresser kopierade till urklipp!");
-             });
-        });
-    }
-
-    // Admin: Koppla förälder till skytt
-    // Vi använder en dynamisk listener i renderShootersAdmin, men här hanterar vi öppnandet av modalen
-    // via global click listener eller via specifika knappar om de ritas om.
-    // Eftersom shooters-listan ritas om dynamiskt, hanterar vi klicket i global listenern?
-    // Nej, låt oss lägga till det i global listener för enkelhetens skull.
-    document.addEventListener('click', async (e) => {
+        
         if (e.target.classList.contains('link-parent-btn')) {
-            const shooterId = e.target.dataset.id;
-            const shooterName = e.target.dataset.name;
-            
-            document.getElementById('link-shooter-id').value = shooterId;
+            document.getElementById('link-shooter-id').value = e.target.dataset.id;
             const select = document.getElementById('link-parent-select');
             select.innerHTML = '<option>Laddar...</option>';
             document.getElementById('linkParentModal').classList.add('active');
-            
-            // Fyll selecten
             const { usersData } = await import("./data-service.js");
             select.innerHTML = '';
             usersData.forEach(u => {
@@ -821,46 +688,55 @@ export function setupEventListeners() {
         }
     });
 
-    // Hantera "Shot count" knappar i resultatformuläret
+    // --- ÖVRIGA LISTENER (SHOT COUNT, EDITOR ETC) ---
+    const shooterSelector = document.getElementById('shooter-selector');
+    if (shooterSelector) {
+        shooterSelector.addEventListener('change', (e) => loadAndRenderChart(e.target.value));
+    }
+
+    const publicShooterSelector = document.getElementById('public-shooter-selector');
+    if (publicShooterSelector) {
+        publicShooterSelector.addEventListener('change', async (e) => {
+            const { renderPublicShooterStats } = await import("./ui-handler.js");
+            const { latestResultsCache, allShootersData } = await import("./data-service.js");
+            renderPublicShooterStats(e.target.value, latestResultsCache, allShootersData);
+        });
+    }
+    
+    const copyMailBtn = document.getElementById('copy-mailing-list-btn');
+    if (copyMailBtn) {
+        copyMailBtn.addEventListener('click', () => {
+             const text = document.getElementById('mailing-list-report').innerText.replace(/E-post: /g, '').replace(/\n\n/g, '; '); 
+             navigator.clipboard.writeText(text).then(() => showModal('confirmationModal', "E-postadresser kopierade!"));
+        });
+    }
+
     document.querySelectorAll('.shot-count-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Återställ alla knappar
             document.querySelectorAll('.shot-count-btn').forEach(b => {
                 b.classList.remove('bg-white', 'shadow', 'text-blue-800', 'font-bold');
                 b.classList.add('text-gray-600', 'hover:bg-white/50');
             });
-            
-            // Markera vald
             e.target.classList.add('bg-white', 'shadow', 'text-blue-800', 'font-bold');
             e.target.classList.remove('text-gray-600', 'hover:bg-white/50');
             
             const count = parseInt(e.target.getAttribute('data-count'));
             document.getElementById('result-shot-count').value = count;
-            
-            // Uppdatera antal inmatningsrutor
             const container = document.getElementById('series-inputs-container');
             container.innerHTML = '';
-            const seriesCount = count / 10;
-            
-            for (let i = 1; i <= seriesCount; i++) {
-                const div = document.createElement('div');
-                div.className = "text-center";
-                div.innerHTML = `
-                    <span class="text-xs text-gray-500 block mb-1">Serie ${i}</span>
-                    <input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="-">
-                `;
-                container.appendChild(div);
+            for (let i = 1; i <= count / 10; i++) {
+                container.innerHTML += `
+                    <div class="text-center">
+                        <span class="text-xs text-gray-500 block mb-1">Serie ${i}</span>
+                        <input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="-">
+                    </div>`;
             }
-            
-            // Lägg på lyssnare för live-räkning
             setupLiveScoreCalculation();
         });
     });
 
-    // Initiera live-räkning för default (20 skott)
     setupLiveScoreCalculation();
 
-    // Hantera editor-uppdateringar
     document.querySelectorAll('.editor-content').forEach(editor => {
         editor.addEventListener('keyup', () => updateToolbarButtons(editor));
         editor.addEventListener('mouseup', () => updateToolbarButtons(editor));
@@ -874,19 +750,13 @@ function setupLiveScoreCalculation() {
             let total = 0;
             let best = 0;
             inputs.forEach(i => {
-                // Ersätt komma med punkt för decimaltal
-                let valStr = i.value.replace(',', '.');
-                let val = parseFloat(valStr);
+                let val = parseFloat(i.value.replace(',', '.'));
                 if (!isNaN(val)) {
                     total += val;
                     if (val > best) best = val;
                 }
             });
-            
-            // Avrunda totalen till 1 decimal för att undvika flyttalsfel
-            total = Math.round(total * 10) / 10;
-            
-            document.getElementById('live-total-display').textContent = total;
+            document.getElementById('live-total-display').textContent = Math.round(total * 10) / 10;
             document.getElementById('live-best-series').textContent = best > 0 ? best : '-';
         });
     });
