@@ -95,9 +95,10 @@ export function setupEventListeners() {
         });
     }
 
-    // --- SKAPA KALENDERHÄNDELSE ---
+// --- SKAPA / UPPDATERA KALENDERHÄNDELSE ---
     const addEventForm = document.getElementById('add-event-form');
     if (addEventForm) {
+        // Logik för att visa/dölja återkommande fält
         const isRecurringCheckbox = document.getElementById('is-recurring');
         const singleEventFields = document.getElementById('single-event-fields');
         const recurringEventFields = document.getElementById('recurring-event-fields');
@@ -124,12 +125,32 @@ export function setupEventListeners() {
             e.preventDefault();
             const contentDiv = document.getElementById('event-description-editor');
             const hiddenInput = document.getElementById('event-description-hidden');
+            const editId = document.getElementById('event-edit-id').value || null;
+
             hiddenInput.value = contentDiv.innerHTML;
 
             const isRecurring = document.getElementById('is-recurring').checked;
             const title = document.getElementById('event-title').value;
             const description = hiddenInput.value;
 
+            // Om vi redigerar en specifik händelse, behandlar vi den som en "single event" update
+            if (editId) {
+                const eventData = {
+                    title: title,
+                    date: document.getElementById('event-date').value,
+                    description: description
+                };
+                await addOrUpdateDocument('events', editId, eventData, "Händelsen uppdaterad!", "Kunde inte uppdatera.");
+                
+                // Återställning
+                addEventForm.reset();
+                contentDiv.innerHTML = '';
+                document.getElementById('event-edit-id').value = '';
+                document.getElementById('add-event-btn').textContent = "Lägg till i Kalender";
+                return;
+            }
+
+            // --- SKAPA NYTT (Samma logik som förut) ---
             if (isRecurring) {
                 const startDate = new Date(document.getElementById('start-date').value);
                 const endDate = new Date(document.getElementById('end-date').value);
@@ -174,24 +195,32 @@ export function setupEventListeners() {
         });
     }
 
-    // --- SKAPA HISTORIK ---
+// --- SKAPA / UPPDATERA HISTORIK ---
     const addHistoryForm = document.getElementById('add-history-form');
     if (addHistoryForm) {
         addHistoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const contentDiv = document.getElementById('history-content-editor');
             const hiddenInput = document.getElementById('history-content-hidden');
+            const editId = document.getElementById('history-edit-id').value || null;
+            
             hiddenInput.value = contentDiv.innerHTML;
 
             const historyData = {
                 title: document.getElementById('history-title').value,
                 priority: parseInt(document.getElementById('history-priority').value),
-                content: hiddenInput.value,
-                likes: {}
+                content: hiddenInput.value
             };
-            await addOrUpdateDocument('history', null, historyData, "Historikpost tillagd!", "Kunde inte lägga till historik.");
+            
+            if (!editId) historyData.likes = {};
+
+            const msg = editId ? "Historik uppdaterad!" : "Historik tillagd!";
+            await addOrUpdateDocument('history', editId, historyData, msg, "Kunde inte spara.");
+            
             addHistoryForm.reset();
             contentDiv.innerHTML = '';
+            document.getElementById('history-edit-id').value = '';
+            document.getElementById('add-history-btn').textContent = "Lägg till";
         });
     }
 
@@ -220,12 +249,13 @@ export function setupEventListeners() {
         });
     }
 
-    // --- SKAPA BILD ---
+// --- SKAPA / UPPDATERA BILD ---
     const addImageForm = document.getElementById('add-image-form');
     if (addImageForm) {
         addImageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const url = document.getElementById('image-url').value;
+            const editId = document.getElementById('image-edit-id').value || null;
             
             if (!url) {
                 showModal('errorModal', "Du måste välja en bild eller ange en URL.");
@@ -241,9 +271,13 @@ export function setupEventListeners() {
                 storagePath: document.getElementById('image-url').dataset.storagePath || null 
             };
 
-            await addOrUpdateDocument('images', null, imageData, "Bild tillagd i galleriet!", "Kunde inte lägga till bild.");
+            const msg = editId ? "Bilden uppdaterad!" : "Bild tillagd!";
+            await addOrUpdateDocument('images', editId, imageData, msg, "Kunde inte spara bild.");
+            
             addImageForm.reset();
             document.getElementById('file-name-display').textContent = "Ingen fil vald";
+            document.getElementById('image-edit-id').value = '';
+            document.getElementById('add-image-btn').textContent = "Lägg till Bild";
             document.getElementById('clear-image-upload').classList.add('hidden');
             document.getElementById('upload-progress-container').classList.add('hidden');
         });
@@ -500,7 +534,67 @@ export function setupEventListeners() {
                 checkNewsForm();
             }
         }
+        // ADMIN: REDIGERA KALENDER
+        if (e.target.classList.contains('edit-event-btn')) {
+            const id = e.target.dataset.id;
+            const { eventsData } = await import("./data-service.js");
+            const item = eventsData.find(e => e.id === id);
+            
+            if (item) {
+                document.getElementById('event-title').value = item.title;
+                document.getElementById('event-date').value = item.date;
+                document.getElementById('event-description-editor').innerHTML = item.description;
+                document.getElementById('event-edit-id').value = item.id;
+                
+                // Se till att vi visar "Enskild händelse"-läget
+                document.getElementById('is-recurring').checked = false;
+                document.getElementById('single-event-fields').classList.remove('hidden');
+                document.getElementById('recurring-event-fields').classList.add('hidden');
+                
+                document.getElementById('add-event-form').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('add-event-btn').textContent = "Spara ändringar";
+            }
+        }
 
+        // ADMIN: REDIGERA HISTORIK
+        if (e.target.classList.contains('edit-history-btn')) {
+            const id = e.target.dataset.id;
+            const { historyData } = await import("./data-service.js");
+            const item = historyData.find(h => h.id === id);
+            
+            if (item) {
+                document.getElementById('history-title').value = item.title;
+                document.getElementById('history-priority').value = item.priority;
+                document.getElementById('history-content-editor').innerHTML = item.content;
+                document.getElementById('history-edit-id').value = item.id;
+                
+                document.getElementById('add-history-form').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('add-history-btn').textContent = "Spara ändringar";
+            }
+        }
+
+        // ADMIN: REDIGERA BILD
+        if (e.target.classList.contains('edit-image-btn')) {
+            const id = e.target.dataset.id;
+            const { imageData } = await import("./data-service.js");
+            const item = imageData.find(img => img.id === id);
+            
+            if (item) {
+                document.getElementById('image-title').value = item.title;
+                document.getElementById('image-year').value = item.year;
+                document.getElementById('image-month').value = item.month;
+                document.getElementById('image-priority').value = item.priority;
+                document.getElementById('image-url').value = item.url;
+                document.getElementById('image-edit-id').value = item.id;
+                
+                // Visa förhandsgranskning om möjligt (valfritt)
+                document.getElementById('file-name-display').textContent = "Befintlig bild vald";
+
+                document.getElementById('add-image-form').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('add-image-btn').textContent = "Spara ändringar";
+            }
+        }
+        
         // TA BORT-KNAPPAR
         if (e.target.classList.contains('delete-btn')) {
             const id = e.target.getAttribute('data-id');
