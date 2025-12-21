@@ -47,45 +47,41 @@ export function setupEventListeners() {
             }
         });
     }
+
     // --- DOKUMENTUPPLADDNING ---
     const uploadDocForm = document.getElementById('upload-doc-form');
     if (uploadDocForm) {
         uploadDocForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const name = document.getElementById('doc-name').value;
-            const category = document.getElementById('doc-category').value;
-            const fileInput = document.getElementById('doc-file');
-            
-            if (fileInput.files.length === 0) {
+            const fileInput = document.getElementById('doc-file-input');
+            const file = fileInput.files[0];
+            const name = document.getElementById('doc-name-input').value;
+            const category = document.getElementById('doc-category-select').value;
+
+            if (!file) {
                 showModal('errorModal', "Du måste välja en fil.");
                 return;
             }
 
-            const file = fileInput.files[0];
-            
-            // Kontrollera storlek (t.ex. max 20MB)
-            if (file.size > 20 * 1024 * 1024) {
-                showModal('errorModal', "Filen är för stor (Max 20MB).");
-                return;
-            }
-
             try {
-                // Importera funktionen dynamiskt om den inte ligger i toppen
-                const { uploadDocumentFile } = await import("./data-service.js");
+                // Nu kraschar det inte längre eftersom data-service.js är fixad
+                const result = await uploadDocumentFile(file, name, category);
                 
-                await uploadDocumentFile(file, name, category);
-                
-                showModal('confirmationModal', "Filen uppladdad!");
-                uploadDocForm.reset();
-                document.getElementById('doc-upload-progress').classList.add('hidden');
-                
+                if (result) {
+                    uploadDocForm.reset();
+                    document.getElementById('doc-upload-progress').classList.add('hidden');
+                    
+                    // FIX: Ändrat texten från "Inställningar sparade"
+                    showModal('confirmationModal', "Filen har laddats upp!");
+                    
+                }
             } catch (error) {
-                showModal('errorModal', "Uppladdning misslyckades.");
-                document.getElementById('doc-upload-progress').classList.add('hidden');
+                showModal('errorModal', "Kunde inte ladda upp filen: " + error.message);
             }
         });
     }
+
     // --- SKAPA / UPPDATERA NYHET ---
     const addNewsForm = document.getElementById('add-news-form');
     if (addNewsForm) {

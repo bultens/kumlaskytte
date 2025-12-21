@@ -1,10 +1,10 @@
 // data-service.js
-import { db, auth } from "./firebase-config.js"; 
+import { db, auth, storage } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
 import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.3
+// Ver. 1.4
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -16,9 +16,34 @@ export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
 export let documentsData = [];
+export let imagesData = []; 
 
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
+    const newsQuery = query(collection(db, 'news'), orderBy('date', 'desc'));
+    onSnapshot(newsQuery, (snapshot) => {
+        newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        window.dispatchEvent(new CustomEvent('news-updated'));
+    });
+
+    const eventsQuery = query(collection(db, 'events'), orderBy('date', 'asc'));
+    onSnapshot(eventsQuery, (snapshot) => {
+        eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        window.dispatchEvent(new CustomEvent('events-updated'));
+    });
+    
+    const imagesQuery = query(collection(db, 'images'), orderBy('uploadedAt', 'desc'));
+    onSnapshot(imagesQuery, (snapshot) => {
+        imagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        window.dispatchEvent(new CustomEvent('images-updated'));
+    });
+
+    // Listener för skyttar
+    const shootersQuery = query(collection(db, 'shooters'), orderBy('name', 'asc'));
+    onSnapshot(shootersQuery, (snapshot) => {
+        allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        window.dispatchEvent(new CustomEvent('shooters-updated'));
+    });
 
     if (auth.currentUser) {
         // --- SKYTTAR ---
@@ -315,38 +340,28 @@ export async function deleteAdmin(adminId) {
 
 // --- SHOOTER & RESULT LOGIC ---
 
-// Skapa en ny skytt-profil
-export async function createShooterProfile(userId, name, birthyear) {
-    if (!userId) return;
+// --- SKYTTAR ---
+export async function createShooterProfile(name, birthyear, club) {
+    if (!auth.currentUser) return { success: false, error: "Du måste vara inloggad." };
     try {
-        await addDoc(collection(db, 'shooters'), {
+        await addDoc(collection(db, "shooters"), {
             name: name,
             birthyear: parseInt(birthyear),
-            parentUserIds: [userId], // Kopplar skytten till din inloggning
-            settings: {
-                trackMedals: true,
-                defaultShareResults: false
-            },
+            club: club,
+            parentUserIds: [auth.currentUser.uid],
             createdAt: serverTimestamp()
         });
-        showModal('confirmationModal', `Profil för ${name} skapad!`);
+        return { success: true };
     } catch (error) {
-        console.error("Fel vid skapande av skytt:", error);
-        showModal('errorModal', "Kunde inte skapa profil.");
+        console.error("Error creating shooter:", error);
+        return { success: false, error: error.message };
     }
 }
 
-// Hämta alla skyttar jag har rätt att se (mig själv + barn)
 export async function getMyShooters(userId) {
     if (!userId) return [];
-    try {
-        const q = query(collection(db, 'shooters'), where('parentUserIds', 'array-contains', userId));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Fel vid hämtning av skyttar:", error);
-        return [];
-    }
+    // Filtrera lokalt från allShootersData istället för ny query (snabbare)
+    return allShootersData.filter(s => s.parentUserIds && s.parentUserIds.includes(userId));
 }
 
 // Spara resultatet
@@ -501,26 +516,20 @@ export async function toggleMemberStatus(userId, currentStatus) {
     }
 }
 
+// --- DOKUMENT (FIXAD FUNKTION) ---
 export async function uploadDocumentFile(file, name, category) {
     try {
         const timestamp = Date.now();
-        // Ersätt otillåtna tecken i filnamnet
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         
-        // --- DENNA RAD SAKNADES ---
-        const storage = getStorage(); 
-        // --------------------------
-
-        // Skapa referensen korrekt
+        // FIX: Nu är 'storage' definierad via importen högst upp
         const storageRef = ref(storage, `documents/${category}/${timestamp}_${safeName}`);
         
-        // Starta uppladdning
         const uploadTask = uploadBytesResumable(storageRef, file);
 
         return new Promise((resolve, reject) => {
             uploadTask.on('state_changed',
                 (snapshot) => {
-                    // Visa progress (valfritt)
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     const progressBar = document.querySelector('#doc-upload-progress div');
                     const progressContainer = document.getElementById('doc-upload-progress');
@@ -531,13 +540,11 @@ export async function uploadDocumentFile(file, name, category) {
                 },
                 (error) => {
                     console.error("Upload error:", error);
-                    reject(error);
+                    reject(error); // Detta gör att koden stannar och visar fel
                 },
                 async () => {
-                    // Uppladdning klar, hämta URL
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     
-                    // Spara metadata i Firestore
                     await addDoc(collection(db, 'documents'), {
                         name: name,
                         category: category,
@@ -554,6 +561,28 @@ export async function uploadDocumentFile(file, name, category) {
         });
     } catch (error) {
         console.error("Fel vid dokumentuppladdning:", error);
-        throw error;
+        throw error; // Kasta felet vidare så vi ser det i UI
     }
+}
+
+export async function deleteDocumentFile(docId, storagePath) {
+    try {
+        // 1. Ta bort från Storage
+        const storageRef = ref(storage, storagePath);
+        await deleteObject(storageRef);
+
+        // 2. Ta bort från Firestore
+        await deleteDoc(doc(db, 'documents', docId));
+        return true;
+    } catch (error) {
+        console.error("Fel vid borttagning av dokument:", error);
+        return false;
+    }
+}
+
+export async function getDocuments() {
+    // Hämtning sker i UI via onSnapshot eller liknande om du vill ha realtid,
+    // eller så lägger du till en listener i initializeDataListeners ovan.
+    // För nu räcker det att ui-handler.js hanterar visningen.
+    return []; 
 }

@@ -23,9 +23,11 @@ export async function initCompetitionSystem() {
     // Ladda tävlingar
     activeCompetitions = await getAllCompetitions();
     
-    // NYTT: Ladda online-klasser
+    // Ladda online-klasser
     onlineClassesCache = await getOnlineClasses();
-    
+
+    setupEventListeners();
+
     if (auth.currentUser) {
         mySignups = await getMySignups();
         renderUserLobby();
