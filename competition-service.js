@@ -12,10 +12,7 @@ import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 
 // Skapa ny tävling
 export async function createCompetition(compData) {
-    if (!isAdminLoggedIn) return;
-
-    try {
-        // ÄNDRAT HÄR:
+try {
         await addDoc(collection(db, 'online_competitions'), {
             ...compData,
             isActive: true,
@@ -24,14 +21,13 @@ export async function createCompetition(compData) {
         });
         showModal('confirmationModal', "Tävlingen har skapats!");
     } catch (error) {
-        console.error("Fel vid skapande av tävling:", error);
-        showModal('errorModal', "Kunde inte skapa tävling.");
+        console.error("Fel vid skapande av tävling:", error); // Kolla webbläsarens konsol (F12) om detta sker
+        showModal('errorModal', "Kunde inte skapa tävling: " + error.message);
     }
 }
 
 // Hämta alla tävlingar
 export async function getAllCompetitions() {
-    // ÄNDRAT HÄR:
     const q = query(collection(db, 'online_competitions'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -41,7 +37,6 @@ export async function getAllCompetitions() {
 export async function updateCompetition(compId, data) {
     if (!isAdminLoggedIn) return;
     try {
-        // ÄNDRAT HÄR:
         await updateDoc(doc(db, 'online_competitions', compId), data);
         showModal('confirmationModal', "Tävlingen har uppdaterats!");
     } catch (error) {

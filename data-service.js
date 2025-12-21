@@ -500,17 +500,18 @@ export async function toggleMemberStatus(userId, currentStatus) {
         showModal('errorModal', "Kunde inte ändra status.");
     }
 }
-// --- DOKUMENTHANTERING (ADMIN) ---
-export async function uploadDocumentFile(file, name, category) {
-    // Ta bort behörighetskollen här för att undvika problem om isAdminLoggedIn inte hunnit sättas.
-    // Firebase Rules skyddar ändå databasen.
 
+export async function uploadDocumentFile(file, name, category) {
     try {
         const timestamp = Date.now();
-        // Skapa en sökväg: documents/Kategori/filnamn_timestamp
-        // Ersätt mellanslag i filnamn för att undvika URL-problem
+        // Ersätt otillåtna tecken i filnamnet
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const storage = getStorage();
+        
+        // --- DENNA RAD SAKNADES ---
+        const storage = getStorage(); 
+        // --------------------------
+
+        // Skapa referensen korrekt
         const storageRef = ref(storage, `documents/${category}/${timestamp}_${safeName}`);
         
         // Starta uppladdning
@@ -519,6 +520,7 @@ export async function uploadDocumentFile(file, name, category) {
         return new Promise((resolve, reject) => {
             uploadTask.on('state_changed',
                 (snapshot) => {
+                    // Visa progress (valfritt)
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     const progressBar = document.querySelector('#doc-upload-progress div');
                     const progressContainer = document.getElementById('doc-upload-progress');
