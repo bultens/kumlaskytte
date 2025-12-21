@@ -48,16 +48,23 @@ export function setupEventListeners() {
         });
     }
 
-    // --- DOKUMENTUPPLADDNING ---
+ // --- DOKUMENTUPPLADDNING ---
     const uploadDocForm = document.getElementById('upload-doc-form');
     if (uploadDocForm) {
         uploadDocForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const fileInput = document.getElementById('doc-file-input');
-            const file = fileInput.files[0];
-            const name = document.getElementById('doc-name-input').value;
-            const category = document.getElementById('doc-category-select').value;
+            // ÄNDRAT HÄR: Matchar nu id="doc-file" i index.html
+            const fileInput = document.getElementById('doc-file'); 
+            const file = fileInput ? fileInput.files[0] : null;
+
+            // ÄNDRAT HÄR: Matchar nu id="doc-name" i index.html
+            const nameInput = document.getElementById('doc-name');
+            const name = nameInput ? nameInput.value : '';
+
+            // ÄNDRAT HÄR: Matchar nu id="doc-category" i index.html (det är en input med datalist, inte en select)
+            const categoryInput = document.getElementById('doc-category');
+            const category = categoryInput ? categoryInput.value : 'Övrigt';
 
             if (!file) {
                 showModal('errorModal', "Du måste välja en fil.");
@@ -65,18 +72,18 @@ export function setupEventListeners() {
             }
 
             try {
-                // Nu kraschar det inte längre eftersom data-service.js är fixad
                 const result = await uploadDocumentFile(file, name, category);
                 
                 if (result) {
                     uploadDocForm.reset();
-                    document.getElementById('doc-upload-progress').classList.add('hidden');
+                    // Dölj progressbaren igen efter lyckad uppladdning
+                    const progressContainer = document.getElementById('doc-upload-progress');
+                    if (progressContainer) progressContainer.classList.add('hidden');
                     
-                    // FIX: Ändrat texten från "Inställningar sparade"
                     showModal('confirmationModal', "Filen har laddats upp!");
-                    
                 }
             } catch (error) {
+                console.error(error); // Logga felet så du ser det i konsolen
                 showModal('errorModal', "Kunde inte ladda upp filen: " + error.message);
             }
         });
