@@ -2,7 +2,7 @@
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
-import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.3
 export let newsData = [];
@@ -81,20 +81,23 @@ export function initializeDataListeners() {
             
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
-        // --- DOKUMENT (ARKIV) ---
+        // --- DOKUMENTARKIV ---
         onSnapshot(collection(db, 'documents'), (snapshot) => {
             documentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
             // Sortera: Kategori A-Ö, sen Datum Nyast-Äldst
             documentsData.sort((a, b) => {
-                if (a.category === b.category) {
+                const catA = a.category || '';
+                const catB = b.category || '';
+                if (catA === catB) {
                     return new Date(b.uploadedAt?.toDate()) - new Date(a.uploadedAt?.toDate());
                 }
-                return a.category.localeCompare(b.category);
+                return catA.localeCompare(catB);
             });
             
-            if (isAdminLoggedIn) {
-                renderDocumentArchive(documentsData);
-            }
+            // Vi försöker rendera oavsett admin-status. 
+            // Om elementet inte finns i HTML (för vanliga users) så händer inget, vilket är helt okej.
+            renderDocumentArchive(documentsData);
         });
          // --- ÖVRIGA LYSSNARE ---
         onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
@@ -497,15 +500,17 @@ export async function toggleMemberStatus(userId, currentStatus) {
         showModal('errorModal', "Kunde inte ändra status.");
     }
 }
-// --- DOKUMENTHANTERING ---
-
+// --- DOKUMENTHANTERING (ADMIN) ---
 export async function uploadDocumentFile(file, name, category) {
-    if (!isAdminLoggedIn) return;
+    // Ta bort behörighetskollen här för att undvika problem om isAdminLoggedIn inte hunnit sättas.
+    // Firebase Rules skyddar ändå databasen.
 
     try {
         const timestamp = Date.now();
         // Skapa en sökväg: documents/Kategori/filnamn_timestamp
-        const storageRef = ref(storage, `documents/${category}/${timestamp}_${file.name}`);
+        // Ersätt mellanslag i filnamn för att undvika URL-problem
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storageRef = ref(storage, `documents/${category}/${timestamp}_${safeName}`);
         
         // Starta uppladdning
         const uploadTask = uploadBytesResumable(storageRef, file);
@@ -513,7 +518,6 @@ export async function uploadDocumentFile(file, name, category) {
         return new Promise((resolve, reject) => {
             uploadTask.on('state_changed',
                 (snapshot) => {
-                    // Uppdatera progress bar om du vill skicka in en callback här
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     const progressBar = document.querySelector('#doc-upload-progress div');
                     const progressContainer = document.getElementById('doc-upload-progress');

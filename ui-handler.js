@@ -1468,21 +1468,25 @@ export function renderPublicShooterSelector(shooters) {
 
     if (currentValue) selector.value = currentValue;
 }
+
+// --- DOKUMENTARKIV ---
 export function renderDocumentArchive(docs) {
     const container = document.getElementById('document-archive-list');
     const dataList = document.getElementById('category-suggestions');
+    
+    // Om container inte finns (t.ex. vanlig användare som inte ser admin-panelen), avbryt bara.
     if (!container) return;
 
     container.innerHTML = '';
     
-    if (docs.length === 0) {
+    if (!docs || docs.length === 0) {
         container.innerHTML = '<p class="text-gray-500 italic text-center py-4">Inga dokument uppladdade än.</p>';
         return;
     }
 
     // 1. Gruppera dokument per kategori
     const grouped = {};
-    const categories = new Set(); // För autcomplete
+    const categories = new Set(); 
     
     docs.forEach(doc => {
         const cat = doc.category || 'Övrigt';
@@ -1506,28 +1510,26 @@ export function renderDocumentArchive(docs) {
         const groupItems = grouped[category];
         
         const groupDiv = document.createElement('div');
-        groupDiv.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
+        groupDiv.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4'; // Added mb-4 spacing
         
-        // Mapp-rubrik
         groupDiv.innerHTML = `
             <div class="flex items-center mb-3 border-b border-gray-200 pb-2">
                 <span class="text-2xl mr-2">📂</span>
                 <h3 class="font-bold text-lg text-gray-800">${category}</h3>
                 <span class="ml-auto text-xs text-gray-500 bg-white px-2 py-1 rounded border">${groupItems.length} filer</span>
             </div>
-            <div class="grid grid-cols-1 gap-2"></div>
+            <div class="grid grid-cols-1 gap-2 list-container"></div>
         `;
 
-        const listContainer = groupDiv.querySelector('.grid');
+        const listContainer = groupDiv.querySelector('.list-container');
 
         groupItems.forEach(doc => {
-            const date = doc.uploadedAt?.toDate().toLocaleDateString('sv-SE') || '-';
+            const date = doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toLocaleDateString('sv-SE') : 'Just nu';
             
-            // Ikon baserat på filtyp (förenklad)
             let icon = '📄';
             if (doc.fileType?.includes('pdf')) icon = '📕';
             else if (doc.fileType?.includes('word') || doc.fileType?.includes('document')) icon = '📘';
-            else if (doc.fileType?.includes('sheet') || doc.fileType?.includes('excel')) icon = 'u📗';
+            else if (doc.fileType?.includes('sheet') || doc.fileType?.includes('excel')) icon = '📗';
 
             const itemDiv = document.createElement('div');
             itemDiv.className = 'flex items-center justify-between p-2 bg-white rounded hover:bg-blue-50 transition shadow-sm border border-transparent hover:border-blue-100';
