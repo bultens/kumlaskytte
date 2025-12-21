@@ -3,7 +3,7 @@ import {
     addOrUpdateDocument, deleteDocument, toggleLike, updateProfile, 
     updateProfileByAdmin, updateSiteSettings, addAdminFromUser, 
     deleteAdmin, saveResult, createShooterProfile, linkUserToShooter, 
-    updateShooterProfile, updateUserResult, toggleMemberStatus 
+    updateShooterProfile, updateUserResult, toggleMemberStatus , uploadDocumentFile
 } from "./data-service.js";
 
 import { 
@@ -47,7 +47,45 @@ export function setupEventListeners() {
             }
         });
     }
+    // --- DOKUMENTUPPLADDNING ---
+    const uploadDocForm = document.getElementById('upload-doc-form');
+    if (uploadDocForm) {
+        uploadDocForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('doc-name').value;
+            const category = document.getElementById('doc-category').value;
+            const fileInput = document.getElementById('doc-file');
+            
+            if (fileInput.files.length === 0) {
+                showModal('errorModal', "Du måste välja en fil.");
+                return;
+            }
 
+            const file = fileInput.files[0];
+            
+            // Kontrollera storlek (t.ex. max 20MB)
+            if (file.size > 20 * 1024 * 1024) {
+                showModal('errorModal', "Filen är för stor (Max 20MB).");
+                return;
+            }
+
+            try {
+                // Importera funktionen dynamiskt om den inte ligger i toppen
+                const { uploadDocumentFile } = await import("./data-service.js");
+                
+                await uploadDocumentFile(file, name, category);
+                
+                showModal('confirmationModal', "Filen uppladdad!");
+                uploadDocForm.reset();
+                document.getElementById('doc-upload-progress').classList.add('hidden');
+                
+            } catch (error) {
+                showModal('errorModal', "Uppladdning misslyckades.");
+                document.getElementById('doc-upload-progress').classList.add('hidden');
+            }
+        });
+    }
     // --- SKAPA / UPPDATERA NYHET ---
     const addNewsForm = document.getElementById('add-news-form');
     if (addNewsForm) {
@@ -594,7 +632,7 @@ export function setupEventListeners() {
                 document.getElementById('add-image-btn').textContent = "Spara ändringar";
             }
         }
-        
+
         // TA BORT-KNAPPAR
         if (e.target.classList.contains('delete-btn')) {
             const id = e.target.getAttribute('data-id');

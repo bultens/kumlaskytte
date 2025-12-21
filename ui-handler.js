@@ -1468,3 +1468,84 @@ export function renderPublicShooterSelector(shooters) {
 
     if (currentValue) selector.value = currentValue;
 }
+export function renderDocumentArchive(docs) {
+    const container = document.getElementById('document-archive-list');
+    const dataList = document.getElementById('category-suggestions');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    if (docs.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 italic text-center py-4">Inga dokument uppladdade än.</p>';
+        return;
+    }
+
+    // 1. Gruppera dokument per kategori
+    const grouped = {};
+    const categories = new Set(); // För autcomplete
+    
+    docs.forEach(doc => {
+        const cat = doc.category || 'Övrigt';
+        categories.add(cat);
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(doc);
+    });
+
+    // Uppdatera datalist för autocomplete
+    if (dataList) {
+        dataList.innerHTML = '';
+        categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            dataList.appendChild(opt);
+        });
+    }
+
+    // 2. Rita ut grupper
+    Object.keys(grouped).sort().forEach(category => {
+        const groupItems = grouped[category];
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
+        
+        // Mapp-rubrik
+        groupDiv.innerHTML = `
+            <div class="flex items-center mb-3 border-b border-gray-200 pb-2">
+                <span class="text-2xl mr-2">📂</span>
+                <h3 class="font-bold text-lg text-gray-800">${category}</h3>
+                <span class="ml-auto text-xs text-gray-500 bg-white px-2 py-1 rounded border">${groupItems.length} filer</span>
+            </div>
+            <div class="grid grid-cols-1 gap-2"></div>
+        `;
+
+        const listContainer = groupDiv.querySelector('.grid');
+
+        groupItems.forEach(doc => {
+            const date = doc.uploadedAt?.toDate().toLocaleDateString('sv-SE') || '-';
+            
+            // Ikon baserat på filtyp (förenklad)
+            let icon = '📄';
+            if (doc.fileType?.includes('pdf')) icon = '📕';
+            else if (doc.fileType?.includes('word') || doc.fileType?.includes('document')) icon = '📘';
+            else if (doc.fileType?.includes('sheet') || doc.fileType?.includes('excel')) icon = 'u📗';
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'flex items-center justify-between p-2 bg-white rounded hover:bg-blue-50 transition shadow-sm border border-transparent hover:border-blue-100';
+            itemDiv.innerHTML = `
+                <div class="flex items-center overflow-hidden">
+                    <span class="text-xl mr-3">${icon}</span>
+                    <div class="truncate">
+                        <a href="${doc.url}" target="_blank" class="font-medium text-blue-700 hover:underline truncate block">${doc.name}</a>
+                        <span class="text-xs text-gray-400">${date}</span>
+                    </div>
+                </div>
+                <button class="delete-btn text-red-400 hover:text-red-600 ml-4 p-1 rounded hover:bg-red-50" data-id="${doc.id}" data-type="documents" title="Radera fil">
+                    🗑️
+                </button>
+            `;
+            listContainer.appendChild(itemDiv);
+        });
+
+        container.appendChild(groupDiv);
+    });
+}

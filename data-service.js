@@ -1,7 +1,7 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.3
@@ -15,6 +15,7 @@ export let sponsorsData = [];
 export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
+export let documentsData = [];
 
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
@@ -80,12 +81,27 @@ export function initializeDataListeners() {
             
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
-    // --- ÖVRIGA LYSSNARE ---
-    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
-    onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
-    onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
+        // --- DOKUMENT (ARKIV) ---
+        onSnapshot(collection(db, 'documents'), (snapshot) => {
+            documentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Sortera: Kategori A-Ö, sen Datum Nyast-Äldst
+            documentsData.sort((a, b) => {
+                if (a.category === b.category) {
+                    return new Date(b.uploadedAt?.toDate()) - new Date(a.uploadedAt?.toDate());
+                }
+                return a.category.localeCompare(b.category);
+            });
+            
+            if (isAdminLoggedIn) {
+                renderDocumentArchive(documentsData);
+            }
+        });
+         // --- ÖVRIGA LYSSNARE ---
+        onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
+        onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
+        onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
     
-onSnapshot(collection(db, 'users'), async (snapshot) => { 
+        onSnapshot(collection(db, 'users'), async (snapshot) => { 
         usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
         renderUserReport(usersData);
@@ -479,5 +495,58 @@ export async function toggleMemberStatus(userId, currentStatus) {
     } catch (error) {
         console.error("Fel vid ändring av medlemskap:", error);
         showModal('errorModal', "Kunde inte ändra status.");
+    }
+}
+// --- DOKUMENTHANTERING ---
+
+export async function uploadDocumentFile(file, name, category) {
+    if (!isAdminLoggedIn) return;
+
+    try {
+        const timestamp = Date.now();
+        // Skapa en sökväg: documents/Kategori/filnamn_timestamp
+        const storageRef = ref(storage, `documents/${category}/${timestamp}_${file.name}`);
+        
+        // Starta uppladdning
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        return new Promise((resolve, reject) => {
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    // Uppdatera progress bar om du vill skicka in en callback här
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    const progressBar = document.querySelector('#doc-upload-progress div');
+                    const progressContainer = document.getElementById('doc-upload-progress');
+                    if(progressBar && progressContainer) {
+                        progressContainer.classList.remove('hidden');
+                        progressBar.style.width = progress + '%';
+                    }
+                },
+                (error) => {
+                    console.error("Upload error:", error);
+                    reject(error);
+                },
+                async () => {
+                    // Uppladdning klar, hämta URL
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // Spara metadata i Firestore
+                    await addDoc(collection(db, 'documents'), {
+                        name: name,
+                        category: category,
+                        url: downloadURL,
+                        storagePath: uploadTask.snapshot.ref.fullPath,
+                        fileType: file.type,
+                        uploadedAt: serverTimestamp(),
+                        uploadedBy: auth.currentUser.uid
+                    });
+                    
+                    resolve(true);
+                }
+            );
+        });
+    } catch (error) {
+        console.error("Fel vid dokumentuppladdning:", error);
+        throw error;
     }
 }
