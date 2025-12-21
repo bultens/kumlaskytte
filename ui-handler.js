@@ -411,6 +411,26 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
             </div>
         `;
     });
+    // Kontrollera om URL:en pekar på en specifik nyhet (t.ex. #nyheter#news-ID)
+    const hash = window.location.hash;
+    if (hash && hash.includes('#news-')) {
+        const parts = hash.split('#');
+        // Formatet är oftast ["", "nyheter", "news-ID"]
+        const targetId = parts[2]; 
+        
+        if (targetId) {
+            // Ge webbläsaren en liten stund att rita ut DOM-elementen
+            setTimeout(() => {
+                const element = document.getElementById(targetId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Valfritt: Markera nyheten så man ser vilken det är
+                    element.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
+                    setTimeout(() => element.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50'), 2000);
+                }
+            }, 500);
+        }
+    }
 }
 
 export function renderEvents(eventsData, isAdminLoggedIn) {

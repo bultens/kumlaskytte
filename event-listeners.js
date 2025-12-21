@@ -47,24 +47,42 @@ export function setupEventListeners() {
         });
     }
 
-    // --- SKAPA NYHET ---
+// --- SKAPA / UPPDATERA NYHET ---
     const addNewsForm = document.getElementById('add-news-form');
     if (addNewsForm) {
         addNewsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const contentDiv = document.getElementById('news-content-editor');
             const hiddenInput = document.getElementById('news-content-hidden');
+            // Hämta eventuellt ID om vi redigerar
+            const editId = document.getElementById('news-edit-id').value || null; 
+            
             hiddenInput.value = contentDiv.innerHTML;
 
             const newsData = {
                 title: document.getElementById('news-title').value,
                 date: document.getElementById('news-date').value,
                 content: hiddenInput.value,
-                likes: {}
+                // Om vi uppdaterar vill vi inte skriva över likes, men addOrUpdate hanterar merge om vi använder updateDoc.
+                // För enkelhetens skull i denna struktur: Vi skickar med likes: {} endast vid NYSKAPANDET, inte vid update om logiken i backend inte stödjer merge. 
+                // Men din 'addOrUpdateDocument' använder updateDoc om ID finns, vilket mergar. Så vi behöver inte skicka likes.
             };
-            await addOrUpdateDocument('news', null, newsData, "Nyheten har publicerats!", "Kunde inte publicera nyheten.");
+            
+            // Om det är en ny nyhet (inget ID), sätt default likes
+            if (!editId) {
+                newsData.likes = {};
+                newsData.createdAt = new Date(); // Bra att ha
+            } else {
+                 newsData.updatedAt = new Date();
+            }
+
+            let msg = editId ? "Nyheten har uppdaterats!" : "Nyheten har publicerats!";
+            await addOrUpdateDocument('news', editId, newsData, msg, "Kunde inte spara nyheten.");
+            
+            // Återställ formuläret
             addNewsForm.reset();
             contentDiv.innerHTML = '';
+            document.getElementById('news-edit-id').value = ''; // VIKTIGT: Töm ID
         });
     }
 
@@ -714,6 +732,27 @@ export function setupEventListeners() {
         if (e.target.classList.contains('modal-close-btn')) {
             const modal = e.target.closest('.modal');
             modal.classList.remove('active');
+        }
+        // Admin: Redigera Nyhet
+        if (e.target.classList.contains('edit-news-btn')) {
+            const id = e.target.dataset.id;
+            // Vi hämtar datan dynamiskt
+            const { newsData } = await import("./data-service.js");
+            const item = newsData.find(n => n.id === id);
+            
+            if (item) {
+                document.getElementById('news-title').value = item.title;
+                document.getElementById('news-date').value = item.date;
+                document.getElementById('news-content-editor').innerHTML = item.content;
+                document.getElementById('news-edit-id').value = item.id; // Spara ID i formuläret
+                
+                // Scrolla upp och visa att vi redigerar
+                const form = document.getElementById('add-news-form');
+                form.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('news-form-title').textContent = `Redigera: ${item.title}`;
+                
+                // (Valfritt) Byt text på knappen temporärt om du vill, men behövs inte för funktionen.
+            }
         }
     });
 
