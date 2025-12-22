@@ -1,16 +1,14 @@
 // data-service.js
 import { db, auth, storage } from "./firebase-config.js"; 
-// FIX: Lagt till 'orderBy' i importen här nedan
 import { onSnapshot, collection, doc, updateDoc, query, where, orderBy, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
 import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.5 (Korrigerad)
+// Ver. 1.6 (Fixade anrop med argument)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
 export let historyData = [];
-export let imageData = [];
 export let usersData = []; 
 export let sponsorsData = [];
 export let allShootersData = [];
@@ -21,50 +19,54 @@ export let imagesData = [];
 
 export function initializeDataListeners() {
     const user = auth.currentUser;
+    const uid = user ? user.uid : null;
 
-    // --- 1. PUBLIK DATA (Hämtas alltid, oavsett inloggning) ---
+    // --- 1. PUBLIK DATA ---
 
-    // Nyheter (Sorterat på datum)
+    // Nyheter
     const newsQuery = query(collection(db, "news"), orderBy("date", "desc"));
     onSnapshot(newsQuery, (snapshot) => {
         newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderNews();
+        // SKICKA MED ARGUMENT:
+        renderNews(newsData, isAdminLoggedIn, uid);
     });
 
-    // Kalender (Sorterat på datum)
+    // Kalender
     const eventsQuery = query(collection(db, "events"), orderBy("date", "asc"));
     onSnapshot(eventsQuery, (snapshot) => {
         eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEvents();
+        renderEvents(eventsData, isAdminLoggedIn);
     });
 
     // Historia
     onSnapshot(collection(db, "history"), (snapshot) => {
         historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderHistory();
+        renderHistory(historyData, isAdminLoggedIn, uid);
     });
 
-    // Bilder (Sorterat på prioritet)
+    // Bilder
     const imagesQuery = query(collection(db, "images"), orderBy("priority", "desc"));
     onSnapshot(imagesQuery, (snapshot) => {
         imagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderImages();
+        renderImages(imagesData, isAdminLoggedIn);
     });
 
     // Sponsorer
     onSnapshot(collection(db, "sponsors"), (snapshot) => {
         sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderSponsors();
+        renderSponsors(sponsorsData, isAdminLoggedIn);
     });
 
-    // Tävlingar (Online) - Sorterade på startdatum
+    // Tävlingar (Online)
     const compQuery = query(collection(db, "online_competitions"), orderBy("startDate", "desc"));
     onSnapshot(compQuery, (snapshot) => {
         competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (typeof renderCompetitions === 'function') renderCompetitions(); 
+        if (typeof renderCompetitions === 'function') {
+            renderCompetitions(competitionsData, isAdminLoggedIn);
+        }
     });
     
-    // Tävlingsklasser (Online)
+    // Tävlingsklasser
     onSnapshot(collection(db, "online_competition_classes"), (snapshot) => {
         competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     });
@@ -81,40 +83,35 @@ export function initializeDataListeners() {
         if (isAdminLoggedIn && typeof renderSiteSettings === 'function') {
             renderSiteSettings(settings);
         }
+        renderContactInfo(); 
     });
 
-    // --- 2. SKYDDAD DATA (Hämtas BARA om man är inloggad) ---
+    // --- 2. SKYDDAD DATA ---
     if (user) {
-        // Användare (Hämtas bara för inloggade, hanterar Admin-vyer)
         onSnapshot(collection(db, "users"), (snapshot) => {
             usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (isAdminLoggedIn) renderAdminsAndUsers();
-        }, (error) => {
-            // Ignorera fel om vanliga användare inte får läsa hela users-listan (beroende på regler)
-            console.log("Not loaded users (insufficient permissions or not needed):", error.code);
-        });
+            if (isAdminLoggedIn) renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
+        }, (error) => console.log("Users not loaded:", error.code));
 
-        // Skyttar (Behövs för att koppla ihop konto med skytt)
         onSnapshot(collection(db, "shooters"), (snapshot) => {
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            if (typeof renderShooterSelector === 'function') renderShooterSelector();
-            if (typeof renderPublicShooterSelector === 'function') renderPublicShooterSelector();
-            if (isAdminLoggedIn && typeof renderShootersAdmin === 'function') renderShootersAdmin();
+            if (typeof renderShooterSelector === 'function') renderShooterSelector(allShootersData);
+            if (typeof renderPublicShooterSelector === 'function') renderPublicShooterSelector(allShootersData);
+            if (isAdminLoggedIn && typeof renderShootersAdmin === 'function') renderShootersAdmin(allShootersData);
         });
 
-        // Dokumentarkiv (Endast Admin får se detta enligt reglerna)
         if (isAdminLoggedIn) {
              const docQuery = query(collection(db, "documents"), orderBy("uploadedAt", "desc"));
              onSnapshot(docQuery, (snapshot) => {
                 documentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (typeof renderDocumentArchive === 'function') renderDocumentArchive();
+                if (typeof renderDocumentArchive === 'function') renderDocumentArchive(documentsData);
             });
         }
     }
 }
 
-// --- HJÄLPFUNKTIONER FÖR DATABAS (CRUD) ---
+// --- HJÄLPFUNKTIONER (Samma som förut) ---
 
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
     try {
@@ -123,7 +120,7 @@ export async function addOrUpdateDocument(collectionName, docId, data, successMe
         } else {
             await addDoc(collection(db, collectionName), {
                 ...data,
-                createdAt: serverTimestamp() // Lägg till tidsstämpel vid ny
+                createdAt: serverTimestamp()
             });
         }
         showModal('confirmationModal', successMessage);
@@ -149,30 +146,17 @@ export async function toggleLike(newsId, currentLikes, likedBy) {
         showModal('errorModal', "Du måste vara inloggad för att gilla.");
         return;
     }
-
     const newsRef = doc(db, "news", newsId);
-    
     if (likedBy && likedBy.includes(userId)) {
-        await updateDoc(newsRef, {
-            likes: currentLikes - 1,
-            likedBy: arrayRemove(userId)
-        });
+        await updateDoc(newsRef, { likes: currentLikes - 1, likedBy: arrayRemove(userId) });
     } else {
-        await updateDoc(newsRef, {
-            likes: currentLikes + 1,
-            likedBy: arrayUnion(userId)
-        });
+        await updateDoc(newsRef, { likes: currentLikes + 1, likedBy: arrayUnion(userId) });
     }
 }
 
-// --- ANVÄNDARHANTERING ---
-
 export async function updateProfile(userId, email, username) {
     try {
-        await updateDoc(doc(db, "users", userId), {
-            email: email,
-            username: username
-        });
+        await updateDoc(doc(db, "users", userId), { email: email, username: username });
         showModal('confirmationModal', "Profil uppdaterad!");
         renderProfileInfo({ email, username, role: isAdminLoggedIn ? 'Admin' : 'Medlem' }); 
     } catch (error) {
@@ -193,22 +177,16 @@ export async function updateProfileByAdmin(userId, data) {
 
 export async function toggleMemberStatus(userId, currentStatus) {
     try {
-        await updateDoc(doc(db, "users", userId), {
-            isMember: !currentStatus
-        });
+        await updateDoc(doc(db, "users", userId), { isMember: !currentStatus });
     } catch (error) {
         console.error(error);
         showModal('errorModal', "Kunde inte ändra medlemsstatus.");
     }
 }
 
-// --- ADMINHANTERING ---
-
 export async function addAdminFromUser(userId) {
     try {
-        await updateDoc(doc(db, "users", userId), {
-            isAdmin: true
-        });
+        await updateDoc(doc(db, "users", userId), { isAdmin: true });
         showModal('confirmationModal', "Användaren är nu Admin.");
     } catch (error) {
         console.error(error);
@@ -218,9 +196,7 @@ export async function addAdminFromUser(userId) {
 
 export async function deleteAdmin(userId) {
     try {
-        await updateDoc(doc(db, "users", userId), {
-            isAdmin: false
-        });
+        await updateDoc(doc(db, "users", userId), { isAdmin: false });
         showModal('confirmationModal', "Admin-rättigheter borttagna.");
     } catch (error) {
         console.error(error);
@@ -228,11 +204,8 @@ export async function deleteAdmin(userId) {
     }
 }
 
-// --- INSTÄLLNINGAR ---
-
 export async function updateSiteSettings(settings) {
     try {
-        // Vi sparar allt under ett dokument kallat 'design' i 'settings'-kollektionen
         await setDoc(doc(db, "settings", "design"), settings);
         showModal('confirmationModal', "Inställningar sparade!");
     } catch (error) {
@@ -240,8 +213,6 @@ export async function updateSiteSettings(settings) {
         showModal('errorModal', "Kunde inte spara inställningar.");
     }
 }
-
-// --- SKYTTAR (SHOOTERS) ---
 
 export async function createShooterProfile(name, birthYear, club) {
     if (!auth.currentUser) return;
@@ -251,7 +222,7 @@ export async function createShooterProfile(name, birthYear, club) {
             birthYear: parseInt(birthYear),
             club: club || 'Kumla Skytteförening',
             createdBy: auth.currentUser.uid,
-            parentUserIds: [auth.currentUser.uid], // Koppla direkt till skaparen
+            parentUserIds: [auth.currentUser.uid],
             createdAt: serverTimestamp()
         });
         showModal('confirmationModal', "Ny skyttprofil skapad!");
@@ -277,9 +248,7 @@ export async function updateShooterProfile(shooterId, data) {
 export async function linkUserToShooter(userId, shooterId) {
     try {
         const shooterRef = doc(db, 'shooters', shooterId);
-        await updateDoc(shooterRef, {
-            parentUserIds: arrayUnion(userId)
-        });
+        await updateDoc(shooterRef, { parentUserIds: arrayUnion(userId) });
         showModal('confirmationModal', "Konto kopplat till skytt!");
     } catch (error) {
         console.error(error);
@@ -291,9 +260,6 @@ export function getMyShooters() {
     if (!auth.currentUser) return [];
     return allShootersData.filter(s => s.parentUserIds && s.parentUserIds.includes(auth.currentUser.uid));
 }
-
-
-// --- RESULTAT (Gamla systemet / Träning) ---
 
 export async function saveResult(resultData) {
     try {
@@ -321,13 +287,10 @@ export async function updateUserResult(resultId, data) {
     }
 }
 
-// --- DOKUMENT (PDF mm) ---
-
 export async function uploadDocumentFile(file, name, category) {
     try {
         const storagePath = `documents/${Date.now()}_${file.name}`;
         const storageRef = ref(storage, storagePath);
-        
         const uploadTask = uploadBytesResumable(storageRef, file);
 
         return new Promise((resolve, reject) => {
@@ -339,23 +302,14 @@ export async function uploadDocumentFile(file, name, category) {
                     if (progressContainer) progressContainer.classList.remove('hidden');
                     if (progressBar) progressBar.style.width = progress + '%';
                 }, 
-                (error) => {
-                    console.error("Upload error:", error);
-                    reject(error);
-                }, 
+                (error) => { console.error("Upload error:", error); reject(error); }, 
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    
                     await addDoc(collection(db, 'documents'), {
-                        name: name,
-                        category: category,
-                        url: downloadURL,
-                        storagePath: uploadTask.snapshot.ref.fullPath,
-                        fileType: file.type,
-                        uploadedAt: serverTimestamp(),
-                        uploadedBy: auth.currentUser.uid
+                        name: name, category: category, url: downloadURL,
+                        storagePath: uploadTask.snapshot.ref.fullPath, fileType: file.type,
+                        uploadedAt: serverTimestamp(), uploadedBy: auth.currentUser.uid
                     });
-                    
                     resolve(true);
                 }
             );
@@ -368,11 +322,8 @@ export async function uploadDocumentFile(file, name, category) {
 
 export async function deleteDocumentFile(docId, storagePath) {
     try {
-        // 1. Ta bort från Storage
         const storageRef = ref(storage, storagePath);
         await deleteObject(storageRef);
-
-        // 2. Ta bort från Firestore
         await deleteDoc(doc(db, 'documents', docId));
         return true;
     } catch (error) {
@@ -382,7 +333,5 @@ export async function deleteDocumentFile(docId, storagePath) {
 }
 
 export async function getDocuments() {
-    // Denna funktion behövs oftast inte då vi lyssnar i initializeDataListeners,
-    // men kan vara bra som fallback eller manuell refresh.
     return documentsData;
 }
