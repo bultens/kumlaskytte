@@ -1214,7 +1214,7 @@ export function renderClassesAdmin(classes) {
                     <button class="edit-class-btn text-blue-600 font-bold mr-2 text-sm" 
                         data-obj='${JSON.stringify(cls)}'>Ändra</button>
                     <button class="delete-btn text-red-600 font-bold text-sm" 
-                        data-id="${cls.id}" data-type="competitionClasses">Ta bort</button>
+                        data-id="${cls.id}" data-type="online_competition_classes">Ta bort</button>
                 </div>
             </div>
         `;
