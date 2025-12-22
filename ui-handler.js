@@ -210,7 +210,7 @@ export function renderCompetitions(data, isAdminLoggedIn) {
 
                     ${isAdminLoggedIn ? `
                         <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
-                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
+                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="online_competitions">Ta bort</button>
                             <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
                         </div>
                     ` : ''}
@@ -219,11 +219,11 @@ export function renderCompetitions(data, isAdminLoggedIn) {
         });
     }
 
-    // 2. Hantera startsidan (Senaste tävlingarna)
+    // 2. Hantera startsidan (kvarstår oförändrad men bra att ha med)
     const homeContainer = document.getElementById('home-competitions-container');
     if (homeContainer) {
         homeContainer.innerHTML = '';
-
+        // ... (resten av koden för startsidan är oförändrad)
         const getFirstLineText = (htmlContent) => {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlContent;
@@ -234,7 +234,6 @@ export function renderCompetitions(data, isAdminLoggedIn) {
             return tempDiv.textContent.split('\n')[0].trim();
         };
 
-        // Ta de 2 senaste
         data.slice(0, 2).forEach(item => {
             const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
             const rawText = getFirstLineText(item.content);
