@@ -4,7 +4,7 @@ import { onSnapshot, collection, doc, updateDoc, query, where, orderBy, getDocs,
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
 import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.6 (Fixade anrop med argument)
+// Ver. 1.7 (Fixat rendering av klasser)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -27,7 +27,6 @@ export function initializeDataListeners() {
     const newsQuery = query(collection(db, "news"), orderBy("date", "desc"));
     onSnapshot(newsQuery, (snapshot) => {
         newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // SKICKA MED ARGUMENT:
         renderNews(newsData, isAdminLoggedIn, uid);
     });
 
@@ -66,9 +65,19 @@ export function initializeDataListeners() {
         }
     });
     
-    // Tävlingsklasser
+    // Tävlingsklasser (Online) - HÄR VAR FELET TIDIGARE
     onSnapshot(collection(db, "online_competition_classes"), (snapshot) => {
         competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Uppdatera Admin-listan (Sidoinställningar)
+        if (isAdminLoggedIn && typeof renderClassesAdmin === 'function') {
+            renderClassesAdmin(competitionClasses);
+        }
+        
+        // Uppdatera checkboxarna i "Skapa tävling"-formuläret
+        if (typeof renderSelectableClasses === 'function') {
+            renderSelectableClasses(competitionClasses);
+        }
     });
 
     // Site Settings
@@ -111,7 +120,7 @@ export function initializeDataListeners() {
     }
 }
 
-// --- HJÄLPFUNKTIONER (Samma som förut) ---
+// --- HJÄLPFUNKTIONER (CRUD) ---
 
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
     try {
