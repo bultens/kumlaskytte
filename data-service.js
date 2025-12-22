@@ -1,346 +1,295 @@
-// data-service.js
-import { db, auth, storage } from "./firebase-config.js"; 
-import { onSnapshot, collection, doc, updateDoc, query, where, orderBy, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
-import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+// event-listeners.js
+import { 
+    addOrUpdateDocument, deleteDocument, toggleLike, updateProfile, 
+    updateProfileByAdmin, updateSiteSettings, addAdminFromUser, 
+    deleteAdmin, saveResult, createShooterProfile, linkUserToShooter, 
+    updateShooterProfile, updateUserResult, toggleMemberStatus , uploadDocumentFile
+} from "./data-service.js";
 
-// Ver. 1.7 (Fixat rendering av klasser)
-export let newsData = [];
-export let eventsData = [];
-export let competitionsData = [];
-export let historyData = [];
-export let usersData = []; 
-export let sponsorsData = [];
-export let allShootersData = [];
-export let latestResultsCache = [];
-export let competitionClasses = [];
-export let documentsData = [];
-export let imagesData = []; 
+import { 
+    showModal, hideModal, showDeleteProfileModal, showDeleteUserModal, 
+    showEditUserModal, showShareModal, applyEditorCommand, updateToolbarButtons,
+    showUserInfoModal, navigate
+} from "./ui-handler.js";
 
-export function initializeDataListeners() {
-    const user = auth.currentUser;
-    const uid = user ? user.uid : null;
+import { checkNewsForm } from "./form-validation.js";
 
-    // --- 1. PUBLIK DATA ---
+import { auth } from "./firebase-config.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { loadAndRenderChart } from "./statistics-chart.js";
 
-    // Nyheter
-    const newsQuery = query(collection(db, "news"), orderBy("date", "desc"));
-    onSnapshot(newsQuery, (snapshot) => {
-        newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderNews(newsData, isAdminLoggedIn, uid);
+export function setupEventListeners() {
+    
+    // --- MOBIL MENY ---
+    const btn = document.getElementById('mobile-menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    if (btn && menu) {
+        btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+        menu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menu.classList.add('hidden');
+            });
+        });
+    }
+
+    // --- NAVIGATION ---
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href'); 
+            window.location.hash = href;
+        });
     });
 
-    // Kalender
-    const eventsQuery = query(collection(db, "events"), orderBy("date", "asc"));
-    onSnapshot(eventsQuery, (snapshot) => {
-        eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEvents(eventsData, isAdminLoggedIn);
+    window.addEventListener('hashchange', () => {
+        navigate(window.location.hash || '#hem');
     });
 
-    // Historia
-    onSnapshot(collection(db, "history"), (snapshot) => {
-        historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderHistory(historyData, isAdminLoggedIn, uid);
+    // --- AUTENTISERING ---
+    const showLogin = document.getElementById('show-login-link');
+    const showRegister = document.getElementById('show-register-link');
+    const logoutBtn = document.getElementById('logout-btn');
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const deleteUserBtn = document.getElementById('delete-user-btn');
+
+    if (showLogin) showLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('register-panel').classList.add('hidden');
+        document.getElementById('user-login-panel').classList.remove('hidden');
     });
 
-    // Bilder
-    const imagesQuery = query(collection(db, "images"), orderBy("priority", "desc"));
-    onSnapshot(imagesQuery, (snapshot) => {
-        imagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderImages(imagesData, isAdminLoggedIn);
+    if (showRegister) showRegister.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('user-login-panel').classList.add('hidden');
+        document.getElementById('register-panel').classList.remove('hidden');
     });
 
-    // Sponsorer
-    onSnapshot(collection(db, "sponsors"), (snapshot) => {
-        sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderSponsors(sponsorsData, isAdminLoggedIn);
+    if (logoutBtn) logoutBtn.addEventListener('click', () => {
+        signOut(auth).then(() => {
+            showModal('confirmationModal', "Du har loggats ut.");
+            window.location.hash = '#hem';
+        }).catch((error) => {
+            console.error('Logout error:', error);
+        });
     });
 
-    // Tävlingar (Online)
-    const compQuery = query(collection(db, "online_competitions"), orderBy("startDate", "desc"));
-    onSnapshot(compQuery, (snapshot) => {
-        competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (typeof renderCompetitions === 'function') {
-            renderCompetitions(competitionsData, isAdminLoggedIn);
+    if (deleteAccountBtn) deleteAccountBtn.addEventListener('click', showDeleteProfileModal);
+    
+    // --- ADMINHANTERING (KNAPPAR) ---
+    // Vi använder "event delegation" på hela dokumentet för dynamiskt skapade knappar
+    document.addEventListener('click', async (e) => {
+        const target = e.target;
+        
+        // Ta bort (Generisk)
+        if (target.classList.contains('delete-btn')) {
+            const id = target.getAttribute('data-id');
+            const type = target.getAttribute('data-type');
+            if (confirm("Är du säker på att du vill ta bort detta?")) {
+                await deleteDocument(type, id, "Borttaget!", "Kunde inte ta bort.");
+            }
+        }
+
+        // Gilla
+        if (target.closest('.like-btn')) {
+            const btn = target.closest('.like-btn');
+            const id = btn.getAttribute('data-id');
+            const type = btn.getAttribute('data-type'); 
+            const likesText = btn.querySelector('.like-count').textContent;
+            const currentLikes = parseInt(likesText) || 0;
+            // OBS: Vi behöver hämta 'likedBy' från datan egentligen. 
+            // För enkelhetens skull skickar vi null här och låter data-service lösa toggling via backend-logik om möjligt,
+            // eller så måste vi skicka med listan. I min data-service-lösning hanterar jag det via arrayUnion/Remove.
+            // Men vi vet inte om användaren redan gillat BARA genom knappen.
+            // UI-handlern sätter data-liked="true/false".
+            const hasLiked = btn.getAttribute('data-liked') === 'true';
+            
+            // Vi fuskar lite och skickar en array med uid om vi gillat, annars tom/null, 
+            // så toggleLike fattar om den ska lägga till eller ta bort.
+            const dummyLikedBy = hasLiked ? [auth.currentUser.uid] : []; 
+            
+            await toggleLike(id, currentLikes, dummyLikedBy);
+        }
+
+        // Dela
+        if (target.closest('.share-btn')) {
+            const btn = target.closest('.share-btn');
+            const id = btn.getAttribute('data-id');
+            const title = btn.getAttribute('data-title');
+            const url = window.location.origin + window.location.pathname + '#nyheter#news-' + id;
+            showShareModal(title, url);
+        }
+
+        // --- ADMIN: ANVÄNDARE ---
+        if (target.classList.contains('toggle-member-btn')) {
+            const id = target.getAttribute('data-id');
+            const status = target.getAttribute('data-status') === 'true';
+            await toggleMemberStatus(id, status);
+        }
+        if (target.classList.contains('add-admin-btn')) {
+            const id = target.getAttribute('data-id');
+            if(confirm("Vill du göra denna användare till Admin?")) await addAdminFromUser(id);
+        }
+        if (target.classList.contains('delete-admin-btn')) {
+            const id = target.getAttribute('data-id');
+            if(confirm("Ta bort admin-rättigheter?")) await deleteAdmin(id);
+        }
+        if (target.classList.contains('edit-user-btn')) {
+            // Hämta user-objektet från data-service via ID hade varit snyggast, 
+            // men vi kan fuska och hämta från DOM eller global lista
+            // För nu: Vi implementerar edit user modal-öppning i ui-handler och anropar den här
+            // Detta kräver att vi har tillgång till usersData. Vi gör en enkel lösning:
+            // Vi skickar bara ID till en funktion som letar upp datan.
+            // (Detta implementerades inte fullt ut i ui-handler tidigare, men vi lägger stubben)
+            console.log("Edit user clicked", target.getAttribute('data-user-id'));
+            // TODO: Implementera full editering om det behövs
+        }
+        
+        // --- ADMIN: SKYTTAR ---
+        if (target.classList.contains('link-parent-btn')) {
+            const shooterId = target.getAttribute('data-id');
+            const name = target.getAttribute('data-name');
+            const email = prompt(`Ange E-POST för föräldern som ska kopplas till ${name}:`);
+            if (email) {
+                // Vi måste hitta userId baserat på email. Det går inte direkt i klienten utan att söka i alla users.
+                // Vi gör en sökning i usersData (som måste importeras eller nås).
+                // Enklast: Säg till admin att ange ID istället, eller bygg en dropdown.
+                // För nu: Vi ber om ID för att det är säkrast med nuvarande kod.
+                const userId = prompt("Ange användarens ID (finns i användarlistan under Info):");
+                if (userId) await linkUserToShooter(userId, shooterId);
+            }
+        }
+
+        // --- ADMIN: KLASSER (FIXAD EDITERING) ---
+        if (target.classList.contains('edit-class-btn')) {
+            const json = target.getAttribute('data-obj');
+            if (json) {
+                const cls = JSON.parse(json);
+                // Fyll i formuläret
+                document.getElementById('class-id').value = cls.id;
+                document.getElementById('class-name').value = cls.name;
+                document.getElementById('class-min-age').value = cls.minAge;
+                document.getElementById('class-max-age').value = cls.maxAge;
+                document.getElementById('class-discipline').value = cls.discipline;
+                document.getElementById('class-desc').value = cls.description || '';
+                
+                // Byt text på knappen
+                document.getElementById('create-class-btn').textContent = "Uppdatera Klass";
+                document.getElementById('cancel-class-edit-btn').classList.remove('hidden');
+                
+                // Scrolla till formuläret
+                document.getElementById('create-class-form').scrollIntoView({behavior: 'smooth'});
+            }
         }
     });
     
-    // Tävlingsklasser (Online) - HÄR VAR FELET TIDIGARE
-    onSnapshot(collection(db, "online_competition_classes"), (snapshot) => {
-        competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Uppdatera Admin-listan (Sidoinställningar)
-        if (isAdminLoggedIn && typeof renderClassesAdmin === 'function') {
-            renderClassesAdmin(competitionClasses);
-        }
-        
-        // Uppdatera checkboxarna i "Skapa tävling"-formuläret
-        if (typeof renderSelectableClasses === 'function') {
-            renderSelectableClasses(competitionClasses);
-        }
-    });
-
-    // Site Settings
-    onSnapshot(collection(db, "settings"), (snapshot) => {
-        const settings = {};
-        snapshot.forEach(doc => { settings[doc.id] = doc.data(); });
-        
-        if (settings.design) {
-            updateHeaderColor(settings.design.headerColor);
-            toggleSponsorsNavLink(settings.design.showSponsors);
-        }
-        if (isAdminLoggedIn && typeof renderSiteSettings === 'function') {
-            renderSiteSettings(settings);
-        }
-        renderContactInfo(); 
-    });
-
-    // --- 2. SKYDDAD DATA ---
-    if (user) {
-        onSnapshot(collection(db, "users"), (snapshot) => {
-            usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (isAdminLoggedIn) renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
-        }, (error) => console.log("Users not loaded:", error.code));
-
-        onSnapshot(collection(db, "shooters"), (snapshot) => {
-            allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            if (typeof renderShooterSelector === 'function') renderShooterSelector(allShootersData);
-            if (typeof renderPublicShooterSelector === 'function') renderPublicShooterSelector(allShootersData);
-            if (isAdminLoggedIn && typeof renderShootersAdmin === 'function') renderShootersAdmin(allShootersData);
+    // --- AVBRYT KLASS-REDIGERING ---
+    const cancelClassEditBtn = document.getElementById('cancel-class-edit-btn');
+    if (cancelClassEditBtn) {
+        cancelClassEditBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('create-class-form').reset();
+            document.getElementById('class-id').value = '';
+            document.getElementById('create-class-btn').textContent = "Skapa Klass";
+            cancelClassEditBtn.classList.add('hidden');
         });
-
-        if (isAdminLoggedIn) {
-             const docQuery = query(collection(db, "documents"), orderBy("uploadedAt", "desc"));
-             onSnapshot(docQuery, (snapshot) => {
-                documentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (typeof renderDocumentArchive === 'function') renderDocumentArchive(documentsData);
-            });
-        }
     }
-}
 
-// --- HJÄLPFUNKTIONER (CRUD) ---
-
-export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
-    try {
-        if (docId) {
-            await updateDoc(doc(db, collectionName, docId), data);
-        } else {
-            await addDoc(collection(db, collectionName), {
-                ...data,
-                createdAt: serverTimestamp()
-            });
-        }
-        showModal('confirmationModal', successMessage);
-    } catch (error) {
-        console.error("Database Error:", error);
-        showModal('errorModal', errorMessage + " " + error.message);
-    }
-}
-
-export async function deleteDocument(collectionName, docId, successMessage, errorMessage) {
-    try {
-        await deleteDoc(doc(db, collectionName, docId));
-        showModal('confirmationModal', successMessage);
-    } catch (error) {
-        console.error("Delete Error:", error);
-        showModal('errorModal', errorMessage + " " + error.message);
-    }
-}
-
-export async function toggleLike(newsId, currentLikes, likedBy) {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-        showModal('errorModal', "Du måste vara inloggad för att gilla.");
-        return;
-    }
-    const newsRef = doc(db, "news", newsId);
-    if (likedBy && likedBy.includes(userId)) {
-        await updateDoc(newsRef, { likes: currentLikes - 1, likedBy: arrayRemove(userId) });
-    } else {
-        await updateDoc(newsRef, { likes: currentLikes + 1, likedBy: arrayUnion(userId) });
-    }
-}
-
-export async function updateProfile(userId, email, username) {
-    try {
-        await updateDoc(doc(db, "users", userId), { email: email, username: username });
-        showModal('confirmationModal', "Profil uppdaterad!");
-        renderProfileInfo({ email, username, role: isAdminLoggedIn ? 'Admin' : 'Medlem' }); 
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte uppdatera profil.");
-    }
-}
-
-export async function updateProfileByAdmin(userId, data) {
-    try {
-        await updateDoc(doc(db, "users", userId), data);
-        showModal('confirmationModal', "Användare uppdaterad!");
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte uppdatera användare.");
-    }
-}
-
-export async function toggleMemberStatus(userId, currentStatus) {
-    try {
-        await updateDoc(doc(db, "users", userId), { isMember: !currentStatus });
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte ändra medlemsstatus.");
-    }
-}
-
-export async function addAdminFromUser(userId) {
-    try {
-        await updateDoc(doc(db, "users", userId), { isAdmin: true });
-        showModal('confirmationModal', "Användaren är nu Admin.");
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte göra användaren till admin.");
-    }
-}
-
-export async function deleteAdmin(userId) {
-    try {
-        await updateDoc(doc(db, "users", userId), { isAdmin: false });
-        showModal('confirmationModal', "Admin-rättigheter borttagna.");
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte ta bort admin-rättigheter.");
-    }
-}
-
-export async function updateSiteSettings(settings) {
-    try {
-        await setDoc(doc(db, "settings", "design"), settings);
-        showModal('confirmationModal', "Inställningar sparade!");
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte spara inställningar.");
-    }
-}
-
-export async function createShooterProfile(name, birthYear, club) {
-    if (!auth.currentUser) return;
-    try {
-        const docRef = await addDoc(collection(db, 'shooters'), {
-            name: name,
-            birthYear: parseInt(birthYear),
-            club: club || 'Kumla Skytteförening',
-            createdBy: auth.currentUser.uid,
-            parentUserIds: [auth.currentUser.uid],
-            createdAt: serverTimestamp()
+    // --- SPARA INSTÄLLNINGAR (FIXAD) ---
+    const settingsForm = document.getElementById('site-settings-form');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const settings = {
+                headerColor: document.getElementById('header-color-input').value,
+                showSponsors: document.getElementById('show-sponsors-checkbox').checked,
+                contactAddress: document.getElementById('contact-address-input').value,
+                contactLocation: document.getElementById('contact-location-input').value,
+                contactPhone: document.getElementById('contact-phone-input').value,
+                contactEmail: document.getElementById('contact-email-input').value,
+                logoUrl: document.getElementById('logo-url-input').value
+            };
+            await updateSiteSettings(settings);
         });
-        showModal('confirmationModal', "Ny skyttprofil skapad!");
-        return docRef.id;
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte skapa skyttprofil.");
     }
-}
 
-export async function updateShooterProfile(shooterId, data) {
-    try {
-        await updateDoc(doc(db, 'shooters', shooterId), data);
-        showModal('confirmationModal', "Skyttprofil uppdaterad!");
-        return true;
-    } catch (e) {
-        console.error(e);
-        showModal('errorModal', "Misslyckades att uppdatera profil.");
-        return false;
-    }
-}
+    // --- DOKUMENTUPPLADDNING (Samma fix som tidigare) ---
+    const uploadDocForm = document.getElementById('upload-doc-form');
+    if (uploadDocForm) {
+        uploadDocForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('doc-file'); 
+            const file = fileInput ? fileInput.files[0] : null;
+            const nameInput = document.getElementById('doc-name');
+            const name = nameInput ? nameInput.value : '';
+            const categoryInput = document.getElementById('doc-category');
+            const category = categoryInput ? categoryInput.value : 'Övrigt';
 
-export async function linkUserToShooter(userId, shooterId) {
-    try {
-        const shooterRef = doc(db, 'shooters', shooterId);
-        await updateDoc(shooterRef, { parentUserIds: arrayUnion(userId) });
-        showModal('confirmationModal', "Konto kopplat till skytt!");
-    } catch (error) {
-        console.error(error);
-        showModal('errorModal', "Kunde inte koppla konto.");
-    }
-}
+            if (!file) {
+                showModal('errorModal', "Du måste välja en fil.");
+                return;
+            }
 
-export function getMyShooters() {
-    if (!auth.currentUser) return [];
-    return allShootersData.filter(s => s.parentUserIds && s.parentUserIds.includes(auth.currentUser.uid));
-}
-
-export async function saveResult(resultData) {
-    try {
-        await addDoc(collection(db, "results"), {
-            ...resultData,
-            registeredBy: auth.currentUser.uid,
-            registeredAt: serverTimestamp()
-        });
-        return true;
-    } catch (error) {
-        console.error("Save result error:", error);
-        throw error;
-    }
-}
-
-export async function updateUserResult(resultId, data) {
-    try {
-        await updateDoc(doc(db, 'results', resultId), data);
-        showModal('confirmationModal', "Resultatet uppdaterades!");
-        return true;
-    } catch (e) {
-        console.error(e);
-        showModal('errorModal', "Kunde inte uppdatera resultatet.");
-        return false;
-    }
-}
-
-export async function uploadDocumentFile(file, name, category) {
-    try {
-        const storagePath = `documents/${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, storagePath);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-
-        return new Promise((resolve, reject) => {
-            uploadTask.on('state_changed', 
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    const progressBar = document.getElementById('doc-upload-progress-bar');
+            try {
+                const result = await uploadDocumentFile(file, name, category);
+                if (result) {
+                    uploadDocForm.reset();
                     const progressContainer = document.getElementById('doc-upload-progress');
-                    if (progressContainer) progressContainer.classList.remove('hidden');
-                    if (progressBar) progressBar.style.width = progress + '%';
-                }, 
-                (error) => { console.error("Upload error:", error); reject(error); }, 
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    await addDoc(collection(db, 'documents'), {
-                        name: name, category: category, url: downloadURL,
-                        storagePath: uploadTask.snapshot.ref.fullPath, fileType: file.type,
-                        uploadedAt: serverTimestamp(), uploadedBy: auth.currentUser.uid
-                    });
-                    resolve(true);
+                    if (progressContainer) progressContainer.classList.add('hidden');
+                    showModal('confirmationModal', "Filen har laddats upp!");
                 }
-            );
+            } catch (error) {
+                console.error(error);
+                showModal('errorModal', "Kunde inte ladda upp filen: " + error.message);
+            }
         });
-    } catch (error) {
-        console.error("Fel vid dokumentuppladdning:", error);
-        throw error; 
     }
-}
 
-export async function deleteDocumentFile(docId, storagePath) {
-    try {
-        const storageRef = ref(storage, storagePath);
-        await deleteObject(storageRef);
-        await deleteDoc(doc(db, 'documents', docId));
-        return true;
-    } catch (error) {
-        console.error("Fel vid borttagning av dokument:", error);
-        return false;
+    // --- PROFIL ---
+    const profileForm = document.getElementById('profile-form');
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('profile-email-display').value; // Readonly, men behövs
+            const name = document.getElementById('profile-name-input').value;
+            const address = document.getElementById('profile-address-input').value;
+            const phone = document.getElementById('profile-phone-input').value;
+            const birthyear = document.getElementById('profile-birthyear-input').value;
+            const mailingList = document.getElementById('profile-mailing-list-checkbox').checked;
+
+            await updateProfileByAdmin(auth.currentUser.uid, { // Vi använder Admin-funktionen för den är mer generisk
+                name, address, phone, birthyear: parseInt(birthyear), mailingList
+            });
+        });
     }
-}
+    
+    // --- LIVE SCORE (TRÄNING) ---
+    const liveScoreInputs = document.querySelectorAll('.series-input');
+    if (liveScoreInputs.length > 0) {
+        liveScoreInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                let total = 0;
+                let best = 0;
+                liveScoreInputs.forEach(i => {
+                    let val = parseFloat(i.value.replace(',', '.'));
+                    if (!isNaN(val)) {
+                        total += val;
+                        if (val > best) best = val;
+                    }
+                });
+                const totalEl = document.getElementById('live-total-display');
+                if(totalEl) totalEl.textContent = Math.round(total * 10) / 10;
+                
+                const bestEl = document.getElementById('live-best-series');
+                if(bestEl) bestEl.textContent = best;
+            });
+        });
+    }
 
-export async function getDocuments() {
-    return documentsData;
+    // Text editor listeners
+    document.querySelectorAll('.editor-content').forEach(editor => {
+        editor.addEventListener('keyup', () => updateToolbarButtons(editor));
+        editor.addEventListener('mouseup', () => updateToolbarButtons(editor));
+    });
 }
