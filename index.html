@@ -1438,7 +1438,52 @@
         </div>
     </div>
 </div>
+<div id="compSignupModal" class="modal">
+    <div class="modal-content w-11/12 max-w-4xl">
+        <span class="modal-close-btn" onclick="document.getElementById('compSignupModal').classList.remove('active')">×</span>
+        
+        <div id="signup-form-section">
+            <h3 class="text-2xl font-bold mb-2">Anmälan: <span id="signup-comp-name"></span></h3>
+            <input type="hidden" id="signup-comp-id">
+            
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Klubbnamn</label>
+                <input type="text" id="signup-club-name" class="w-full p-2 border rounded" value="Kumla Skytteförening">
+            </div>
 
+            <div class="mb-4">
+                <label class="block font-bold mb-2">Skyttar & Klasser</label>
+                <div id="bulk-signup-list" class="space-y-3 max-h-96 overflow-y-auto p-2 bg-gray-50 rounded border"></div>
+                
+                <button id="add-shooter-row-btn" class="mt-2 text-sm text-blue-600 font-bold hover:underline">+ Lägg till skytt</button>
+            </div>
+
+            <div class="flex justify-end items-center border-t pt-4 mt-4">
+                <span class="text-lg font-bold mr-2">Totalt:</span>
+                <span id="bulk-total-price" class="text-2xl font-bold text-blue-900" data-value="0">0 kr</span>
+            </div>
+        </div>
+
+        <div id="signup-success-section" class="hidden text-center">
+            <div class="mb-6 text-green-500 text-6xl">✓</div>
+            <h3 class="text-2xl font-bold mb-4">Anmälan mottagen!</h3>
+            
+            <div id="swish-container" class="hidden bg-white p-4 rounded border inline-block mb-4 shadow-sm">
+                <p class="font-bold mb-2">Betala med Swish</p>
+                <img id="swish-qr-code" class="mx-auto mb-2 w-48 h-48" src="" alt="Swish QR">
+                <p class="text-sm">Referens: <span id="swish-msg-ref" class="font-mono font-bold bg-yellow-100 px-1 border border-yellow-200"></span></p>
+                <p class="text-lg font-bold mt-2">Summa: <span id="final-total-sum"></span></p>
+            </div>
+            
+            <p class="text-gray-600">Dina anmälningar har registrerats. Status uppdateras när betalning godkänts av admin.</p>
+        </div>
+
+        <div id="signup-modal-footer" class="mt-6 flex justify-end space-x-4">
+            <button id="confirm-bulk-signup-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Bekräfta Anmälan</button>
+            <button id="close-success-btn" class="hidden bg-gray-500 text-white font-bold py-2 px-6 rounded hover:bg-gray-600">Stäng</button>
+        </div>
+    </div>
+</div>
 </body>
 
 </html>
