@@ -220,12 +220,16 @@ export function renderClassesAdmin(classes) {
     });
 }
 
-// --- MINA RESULTAT & PROFIL ---
-export function renderProfileInfo(u) {
-    document.getElementById('profile-name-display').textContent = u.username||u.email;
-    document.getElementById('profile-role-display').textContent = u.role;
-    document.getElementById('profile-email-display').value = u.email;
-    document.getElementById('profile-name-input').value = u.username||'';
+export function renderProfileInfo(user) {
+    const nameEl = document.getElementById('profile-name-display');
+    const roleEl = document.getElementById('profile-role-display');
+    const emailInp = document.getElementById('profile-email-display');
+    const nameInp = document.getElementById('profile-name-input');
+
+    if (nameEl) nameEl.textContent = user.username || user.email;
+    if (roleEl) roleEl.textContent = user.role;
+    if (emailInp) emailInp.value = user.email;
+    if (nameInp) nameInp.value = user.username || '';
 }
 
 export function renderShooterSelector(shooters) {

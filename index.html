@@ -463,6 +463,178 @@
                 </form>
             </div>
         </section>
+<section id="medlem" class="page container mx-auto px-4 py-8 hidden">
+        
+        <div id="user-login-panel" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10">
+            <h2 class="text-3xl font-bold mb-6 text-center text-blue-900">Medlemsinloggning</h2>
+            
+            <form id="user-login-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-gray-700">E-postadress</label>
+                    <input type="email" id="login-email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required placeholder="namn@exempel.se">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-gray-700">Lösenord</label>
+                    <input type="password" id="login-password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required placeholder="********">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-md">Logga in</button>
+            </form>
+            
+            <p class="mt-6 text-center text-sm text-gray-600">
+                Har du inget konto? <a href="#" id="show-register-link" class="text-blue-600 font-bold hover:underline">Registrera dig här</a>
+            </p>
+        </div>
+
+        <div id="register-panel" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10 hidden">
+            <h2 class="text-3xl font-bold mb-6 text-center text-blue-900">Skapa konto</h2>
+            <form id="register-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-gray-700">E-postadress</label>
+                    <input type="email" id="reg-email" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-gray-700">Välj lösenord</label>
+                    <input type="password" id="reg-password" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition shadow-md">Registrera konto</button>
+            </form>
+            <p class="mt-6 text-center text-sm text-gray-600">
+                Har du redan ett konto? <a href="#" id="show-login-link" class="text-blue-600 font-bold hover:underline">Logga in istället</a>
+            </p>
+        </div>
+
+        <div id="profile-panel" class="hidden animate-fade-in">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-blue-900 text-white p-6 rounded-xl shadow-md">
+                <div>
+                    <h2 class="text-3xl font-bold">Mina Sidor</h2>
+                    <p class="text-blue-200 mt-1">Inloggad som: <span id="profile-name-display" class="font-bold text-white">Laddar...</span> <span class="bg-blue-800 text-xs px-2 py-1 rounded ml-2" id="profile-role-display">Medlem</span></p>
+                </div>
+                <button id="logout-btn" class="mt-4 md:mt-0 bg-white text-blue-900 px-6 py-2 rounded-lg font-bold hover:bg-gray-100 transition shadow">Logga ut</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <div class="lg:col-span-4 space-y-8">
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500">
+                        <h3 class="text-xl font-bold mb-4 flex items-center text-gray-800">
+                            <span class="bg-green-100 text-green-600 p-2 rounded-full mr-3 text-sm">📝</span>
+                            Rapportera Resultat
+                        </h3>
+                        
+                        <form id="add-result-form" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Skytt</label>
+                                <select id="result-shooter-selector" class="w-full p-2 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-green-500">
+                                    <option value="">Laddar skyttar...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Datum</label>
+                                    <input type="date" id="result-date" class="w-full p-2 border border-gray-300 rounded" required>
+                                    <script>document.getElementById('result-date').valueAsDate = new Date();</script>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Typ</label>
+                                    <select id="result-type" class="w-full p-2 border border-gray-300 rounded">
+                                        <option value="training">Träning</option>
+                                        <option value="competition">Tävling</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="flex justify-between items-center mb-3">
+                                    <label class="text-xs font-bold uppercase text-gray-500">Serier (Poäng)</label>
+                                    <select id="result-shot-count" class="text-xs p-1 border rounded bg-white">
+                                        <option value="10">10 skott</option>
+                                        <option value="20">20 skott</option>
+                                        <option value="30">30 skott</option>
+                                        <option value="40" selected>40 skott</option>
+                                        <option value="60">60 skott</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="series-inputs-container" class="grid grid-cols-4 gap-2 mb-4">
+                                    <div class="flex flex-col"><label class="text-[10px] text-center text-gray-400">S1</label><input type="text" class="series-input border p-2 text-center font-bold text-gray-700 rounded" placeholder="0"></div>
+                                    <div class="flex flex-col"><label class="text-[10px] text-center text-gray-400">S2</label><input type="text" class="series-input border p-2 text-center font-bold text-gray-700 rounded" placeholder="0"></div>
+                                    <div class="flex flex-col"><label class="text-[10px] text-center text-gray-400">S3</label><input type="text" class="series-input border p-2 text-center font-bold text-gray-700 rounded" placeholder="0"></div>
+                                    <div class="flex flex-col"><label class="text-[10px] text-center text-gray-400">S4</label><input type="text" class="series-input border p-2 text-center font-bold text-gray-700 rounded" placeholder="0"></div>
+                                </div>
+
+                                <div class="flex justify-between items-end border-t border-gray-200 pt-2">
+                                    <span class="text-sm font-bold text-gray-600">TOTALT:</span>
+                                    <span id="live-total-display" class="text-3xl font-bold text-green-600 leading-none">0</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700 transition shadow">Spara Resultat</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-gray-800">Profilinställningar</h3>
+                        <form id="profile-form" class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">E-post (Låst)</label>
+                                <input type="email" id="profile-email-display" class="w-full p-2 border rounded bg-gray-100 text-gray-500 cursor-not-allowed" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Visningsnamn</label>
+                                <input type="text" id="profile-name-input" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" placeholder="Ditt namn">
+                            </div>
+                            <button type="submit" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 transition text-sm font-bold">Uppdatera Profil</button>
+                        </form>
+                        <div class="mt-4 pt-4 border-t text-center">
+                            <button id="delete-account-btn" class="text-red-500 text-xs hover:underline hover:text-red-700">Radera mitt konto</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 space-y-8">
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                <span class="bg-blue-100 text-blue-600 p-2 rounded-full mr-3 text-sm">📈</span>
+                                Utvecklingskurva
+                            </h3>
+                            <select id="shooter-selector" class="p-2 border border-gray-300 rounded bg-white text-sm">
+                                <option value="">Välj skytt...</option>
+                            </select>
+                        </div>
+                        <div class="relative h-72 w-full bg-gray-50 rounded border border-gray-100 p-2">
+                            <canvas id="statisticsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">Resultathistorik</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-600 border-b border-gray-200">
+                                        <th class="p-3 font-bold text-sm rounded-tl-lg">Datum</th>
+                                        <th class="p-3 font-bold text-sm">Skytt</th>
+                                        <th class="p-3 font-bold text-sm">Typ</th>
+                                        <th class="p-3 font-bold text-sm">Poäng</th>
+                                        <th class="p-3 font-bold text-sm text-right rounded-tr-lg">Hantera</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="my-results-list" class="text-sm divide-y divide-gray-100">
+                                    <tr><td colspan="5" class="p-6 text-center text-gray-500 italic">Laddar resultat...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
         <section id="tavling-admin" class="page">
             <h1 class="text-4xl font-bold mb-6">Tävlingsadministration</h1>
     
