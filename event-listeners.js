@@ -11,18 +11,24 @@ import {
 } from "./ui-handler.js";
 
 import { checkNewsForm, checkHistoryForm, checkEventForm } from "./form-validation.js";
-import { auth } from "./firebase-config.js";
+
+// --- HÄR ÄR RÄTTELSEN ---
+// 1. Hämta instanserna från din config
+import { auth, db } from "./firebase-config.js"; 
+
+// 2. Hämta verktygen/funktionerna från Firebase SDK (Internet)
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, getDoc, db } from "./firebase-config.js"; // Förenklad import
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; 
+// ------------------------
 
 // Globala variabler
 let currentImageTargetInput = null;
 let currentImagePreviewImg = null;
 let editingSponsorId = null; 
-let editingImageId = null; // Flyttad hit från upload-handler
+let editingImageId = null;
 
 export function setupEventListeners() {
-    console.log("Setting up EVENT LISTENERS (Stable Version)...");
+    console.log("Setting up EVENT LISTENERS (Fixed Imports)...");
 
     // --- NAVIGATION ---
     const btn = document.getElementById('mobile-menu-btn');
