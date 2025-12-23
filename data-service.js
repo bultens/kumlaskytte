@@ -1,19 +1,18 @@
 // data-service.js
 import { db, auth, storage } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, orderBy, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderShooterSelector, renderPublicShooterSelector, renderTopLists, renderShootersAdmin, renderSelectableClasses, renderDocumentArchive } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderClassesAdmin, renderShooterSelector, renderShootersAdmin, renderDocumentArchive, renderHomeAchievements } from "./ui-handler.js";
 import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 3.0 (Separerade klass-system)
+// Ver. CLEAN 1.0
 export let newsData = [];
 export let eventsData = [];
-export let competitionsData = [];
 export let historyData = [];
 export let usersData = []; 
 export let sponsorsData = [];
 export let allShootersData = [];
 export let latestResultsCache = [];
-export let standardClasses = []; // ÄNDRAT NAMN: För vanliga klasser
+export let standardClasses = []; // De vanliga klasserna
 export let documentsData = [];
 export let imagesData = []; 
 
@@ -46,25 +45,11 @@ export function initializeDataListeners() {
         sponsorsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderSponsors(sponsorsData, isAdminLoggedIn);
     });
-
-    // Hämta Online-tävlingar (bara själva tävlingarna för visning)
-    onSnapshot(query(collection(db, "online_competitions"), orderBy("startDate", "desc")), (snap) => {
-        competitionsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (typeof renderCompetitions === 'function') renderCompetitions(competitionsData, isAdminLoggedIn);
-    });
     
-    // --- VANLIGA KLASSER (För Inställningar & Topplistor) ---
-    // Detta är System 1.
+    // Hämta SKYTTEKLASSER (Vanliga systemet)
     onSnapshot(query(collection(db, "competitionClasses"), orderBy("minAge")), (snap) => {
         standardClasses = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Rendera listan i Inställningar-fliken
         if (typeof renderClassesAdmin === 'function') renderClassesAdmin(standardClasses);
-        
-        // Uppdatera topplistor (baseras på vanliga klasser och resultat)
-        if (latestResultsCache.length > 0 && typeof renderTopLists === 'function') {
-            renderTopLists(standardClasses, latestResultsCache, allShootersData, usersData);
-        }
     });
 
     // Inställningar
@@ -76,7 +61,6 @@ export function initializeDataListeners() {
             toggleSponsorsNavLink(settings.design.showSponsors);
         }
         if (typeof renderSiteSettings === 'function') renderSiteSettings(settings);
-        renderContactInfo(); 
     });
     
     // Resultat (Publika, kopplade till vanliga klasser)
@@ -86,11 +70,7 @@ export function initializeDataListeners() {
         if (typeof renderHomeAchievements === 'function') {
             renderHomeAchievements(latestResultsCache, allShootersData, usersData);
         }
-        // Om klasser redan laddats, uppdatera topplistor
-        if (standardClasses.length > 0 && typeof renderTopLists === 'function') {
-             renderTopLists(standardClasses, latestResultsCache, allShootersData, usersData);
-        }
-    }, (error) => console.log("Resultat permission:", error.code));
+    });
 
     // --- SKYDDAD DATA ---
     if (user) {
@@ -104,6 +84,7 @@ export function initializeDataListeners() {
             if (typeof renderShooterSelector === 'function') renderShooterSelector(allShootersData);
             if (typeof renderShootersAdmin === 'function') renderShootersAdmin(allShootersData);
             
+            // Uppdatera resultatvyer (behöver skyttnamn)
             if (latestResultsCache.length > 0 && typeof renderHomeAchievements === 'function') {
                 renderHomeAchievements(latestResultsCache, allShootersData, usersData);
             }
@@ -118,17 +99,15 @@ export function initializeDataListeners() {
     }
 }
 
-// --- HANTERING AV VANLIGA KLASSER (System 1) ---
+// --- KLASS-HANTERING (Endast för 'competitionClasses') ---
 
 export async function createClass(classData) {
     if (!isAdminLoggedIn) return;
     try {
-        // OBS: Samlingen heter "competitionClasses"
         await addDoc(collection(db, 'competitionClasses'), classData);
-        showModal('confirmationModal', "Ny klass skapad (Standard)!");
+        showModal('confirmationModal', "Ny klass skapad!");
         return true;
     } catch (e) {
-        console.error(e);
         showModal('errorModal', "Kunde inte skapa klass.");
         return false;
     }
@@ -141,7 +120,6 @@ export async function updateClass(classId, classData) {
         showModal('confirmationModal', "Klassen uppdaterad!");
         return true;
     } catch (e) {
-        console.error(e);
         showModal('errorModal', "Kunde inte uppdatera klassen.");
         return false;
     }
@@ -154,7 +132,6 @@ export async function deleteClass(classId) {
         showModal('confirmationModal', "Klassen borttagen.");
         return true;
     } catch (e) {
-        console.error(e);
         showModal('errorModal', "Kunde inte ta bort klassen.");
         return false;
     }

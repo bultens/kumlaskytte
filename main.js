@@ -5,9 +5,9 @@ import { initializeDataListeners } from "./data-service.js";
 import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initCompetitionSystem } from "./competition-ui.js";
 
-// Ver. 3.21
+// OBS: Vi har tagit bort importen av competition-ui.js
+
 export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
@@ -26,37 +26,33 @@ async function checkAdminStatus(user) {
             console.error("Fel vid hämtning av admin-status:", error);
         }
     }
-    currentUserId = null;
     return false;
 }
 
-function initializeAuthListener() {
+export async function initializeAuthListener() {
     onAuthStateChanged(auth, async (user) => {
-        const isAdmin = await checkAdminStatus(user);
-        handleAdminUI(isAdmin); // Visar/döljer admin-länkar
-        initializeDataListeners();
-        initCompetitionSystem();
-        
         if (user) {
-            const docRef = doc(db, 'users', user.uid);
-            const docSnap = await getFirestoreDoc(docRef);
-            renderProfileInfo(docSnap);
+            const isAdmin = await checkAdminStatus(user);
+            await handleAdminUI(user); 
             
-            const name = docSnap.data()?.name || user.email;
-            const profileWelcomeMessage = document.getElementById('profile-welcome-message');
-            if (profileWelcomeMessage) {
-                profileWelcomeMessage.textContent = `Välkommen, ${name}`;
-            }
+            renderProfileInfo({
+                email: user.email,
+                username: user.displayName || '', 
+                role: isAdmin ? 'Admin' : 'Medlem'
+            });
 
-            // FIX: Om vi står på en sida som kräver inloggning (t.ex. #resultat),
-            // ladda om logiken nu när vi vet vem användaren är.
-            if (window.location.hash === '#resultat' || window.location.hash === '#bilder') {
-                window.dispatchEvent(new Event('hashchange'));
-            }
-
+            document.getElementById('user-login-panel').classList.add('hidden');
+            document.getElementById('profile-panel').classList.remove('hidden');
+            
         } else {
-            renderProfileInfo(null);
+            currentUserId = null;
+            handleAdminUI(null);
+            document.getElementById('user-login-panel').classList.remove('hidden');
+            document.getElementById('profile-panel').classList.add('hidden');
         }
+        
+        // Starta lyssnare OAVSETT om man är inloggad eller ej (publik data visas alltid)
+        initializeDataListeners();
     });
 }
 
@@ -64,31 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAuthListener();
     setupEventListeners();
     
-    // Hantera navigation
-    navigate(window.location.hash || '#hem');
-    window.addEventListener('hashchange', () => {
-        navigate(window.location.hash || '#hem');
-    });
-    
-    // Setup modal close buttons
-    const closeErrorModal = document.getElementById('close-error-modal');
-    if (closeErrorModal) closeErrorModal.addEventListener('click', () => hideModal('errorModal'));
-    
-    const errorModal = document.getElementById('errorModal');
-    if (errorModal) errorModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
-    
-    const confirmationModal = document.getElementById('confirmationModal');
-    if (confirmationModal) confirmationModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
-    
-    const closeShareModalBtn = document.getElementById('close-share-modal');
-    if (closeShareModalBtn) closeShareModalBtn.addEventListener('click', () => hideModal('shareModal'));
-    
-    const shareModal = document.getElementById('shareModal');
-    if (shareModal) shareModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('shareModal'); });
-    
-    const closeUserInfoModal = document.getElementById('close-user-info-modal');
-    if (closeUserInfoModal) closeUserInfoModal.addEventListener('click', () => hideModal('userInfoModal'));
-    
-    const userInfoModal = document.getElementById('userInfoModal');
-    if (userInfoModal) userInfoModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('userInfoModal'); });
+    // Hantera direktlänkar (t.ex. #nyheter)
+    if(window.location.hash) {
+        setTimeout(() => navigate(window.location.hash), 100);
+    }
 });
