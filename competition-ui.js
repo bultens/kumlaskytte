@@ -1,9 +1,11 @@
 // competition-ui.js
 import { auth } from "./firebase-config.js";
-import { allShootersData, getMyShooters } from "./data-service.js";
-import { createCompetition, getAllCompetitions, getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, 
-    updateCompetition, getCompetitionEntries, deleteCompetitionFull, submitBulkSignup,
-    createOnlineClass, getOnlineClasses, deleteOnlineClass
+import { 
+    competitionClasses, allShootersData, getMyShooters 
+} from "./data-service.js";
+import { 
+    createCompetition, getAllCompetitions, signupForCompetition, 
+    getMySignups, submitCompetitionResult, getPendingSignups, approveSignupPayment, updateCompetition, getCompetitionEntries
 } from "./competition-service.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
@@ -13,21 +15,14 @@ let editingCompId = null;
 let activeCompetitions = [];
 let mySignups = [];
 let roundsCounter = 0;
-let onlineClassesCache = [];
-let currentRowId = 0; 
 
 export async function initCompetitionSystem() {
     console.log("Initierar Tävlingssystemet...");
-  
+    setupEventListeners();
     
-    // Ladda tävlingar
+    // Ladda data
     activeCompetitions = await getAllCompetitions();
     
-    // Ladda online-klasser
-    onlineClassesCache = await getOnlineClasses();
-
-    setupEventListeners();
-
     if (auth.currentUser) {
         mySignups = await getMySignups();
         renderUserLobby();
@@ -35,8 +30,7 @@ export async function initCompetitionSystem() {
     
     if (isAdminLoggedIn) {
         renderAdminView();
-        populateClassCheckboxes(); // Använder nu onlineClassesCache
-        renderOnlineClassesList(); // NY: Ritar admin-listan för klasser
+        populateClassCheckboxes(); 
     }
 }
 
@@ -74,105 +68,22 @@ function setupEventListeners() {
         });
     }
 
-    // --- ADMIN: SKAPA KLASS ---
-    const createClassForm = document.getElementById('create-online-class-form');
-    if (createClassForm) {
-        createClassForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const newClass = {
-                name: document.getElementById('new-class-name').value,
-                discipline: document.getElementById('new-class-disc').value,
-                minAge: parseInt(document.getElementById('new-class-min').value) || 0,
-                maxAge: parseInt(document.getElementById('new-class-max').value) || 99
-            };
-            
-            const success = await createOnlineClass(newClass);
-            if(success) {
-                createClassForm.reset();
-                onlineClassesCache = await getOnlineClasses(); // Ladda om
-                renderOnlineClassesList();
-                populateClassCheckboxes();
-            }
-        });
-    }
-    
     // --- USER: ANMÄLAN ---
-   const confirmBulkBtn = document.getElementById('confirm-bulk-signup-btn');
-if (confirmBulkBtn) {
-    confirmBulkBtn.addEventListener('click', handleBulkSignupSubmit);
-}
-
-// Den nya submit-funktionen
-async function handleBulkSignupSubmit() {
-    const compId = document.getElementById('signup-comp-id').value;
-    const clubName = document.getElementById('signup-club-name').value;
-    const totalOrderCost = parseInt(document.getElementById('bulk-total-price').dataset.value) || 0;
-    const comp = activeCompetitions.find(c => c.id === compId);
-
-    // Samla data
-    const signupsList = [];
-    let validationError = false;
-
-    document.querySelectorAll('.shooter-row').forEach(row => {
-        const shooterSelect = row.querySelector('.row-shooter-select');
-        const shooterId = shooterSelect.value;
-        const cost = parseInt(row.dataset.cost) || 0;
-        
-        const classIds = [];
-        row.querySelectorAll('.row-class-cb:checked').forEach(cb => classIds.push(cb.value));
-
-        if (!shooterId) return; // Hoppa över tomma
-        if (classIds.length === 0) {
-            validationError = true;
-            return;
-        }
-
-        signupsList.push({
-            shooterId: shooterId,
-            classIds: classIds,
-            cost: cost
+    const signupForm = document.getElementById('comp-signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleSignupSubmit();
         });
-    });
-
-    if (validationError) {
-        showModal('errorModal', "Alla valda skyttar måste ha minst en klass.");
-        return;
-    }
-    if (signupsList.length === 0) {
-        showModal('errorModal', "Lägg till minst en skytt.");
-        return;
     }
 
-    // Skicka till service
-    const result = await submitBulkSignup(compId, signupsList, clubName, totalOrderCost);
-
-    if (result.success) {
-        // Uppdatera UI till Kvitto-läge
-        document.getElementById('signup-form-section').classList.add('hidden');
-        document.getElementById('signup-success-section').classList.remove('hidden');
-        
-        // Footer-knappar
-        document.getElementById('confirm-bulk-signup-btn').classList.add('hidden');
-        document.getElementById('close-success-btn').classList.remove('hidden');
-        document.getElementById('close-success-btn').onclick = () => document.getElementById('compSignupModal').classList.remove('active');
-
-        document.getElementById('swish-msg-ref').textContent = result.refCode;
-        document.getElementById('final-total-sum').textContent = `${totalOrderCost} kr`;
-
-        if (totalOrderCost > 0) {
-            const swishData = `C${comp.swishNumber};${totalOrderCost};${result.refCode};0`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(swishData)}`;
-            document.getElementById('swish-qr-code').src = qrUrl;
-            document.getElementById('swish-container').classList.remove('hidden');
-        } else {
-            document.getElementById('swish-container').classList.add('hidden');
-        }
-        
-        // Uppdatera bakgrundsdata
-        mySignups = await getMySignups();
-        populateUserReportingDropdown();
+    const closeSignupModal = document.getElementById('close-signup-modal');
+    if (closeSignupModal) {
+        closeSignupModal.addEventListener('click', () => {
+            document.getElementById('compSignupModal').classList.remove('active');
+        });
     }
-}
+
     // --- USER: RAPPORTERING ---
     const userCompSelect = document.getElementById('user-comp-select');
     if (userCompSelect) {
@@ -193,52 +104,6 @@ async function handleBulkSignupSubmit() {
             await handleResultSubmit();
         });
     }
-}
-
-function createShooterRowHtml(rowId, shooters, classes, compRules) {
-    // Skapa dropdown för skyttar
-    let shooterOptions = '<option value="">Välj skytt...</option>';
-    shooters.forEach(s => {
-        shooterOptions += `<option value="${s.id}" data-birthyear="${s.birthyear}">${s.name}</option>`;
-    });
-
-    // Skapa checkboxar för klasser (Gömda tills skytt vald, men vi renderar strukturen)
-    // Vi använder "data-" attribut för att enkelt räkna pris via JS senare
-    let classChecks = '';
-    classes.sort((a,b) => a.minAge - b.minAge).forEach(c => {
-        classChecks += `
-            <label class="flex items-center space-x-2 p-1 border rounded bg-white hover:bg-blue-50 cursor-pointer class-option hidden" data-min="${c.minAge}" data-max="${c.maxAge}">
-                <input type="checkbox" value="${c.id}" class="row-class-cb w-4 h-4 text-blue-600 rounded">
-                <span class="text-sm">${c.name} <span class="text-xs text-gray-500">(${c.discipline})</span></span>
-            </label>
-        `;
-    });
-
-    return `
-        <div class="shooter-row bg-white p-3 rounded shadow-sm border border-gray-200 relative" id="row-${rowId}">
-            <button class="remove-row-btn absolute top-2 right-2 text-gray-400 hover:text-red-500 font-bold text-xl leading-none">&times;</button>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="col-span-1">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Skytt</label>
-                    <select class="row-shooter-select w-full p-2 border rounded bg-gray-50 focus:bg-white transition">
-                        ${shooterOptions}
-                    </select>
-                </div>
-                
-                <div class="col-span-1 md:col-span-2">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Klasser</label>
-                    <div class="row-classes-container grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                        <p class="text-sm text-gray-400 italic no-shooter-msg">Välj skytt först</p>
-                        ${classChecks}
-                    </div>
-                </div>
-            </div>
-            <div class="mt-2 text-right text-sm font-bold text-gray-600">
-                Radsumma: <span class="row-total">0</span> kr
-            </div>
-        </div>
-    `;
 }
 
 // ==========================================
@@ -264,15 +129,12 @@ function populateClassCheckboxes() {
     if (!container) return;
     container.innerHTML = '';
     
-    if (onlineClassesCache.length === 0) {
-        container.innerHTML = '<p class="text-xs text-gray-500">Inga klasser skapade än.</p>';
+    if (competitionClasses.length === 0) {
+        container.innerHTML = '<p class="text-xs text-gray-500">Inga klasser hämtade än.</p>';
         return;
     }
 
-    // Sortera på ålder
-    onlineClassesCache.sort((a, b) => a.minAge - b.minAge);
-
-    onlineClassesCache.forEach(cls => {
+    competitionClasses.forEach(cls => {
         const label = document.createElement('label');
         label.className = "flex items-center space-x-2 text-sm p-1 hover:bg-gray-50 rounded";
         label.innerHTML = `
@@ -280,36 +142,6 @@ function populateClassCheckboxes() {
             <span>${cls.name} (${cls.discipline})</span>
         `;
         container.appendChild(label);
-    });
-}
-
-// NY FUNKTION: Ritar listan i "Hantera Klasser"
-function renderOnlineClassesList() {
-    const container = document.getElementById('online-classes-list');
-    if(!container) return;
-    
-    container.innerHTML = '';
-    onlineClassesCache.sort((a, b) => a.minAge - b.minAge);
-
-    onlineClassesCache.forEach(cls => {
-        const div = document.createElement('div');
-        div.className = "flex justify-between items-center bg-white p-2 rounded border text-sm";
-        div.innerHTML = `
-            <span><b>${cls.name}</b> (${cls.minAge}-${cls.maxAge} år)</span>
-            <button class="del-class-btn text-red-500 font-bold px-2 hover:bg-red-50 rounded" data-id="${cls.id}">×</button>
-        `;
-        container.appendChild(div);
-    });
-
-    container.querySelectorAll('.del-class-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            if(confirm("Ta bort klassen?")) {
-                await deleteOnlineClass(e.target.dataset.id);
-                onlineClassesCache = await getOnlineClasses();
-                renderOnlineClassesList();
-                populateClassCheckboxes();
-            }
-        });
     });
 }
 
@@ -332,10 +164,8 @@ async function handleCreateCompetition() {
         startDate: document.getElementById('new-comp-start').value,
         endDate: document.getElementById('new-comp-end').value,
         resultsVisibility: document.getElementById('new-comp-visibility').value,
-        resultsCount: parseInt(document.getElementById('new-comp-count-results').value) || 0,
         signupDeadline: document.getElementById('new-comp-signup-deadline').value, 
         cost: parseInt(document.getElementById('new-comp-cost').value) || 0,
-        extraCost: parseInt(document.getElementById('new-comp-extra-cost').value) || 0, 
         rules: { 
             allowDecimals: document.getElementById('rule-decimals').checked,
             requireImageAlways: document.getElementById('rule-image-req').checked
@@ -376,66 +206,29 @@ async function renderAdminSignupsList() {
         return;
     }
 
-    // Gruppera på paymentReference
-    const groups = {};
-    pending.forEach(s => {
-        const ref = s.paymentReference || 'Okänd';
-        if (!groups[ref]) {
-            groups[ref] = {
-                items: [],
-                totalCost: 0,
-                club: s.clubName,
-                compId: s.competitionId
-            };
-        }
-        groups[ref].items.push(s);
-        groups[ref].totalCost += (s.cost || 0);
-    });
-
-    Object.keys(groups).forEach(ref => {
-        const group = groups[ref];
-        const comp = activeCompetitions.find(c => c.id === group.compId);
+    pending.forEach(signup => {
+        const comp = activeCompetitions.find(c => c.id === signup.competitionId);
         const compName = comp ? comp.name : 'Okänd tävling';
-        const shooterCount = group.items.length;
-        
-        // Hämta namn på skyttarna i gruppen för tooltip/info
-        // (Vi har inte namnen direkt i signup-objektet, men vi kan visa antal)
         
         const div = document.createElement('div');
-        div.className = "p-4 border-l-4 border-yellow-400 bg-white rounded shadow-sm mb-3";
+        div.className = "p-3 border rounded flex justify-between items-center bg-white";
         div.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <span class="bg-yellow-100 text-yellow-800 text-xs font-mono px-2 py-1 rounded font-bold">${ref}</span>
-                    <h4 class="font-bold text-gray-800 mt-1">${compName}</h4>
-                    <p class="text-sm text-gray-600">${group.club || 'Ingen klubb angiven'}</p>
-                    <p class="text-xs text-gray-500 mt-1">${shooterCount} anmälda skyttar</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xl font-bold text-blue-900">${group.totalCost} kr</p>
-                    <button class="approve-group-btn mt-2 bg-green-500 text-white px-4 py-2 rounded font-bold hover:bg-green-600 shadow-sm text-sm" 
-                        data-ref="${ref}">
-                        Godkänn Allt
-                    </button>
-                </div>
+            <div>
+                <p class="font-bold text-gray-800">${compName}</p>
+                <p class="text-sm text-gray-600">Referens: <span class="font-mono font-bold bg-yellow-100 px-1">${signup.paymentReference}</span></p>
+                <p class="text-xs text-gray-500">Klubb: ${signup.clubName || '-'}</p>
             </div>
+            <button class="approve-payment-btn bg-green-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-green-600" data-id="${signup.id}">
+                Godkänn
+            </button>
         `;
         container.appendChild(div);
     });
 
-    // Hantera klick på Godkänn (Batch-uppdatering)
-    container.querySelectorAll('.approve-group-btn').forEach(btn => {
+    document.querySelectorAll('.approve-payment-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const ref = e.target.dataset.ref;
-            const groupItems = groups[ref].items; // Hämta alla signups i denna grupp
-            
-            if(confirm(`Godkänn betalning på ${groups[ref].totalCost} kr för referens ${ref}?`)) {
-                // Loopa och godkänn alla (vi kan göra en batch i service också, men detta funkar)
-                for (const item of groupItems) {
-                    await approveSignupPayment(item.id); 
-                }
-                renderAdminSignupsList(); // Ladda om listan
-            }
+            await approveSignupPayment(e.target.dataset.id);
+            renderAdminSignupsList(); 
         });
     });
 }
@@ -466,53 +259,16 @@ function renderAdminCompetitionsList() {
                     ${comp.startDate} till ${comp.endDate} | ${visibilityIcon}
                 </div>
             </div>
-            <div class="flex space-x-2">
-                <button class="edit-comp-btn text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200" 
-                    data-id="${comp.id}">
-                    Redigera
-                </button>
-                <button class="delete-comp-custom-btn text-xs bg-red-100 text-red-700 px-3 py-1 rounded font-bold hover:bg-red-200" 
-                    data-id="${comp.id}" data-name="${comp.name}">
-                    Ta bort
-                </button>
-            </div>
+            <button class="edit-comp-btn text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200" 
+                data-id="${comp.id}">
+                Redigera
+            </button>
         `;
         container.appendChild(div);
     });
 
-    // Lyssna på edit
     container.querySelectorAll('.edit-comp-btn').forEach(btn => {
         btn.addEventListener('click', (e) => loadCompetitionForEdit(e.target.dataset.id));
-    });
-
-    // NYTT: Lyssna på delete
-    container.querySelectorAll('.delete-comp-custom-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.dataset.id;
-            const name = e.target.dataset.name;
-            
-            // Vi återanvänder din befintliga confirmationModal men lägger in egen logik på knappen
-            showModal('deleteConfirmationModal', `⚠️ VARNING! <br>Är du säker på att du vill radera <strong>"${name}"</strong>?<br><br>Detta tar även bort alla anmälningar och resultat kopplade till tävlingen.`);
-            
-            const confirmBtn = document.getElementById('confirm-delete-btn');
-            // Klona knappen för att bli av med gamla event listeners
-            const newBtn = confirmBtn.cloneNode(true);
-            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-            
-            newBtn.addEventListener('click', async () => {
-                await deleteCompetitionFull(id);
-                document.getElementById('deleteConfirmationModal').classList.remove('active');
-                // Uppdatera listan
-                activeCompetitions = await getAllCompetitions();
-                renderAdminCompetitionsList();
-                renderUserLobby();
-            });
-            
-            // Koppla även "Avbryt"-knappen för säkerhets skull (oftast redan kopplad globalt, men skadar inte)
-            document.getElementById('cancel-delete-btn').onclick = () => {
-                document.getElementById('deleteConfirmationModal').classList.remove('active');
-            };
-        });
     });
 }
 
@@ -528,10 +284,7 @@ function loadCompetitionForEdit(compId) {
     document.getElementById('new-comp-end').value = comp.endDate;
     document.getElementById('new-comp-signup-deadline').value = comp.signupDeadline || '';
     document.getElementById('new-comp-cost').value = comp.cost;
-    // NYTT: Ladda in extra kostnad
-    document.getElementById('new-comp-extra-cost').value = comp.extraCost || 0;
     document.getElementById('new-comp-visibility').value = comp.resultsVisibility || 'public';
-    document.getElementById('new-comp-count-results').value = comp.resultsCount || '';
     
     if(comp.rules) {
         document.getElementById('rule-decimals').checked = comp.rules.allowDecimals || false;
@@ -613,186 +366,63 @@ function renderUserLobby() {
 async function openSignupModal(compId) {
     const comp = activeCompetitions.find(c => c.id === compId);
     if (!comp) return;
-    
 
-    // Återställ UI
-    document.getElementById('signup-form-section').classList.remove('hidden');
-    document.getElementById('signup-success-section').classList.add('hidden');
-    document.getElementById('signup-modal-footer').classList.remove('hidden');
-    document.getElementById('confirm-bulk-signup-btn').classList.remove('hidden');
-    document.getElementById('close-success-btn').classList.add('hidden');
-    
     document.getElementById('signup-comp-name').textContent = comp.name;
     document.getElementById('signup-comp-id').value = comp.id;
-    document.getElementById('bulk-signup-list').innerHTML = ''; // Töm listan
-    updateBulkTotal();
+    document.getElementById('swish-info-box').classList.add('hidden');
+    document.getElementById('confirm-signup-btn').classList.remove('hidden');
 
-    // Hämta mina skyttar
+    const shooterSelect = document.getElementById('signup-shooter-select');
+    shooterSelect.innerHTML = '';
     const myShooters = await getMyShooters(auth.currentUser.uid);
     
-    // Funktion för att lägga till en ny rad
-    const addRow = () => {
-        currentRowId++;
-        const container = document.getElementById('bulk-signup-list');
-        
-        // FIX: Vi lägger in HTML-koden direkt i listan istället för att skapa en wrapper-div först.
-        // Detta gör att .shooter-row blir det faktiska elementet vi jobbar med.
-        const html = createShooterRowHtml(currentRowId, myShooters, onlineClassesCache, comp);
-        container.insertAdjacentHTML('beforeend', html);
-        
-        // Nu pekar rowEl på rätt element (div.shooter-row)
-        const rowEl = container.lastElementChild;
-        
-        setupRowEvents(rowEl, comp);
-        
-        // Scrolla ner
-        rowEl.scrollIntoView({ behavior: 'smooth' });
-    };
+    if (myShooters.length === 0) {
+        shooterSelect.innerHTML = '<option>Inga profiler (skapa en först)</option>';
+    } else {
+        myShooters.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            shooterSelect.appendChild(opt);
+        });
+    }
 
-    // Koppla "Lägg till"-knappen
-    const addBtn = document.getElementById('add-shooter-row-btn');
-    // Ta bort gamla listeners (kloningstricket)
-    const newAddBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newAddBtn, addBtn);
-    newAddBtn.addEventListener('click', addRow);
-
-    // Lägg till första raden direkt
-    addRow();
+    const classSelect = document.getElementById('signup-class-select');
+    classSelect.innerHTML = '';
+    if (comp.allowedClasses && comp.allowedClasses.length > 0) {
+        const allowed = competitionClasses.filter(c => comp.allowedClasses.includes(c.id));
+        allowed.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.name} (${c.discipline})`;
+            classSelect.appendChild(opt);
+        });
+    } else {
+        classSelect.innerHTML = '<option value="open">Öppen klass</option>';
+    }
 
     document.getElementById('compSignupModal').classList.add('active');
-}
-
-function setupRowEvents(rowEl, comp) {
-    const shooterSelect = rowEl.querySelector('.row-shooter-select');
-    const classesContainer = rowEl.querySelector('.row-classes-container');
-    const checkboxes = rowEl.querySelectorAll('.row-class-cb');
-    const removeBtn = rowEl.querySelector('.remove-row-btn');
-    const noShooterMsg = rowEl.querySelector('.no-shooter-msg');
-    const classLabels = rowEl.querySelectorAll('.class-option');
-
-    // Ta bort rad
-    removeBtn.addEventListener('click', () => {
-        rowEl.remove();
-        updateBulkTotal();
-    });
-
-    // När skytt väljs
-    shooterSelect.addEventListener('change', (e) => {
-        const selectedOpt = e.target.selectedOptions[0];
-        if (!selectedOpt || !selectedOpt.value) {
-            noShooterMsg.classList.remove('hidden');
-            classLabels.forEach(l => l.classList.add('hidden'));
-            // Avmarkera allt
-            checkboxes.forEach(cb => cb.checked = false);
-        } else {
-            noShooterMsg.classList.add('hidden');
-            
-            // Ålderslogik för att markera/visa relevanta klasser
-            const birthYear = parseInt(selectedOpt.dataset.birthyear);
-            const currentYear = new Date().getFullYear();
-            const age = currentYear - birthYear;
-
-            classLabels.forEach(label => {
-                label.classList.remove('hidden'); // Visa alla (eller dölj om du vill vara strikt)
-                
-                const min = parseInt(label.dataset.min);
-                const max = parseInt(label.dataset.max);
-                
-                // Markera rekommenderade
-                if (age >= min && age <= max) {
-                    label.classList.add('bg-green-50', 'border-green-200', 'font-bold');
-                    label.classList.remove('bg-white');
-                } else {
-                    label.classList.remove('bg-green-50', 'border-green-200', 'font-bold');
-                    label.classList.add('bg-white');
-                }
-            });
-        }
-        calculateRowPrice(rowEl, comp);
-    });
-
-    // När klass klickas
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', () => calculateRowPrice(rowEl, comp));
-    });
-}
-
-function calculateRowPrice(rowEl, comp) {
-    const checked = rowEl.querySelectorAll('.row-class-cb:checked').length;
-    let cost = 0;
-    
-    if (checked > 0) {
-        const basePrice = comp.cost || 0;
-        const extraPrice = (comp.extraCost !== undefined && comp.extraCost !== null) ? comp.extraCost : basePrice;
-        cost = basePrice + ((checked - 1) * extraPrice);
-    }
-    
-    rowEl.querySelector('.row-total').textContent = cost;
-    rowEl.dataset.cost = cost; // Spara på elementet för totalen
-    
-    updateBulkTotal();
-}
-
-function updateBulkTotal() {
-    let total = 0;
-    document.querySelectorAll('.shooter-row').forEach(row => {
-        total += parseInt(row.dataset.cost) || 0;
-    });
-    
-    document.getElementById('bulk-total-price').textContent = `${total} kr`;
-    document.getElementById('bulk-total-price').dataset.value = total;
-    
-    // Inaktivera knapp om 0 kr eller inga rader
-    const btn = document.getElementById('confirm-bulk-signup-btn');
-    const rows = document.querySelectorAll('.shooter-row');
-    if (rows.length === 0) {
-        btn.disabled = true;
-    } else {
-        btn.disabled = false;
-    }
 }
 
 async function handleSignupSubmit() {
     const compId = document.getElementById('signup-comp-id').value;
     const shooterId = document.getElementById('signup-shooter-select').value;
+    const classId = document.getElementById('signup-class-select').value;
     const clubName = document.getElementById('signup-club-name').value;
     
-    // Hämta valda klasser
-    const selectedClasses = [];
-    document.querySelectorAll('.signup-class-cb:checked').forEach(cb => {
-        selectedClasses.push(cb.value);
-    });
-
-    if (selectedClasses.length === 0) {
-        // Om inga klasser finns definierade (Öppen tävling), skicka tom array eller dummy
-        // Men om klasser FINNS, kräv val
-        const checkboxes = document.querySelectorAll('.signup-class-cb');
-        if (checkboxes.length > 0) {
-            showModal('errorModal', "Du måste välja minst en klass.");
-            return;
-        }
-    }
-
     const comp = activeCompetitions.find(c => c.id === compId);
     
-    // Hämta uträknat pris (eller räkna om för säkerhets skull)
-    const priceText = document.getElementById('price-summary').dataset.total;
-    const totalPrice = priceText ? parseInt(priceText) : comp.cost; // Fallback
-
-    const result = await signupForCompetition(compId, shooterId, selectedClasses, clubName, totalPrice);
+    const result = await signupForCompetition(compId, shooterId, classId, clubName, comp.cost);
     
     if (result.success) {
-        if (totalPrice > 0) {
-            const swishData = `C${comp.swishNumber};${totalPrice};${result.refCode};0`;
+        if (comp.cost > 0) {
+            const swishData = `C${comp.swishNumber};${comp.cost};${result.refCode};0`;
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(swishData)}`;
             
             document.getElementById('swish-qr-code').src = qrUrl;
             document.getElementById('swish-msg-ref').textContent = result.refCode;
-            
-            // Visa Swish-boxen och dölj resten
             document.getElementById('swish-info-box').classList.remove('hidden');
             document.getElementById('confirm-signup-btn').classList.add('hidden');
-            document.getElementById('signup-class-checkboxes').classList.add('hidden'); // Dölj valen så det ser rent ut
             
             mySignups = await getMySignups(); 
         } else {
@@ -827,24 +457,9 @@ function populateUserReportingDropdown() {
         const shooter = allShootersData.find(s => s.id === signup.shooterId);
         const shooterName = shooter ? shooter.name : 'Okänd';
 
-        // Hämta klassnamn från IDs i signup.classIds
-        let classNames = "";
-        if (signup.classIds && signup.classIds.length > 0) {
-            const names = signup.classIds.map(id => {
-                const cls = onlineClassesCache.find(c => c.id === id);
-                return cls ? cls.name : id; // Visa namn om hittat, annars ID
-            });
-            classNames = ` (${names.join(', ')})`;
-        } else if (signup.classId) {
-            // Bakåtkompatibilitet om gamla anmälningar finns
-            const cls = onlineClassesCache.find(c => c.id === signup.classId);
-            classNames = cls ? ` (${cls.name})` : "";
-        }
-
         const opt = document.createElement('option');
         opt.value = signup.id;
-        // HÄR ÄR FIXEN: Vi lägger till klassnamnen i texten
-        opt.textContent = `${comp.name} - ${shooterName}${classNames}`;
+        opt.textContent = `${comp.name} - ${shooterName}`;
         opt.dataset.compId = comp.id;
         opt.dataset.shooterId = signup.shooterId;
         select.appendChild(opt);
@@ -871,10 +486,8 @@ async function updateReportingUI(signupId) {
     badge.textContent = "Klar att rapportera";
     badge.className = "bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded";
 
- // Omgångsinfo och Deadline-hantering
     let roundInfo = "Öppen tävling (inga delmoment)";
     let currentRoundId = "open";
-    let activeDeadline = comp.endDate; // Default: Tävlingens slutdatum
 
     if (comp.rounds && comp.rounds.length > 0) {
         const today = new Date().toISOString().split('T')[0];
@@ -882,13 +495,10 @@ async function updateReportingUI(signupId) {
         
         roundInfo = `Aktuell omgång: ${currentRound.name} (Deadline: ${currentRound.deadline})`;
         currentRoundId = currentRound.name;
-        activeDeadline = currentRound.deadline;
+        
+        document.getElementById('report-date').max = currentRound.deadline;
+        document.getElementById('report-date').dataset.deadline = currentRound.deadline;
     }
-    
-    // Sätt deadline på datumväljaren (används för att räkna ut isLate)
-    const dateInput = document.getElementById('report-date');
-    dateInput.max = activeDeadline; 
-    dateInput.dataset.deadline = activeDeadline; // VIKTIGT: Nu sätts den alltid
     
     document.getElementById('reporting-round-info').textContent = roundInfo;
     document.getElementById('report-round-id').value = currentRoundId;
@@ -929,101 +539,10 @@ async function renderUserCompetitionView(comp, shooterId) {
     historyContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar...</p>';
     leaderboardContainer.innerHTML = '<p class="text-gray-400 text-sm">Laddar ställning...</p>';
 
-    // 1. Hämta alla resultat
     const allEntries = await getCompetitionEntries(comp.id);
-    
-    // --- FÖRBERED DATA FÖR LOGIKEN ---
-    
-    // Gruppera resultat per skytt och omgång
-    // Struktur: { shooterId: { name: "Namn", rounds: { "Omgång 1": [102.4, 101.0] } } }
-    const shooterStats = {};
-    const uniqueRounds = new Set();
-
-    // Först, identifiera alla unika omgångar som finns i datan för att bygga kolumner
-    allEntries.forEach(entry => {
-        let rId = entry.roundId || 'Öppen';
-        // Om det är "open", använd datum som kolumnrubrik om det inte finns omgångsnamn
-        if (rId === 'open') rId = entry.date; 
-        uniqueRounds.add(rId);
-    });
-    
-    // Sortera omgångarna logiskt (Omgång 1, Omgång 2...)
-    const sortedRounds = Array.from(uniqueRounds).sort((a, b) => {
-        // Försök sortera på nummer i strängen "Omgång X"
-        const numA = parseInt(a.replace(/\D/g, '')) || 0;
-        const numB = parseInt(b.replace(/\D/g, '')) || 0;
-        if (numA !== numB) return numA - numB;
-        return a.localeCompare(b); // Fallback till bokstavsordning (eller datum)
-    });
-
-    // Bygg upp shooterStats
-    allEntries.forEach(entry => {
-        const sId = entry.shooterId;
-        const shooter = allShootersData.find(s => s.id === sId);
-        const name = shooter ? shooter.name : "Okänd";
-        let rId = entry.roundId || 'Öppen';
-        if (rId === 'open') rId = entry.date;
-
-        if (!shooterStats[sId]) {
-            shooterStats[sId] = { name: name, rounds: {} };
-        }
-        if (!shooterStats[sId].rounds[rId]) {
-            shooterStats[sId].rounds[rId] = [];
-        }
-        // Spara hela objektet så vi har ID och status
-        shooterStats[sId].rounds[rId].push(entry);
-    });
-
-    // Räkna ut poäng och vilka som räknas
-    const leaderboardData = Object.keys(shooterStats).map(sId => {
-        const data = shooterStats[sId];
-        const roundBestScores = []; // Håller reda på bästa poängen per omgång
-
-        // För varje omgång, hitta bästa resultatet
-        sortedRounds.forEach(rKey => {
-            const entries = data.rounds[rKey];
-            if (entries && entries.length > 0) {
-                // Sortera fallande för att hitta högsta i denna omgång
-                entries.sort((a, b) => b.score - a.score);
-                const bestEntry = entries[0];
-                roundBestScores.push({ 
-                    round: rKey, 
-                    score: bestEntry.score, 
-                    entryId: bestEntry.id // Viktigt för att kunna markera det
-                });
-            }
-        });
-
-        // Sortera alla omgångsbästa för att hitta de X bästa totalt (om begränsning finns)
-        roundBestScores.sort((a, b) => b.score - a.score);
-        
-        const countLimit = comp.resultsCount || roundBestScores.length;
-        const countingEntries = roundBestScores.slice(0, countLimit);
-        
-        // Skapa ett Set med IDn på de resultat som faktiskt räknas i totalen
-        const countingIds = new Set(countingEntries.map(e => e.entryId));
-        
-        const totalScore = countingEntries.reduce((sum, val) => sum + val.score, 0);
-        
-        return {
-            name: data.name,
-            shooterId: sId,
-            total: Math.round(totalScore * 10) / 10,
-            countingIds: countingIds, // IDn på de resultat som bygger totalen
-            roundData: data.rounds // Alla resultat för att rita tabellen
-        };
-    });
-
-    leaderboardData.sort((a, b) => b.total - a.total);
-
-    // --- 1. VISA HISTORIK (Mina inskickade) ---
-    // Nu kan vi markera vilka av MINA resultat som räknas!
-    const myData = leaderboardData.find(d => d.shooterId === shooterId);
-    const myCountingIds = myData ? myData.countingIds : new Set();
-
     const myEntries = allEntries.filter(e => e.shooterId === shooterId);
-    historyContainer.innerHTML = '';
     
+    historyContainer.innerHTML = '';
     if (myEntries.length === 0) {
         historyContainer.innerHTML = '<p class="text-sm italic text-gray-500">Inga resultat inskickade än.</p>';
     } else {
@@ -1032,23 +551,13 @@ async function renderUserCompetitionView(comp, shooterId) {
         myEntries.forEach(entry => {
             const date = new Date(entry.submittedAt.seconds * 1000).toLocaleDateString();
             const statusIcon = entry.status === 'approved' ? '✅' : '⏳';
-            let rId = entry.roundId || 'Öppen';
-            if (rId === 'open') rId = entry.date;
+            const roundLabel = entry.roundId !== 'open' ? `Omgång: ${entry.roundId}` : entry.date;
             
-            // Kolla om detta resultat är med i de "räknade"
-            const isCounting = myCountingIds.has(entry.id);
-            const countingBadge = isCounting 
-                ? '<span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded border border-green-200">Räknas</span>' 
-                : '<span class="text-xs text-gray-400">(Räknas ej)</span>';
-
             historyContainer.innerHTML += `
-                <div class="flex justify-between items-center p-3 bg-white border rounded text-sm ${isCounting ? 'border-l-4 border-green-500' : ''}">
+                <div class="flex justify-between items-center p-2 bg-white border rounded text-sm">
                     <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="font-bold text-lg">${entry.score}p</span>
-                            ${countingBadge}
-                        </div>
-                        <span class="text-gray-500 text-xs">${rId} (${date})</span>
+                        <span class="font-bold">${entry.score}p</span>
+                        <span class="text-gray-500">(${roundLabel})</span>
                     </div>
                     <span title="${entry.status}">${statusIcon}</span>
                 </div>
@@ -1056,95 +565,54 @@ async function renderUserCompetitionView(comp, shooterId) {
         });
     }
 
-    // --- 2. HANTERA SYNLIGHET (Dölj tabellen om "Blind") ---
     const today = new Date().toISOString().split('T')[0];
     const isEnded = comp.endDate < today;
     const isHidden = comp.resultsVisibility === 'hidden';
     
     if (isHidden && !isEnded) {
         visibilityBadge.textContent = "🔒 Resultat dolda tills tävlingens slut";
-        leaderboardContainer.innerHTML = `... (samma dolda meddelande som förut) ...`;
+        leaderboardContainer.innerHTML = `
+            <div class="p-4 bg-gray-100 rounded text-center text-gray-500 text-sm">
+                <p>Tävlingsledningen har valt att dölja andras resultat.</p>
+                <p>Resultatlistan publiceras efter ${comp.endDate}.</p>
+            </div>
+        `;
         return; 
     }
-    visibilityBadge.textContent = "🌐 Live Resultat";
 
-    // --- 3. RITA TABELLEN (Liknande PDFen) ---
+    visibilityBadge.textContent = "🌐 Live Resultat";
     
-    // Bygg header-raden dynamiskt baserat på omgångar
-    let headerCols = '';
-    sortedRounds.forEach(r => {
-        // Förkorta rubriker om de är långa (t.ex. "Omgång 1" -> "Omg 1")
-        const label = r.replace('Omgång', 'Omg');
-        headerCols += `<th class="p-2 text-center text-xs sm:text-sm whitespace-nowrap">${label}</th>`;
-    });
+    allEntries.sort((a, b) => b.score - a.score);
 
     let tableHtml = `
-        <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left border-collapse">
-            <thead class="bg-gray-100 text-gray-700 font-bold border-b-2 border-gray-300">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-gray-50 text-gray-700 font-bold">
                 <tr>
-                    <th class="p-2 w-8">#</th>
-                    <th class="p-2 min-w-[120px]">Skytt</th>
-                    ${headerCols}
-                    <th class="p-2 text-right border-l bg-gray-50 min-w-[80px]">Total</th>
+                    <th class="p-2">Plats</th>
+                    <th class="p-2">Skytt</th>
+                    <th class="p-2 text-right">Poäng</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody>
     `;
 
-    leaderboardData.forEach((row, index) => {
+    allEntries.slice(0, 10).forEach((entry, index) => {
+        const shooter = allShootersData.find(s => s.id === entry.shooterId);
+        const name = shooter ? shooter.name : "Okänd";
         const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
-        const isMe = row.shooterId === shooterId ? "bg-blue-50 font-bold" : "hover:bg-gray-50";
-        
-        let roundCells = '';
-        sortedRounds.forEach(rKey => {
-            const entries = row.roundData[rKey];
-            let cellContent = '-';
-            let cellClass = 'text-gray-400'; // Grå för tomma/strukna
-
-            if (entries && entries.length > 0) {
-                // Hitta bästa i denna omgång
-                entries.sort((a, b) => b.score - a.score);
-                const best = entries[0];
-                
-                // Är detta resultat med i totalen? (Finns IDt i countingIds?)
-                if (row.countingIds.has(best.id)) {
-                    cellContent = `<strong>${best.score}</strong>`; // Fetstil för räknade
-                    cellClass = 'text-gray-900 bg-green-50/50'; // Liten grön ton
-                } else {
-                    cellContent = `<span class="line-through decoration-gray-400">${best.score}</span>`; // Överstruket för strukna resultat
-                    cellClass = 'text-gray-500';
-                }
-                
-                // Om de skjutit flera serier i samma omgång, visa en liten asterisk *
-                if (entries.length > 1) {
-                    cellContent += `<span class="text-[9px] align-top text-blue-500 cursor-help" title="${entries.length} försök">*</span>`;
-                }
-            }
-            
-            roundCells += `<td class="p-2 text-center border-r border-gray-100 ${cellClass}">${cellContent}</td>`;
-        });
+        const isMe = entry.shooterId === shooterId ? "bg-blue-50 font-bold" : "";
 
         tableHtml += `
-            <tr class="${isMe}">
-                <td class="p-2 font-bold text-gray-500">${medal}</td>
-                <td class="p-2 truncate max-w-[150px]" title="${row.name}">${row.name}</td>
-                ${roundCells}
-                <td class="p-2 text-right font-bold text-blue-900 border-l bg-gray-50/50">${row.total}</td>
+            <tr class="border-b last:border-0 ${isMe}">
+                <td class="p-2">${medal}</td>
+                <td class="p-2">${name}</td>
+                <td class="p-2 text-right">${entry.score}</td>
             </tr>
         `;
     });
 
-    tableHtml += '</tbody></table></div>';
-    
-    const countInfo = comp.resultsCount > 0 
-        ? `<div class="flex justify-between items-center mt-2 text-xs text-gray-500">
-             <span>Resultat i <strong>fet stil</strong> räknas i totalen.</span>
-             <span>* Totalsumman baseras på de ${comp.resultsCount} bästa omgångarna.</span>
-           </div>` 
-        : '';
-
-    leaderboardContainer.innerHTML = tableHtml + countInfo;
+    tableHtml += '</tbody></table>';
+    leaderboardContainer.innerHTML = tableHtml;
 }
 
 function checkDeadlineStatus() {
@@ -1172,7 +640,7 @@ async function handleResultSubmit() {
     const date = document.getElementById('report-date').value;
     
     const deadline = document.getElementById('report-date').dataset.deadline;
-    const isLate = deadline ? (date > deadline) : false;
+    const isLate = deadline && date > deadline;
     
     const fileInput = document.getElementById('report-image-upload');
     const file = fileInput.files[0];

@@ -2,16 +2,18 @@
 import { db, auth } from "./firebase-config.js";
 import { 
     collection, addDoc, updateDoc, doc, query, where, getDocs, 
-    serverTimestamp, orderBy , writeBatch, deleteDoc
+    serverTimestamp, orderBy, getDoc, arrayUnion 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 
 // --- TÄVLINGAR (ADMIN) ---
 
+// Skapa ny tävling
 export async function createCompetition(compData) {
     if (!isAdminLoggedIn) return;
+
     try {
-        await addDoc(collection(db, 'online_competitions'), {
+        await addDoc(collection(db, 'competitions'), {
             ...compData,
             isActive: true,
             createdAt: serverTimestamp(),
@@ -19,142 +21,131 @@ export async function createCompetition(compData) {
         });
         showModal('confirmationModal', "Tävlingen har skapats!");
     } catch (error) {
-        showModal('errorModal', "Kunde inte skapa tävling: " + error.message);
+        console.error("Fel vid skapande av tävling:", error);
+        showModal('errorModal', "Kunde inte skapa tävling.");
     }
 }
 
+// Hämta alla tävlingar (både aktiva och gamla)
 export async function getAllCompetitions() {
-    const q = query(collection(db, 'online_competitions'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'competitions'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-export async function updateCompetition(compId, data) {
-    if (!isAdminLoggedIn) return;
+// --- ANMÄLAN (USER) ---
+
+// Anmäl en skytt till en tävling
+export async function signupForCompetition(compId, shooterId, classId, clubName, cost) {
     try {
-        await updateDoc(doc(db, 'online_competitions', compId), data);
-        showModal('confirmationModal', "Tävlingen uppdaterad!");
-        return true;
-    } catch (e) {
-        showModal('errorModal', "Kunde inte uppdatera tävling.");
-        return false;
-    }
-}
+        // Generera en unik referens för Swish: "T[CompShort]-S[ShooterShort]"
+        // Vi använder en enkel timestamp-hash för demo, men i prod kan man ta de sista tecknen av IDt.
+        const refCode = `T${compId.substring(0,3).toUpperCase()}-${shooterId.substring(0,3).toUpperCase()}-${Math.floor(Math.random()*100)}`;
+        
+        // Sätt status beroende på om det kostar något
+        const initialStatus = cost > 0 ? 'pending_payment' : 'approved';
 
-export async function deleteCompetitionFull(compId) {
-    if (!isAdminLoggedIn) return;
-    try {
-        const signupsQ = query(collection(db, 'competition_signups'), where('competitionId', '==', compId));
-        const signupsSnap = await getDocs(signupsQ);
-        const entriesQ = query(collection(db, 'competition_entries'), where('competitionId', '==', compId));
-        const entriesSnap = await getDocs(entriesQ);
+        const docRef = await addDoc(collection(db, 'competition_signups'), {
+            competitionId: compId,
+            userId: auth.currentUser.uid,
+            shooterId: shooterId,
+            classId: classId,
+            clubName: clubName, // NYTT: Klubbtillhörighet
+            paymentStatus: initialStatus,
+            paymentReference: refCode,
+            signedUpAt: serverTimestamp()
+        });
 
-        const batch = writeBatch(db);
-        batch.delete(doc(db, 'online_competitions', compId));
-        signupsSnap.forEach(doc => batch.delete(doc.ref));
-        entriesSnap.forEach(doc => batch.delete(doc.ref));
+        // Uppdatera Swish-rutan i UI med referenskoden
+        return { success: true, refCode: refCode, signupId: docRef.id };
 
-        await batch.commit();
-        showModal('confirmationModal', "Tävlingen raderad.");
-        return true;
     } catch (error) {
-        showModal('errorModal', "Fel vid borttagning.");
-        return false;
+        console.error("Fel vid anmälan:", error);
+        showModal('errorModal', "Anmälan misslyckades.");
+        return { success: false };
     }
 }
 
-// --- ONLINE KLASSER (SYSTEM 2) ---
-// Dessa hanterar samlingen 'online_competition_classes'
-
-export async function createOnlineClass(classData) {
-    if (!isAdminLoggedIn) return;
-    try {
-        await addDoc(collection(db, 'online_competition_classes'), classData);
-        showModal('confirmationModal', "Ny online-klass skapad!");
-        return true;
-    } catch (e) {
-        showModal('errorModal', "Kunde inte skapa klass.");
-        return false;
-    }
-}
-
-export async function updateOnlineClass(classId, classData) {
-    if (!isAdminLoggedIn) return;
-    try {
-        await updateDoc(doc(db, 'online_competition_classes', classId), classData);
-        showModal('confirmationModal', "Online-klass uppdaterad!");
-        return true;
-    } catch (e) {
-        showModal('errorModal', "Kunde inte uppdatera klass.");
-        return false;
-    }
-}
-
-export async function deleteOnlineClass(classId) {
-    if (!isAdminLoggedIn) return;
-    try {
-        await deleteDoc(doc(db, 'online_competition_classes', classId));
-        showModal('confirmationModal', "Online-klass borttagen.");
-        return true;
-    } catch (e) {
-        showModal('errorModal', "Kunde inte ta bort klass.");
-        return false;
-    }
-}
-
-export async function getOnlineClasses() {
-    const q = query(collection(db, 'online_competition_classes'), orderBy('minAge'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-
-// --- ANMÄLNINGAR & RESULTAT ---
-
+// Hämta mina anmälningar
 export async function getMySignups() {
     if (!auth.currentUser) return [];
     const q = query(collection(db, 'competition_signups'), where('userId', '==', auth.currentUser.uid));
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-export async function submitBulkSignup(signups, totalPrice) {
-    if (!auth.currentUser) return false;
-    const batch = writeBatch(db);
-    signups.forEach(signup => {
-        const ref = doc(collection(db, 'competition_signups'));
-        batch.set(ref, {
-            ...signup, userId: auth.currentUser.uid, registeredAt: serverTimestamp(),
-            status: 'pending', paymentStatus: 'pending', totalBatchPrice: totalPrice
-        });
-    });
-    try { await batch.commit(); return true; } 
-    catch (e) { showModal('errorModal', "Fel vid anmälan."); return false; }
-}
-
-export async function getPendingSignups() {
-    const q = query(collection(db, 'competition_signups'), orderBy('registeredAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-export async function approveSignupPayment(signupId) {
-    try {
-        await updateDoc(doc(db, 'competition_signups', signupId), { paymentStatus: 'paid', status: 'confirmed' });
-        return true;
-    } catch (e) { return false; }
-}
+// --- RESULTATRAPPORTERING ---
 
 export async function submitCompetitionResult(entryData) {
     try {
-        await addDoc(collection(db, 'competition_entries'), { ...entryData, submittedAt: serverTimestamp(), userId: auth.currentUser.uid });
-        showModal('confirmationModal', "Resultat inskickat!");
+        // Kolla deadline en gång till backend-side (eller lita på UI för MVP)
+        // entryData innehåller: { competitionId, shooterId, roundId, score, series, imageUrl, isLate, ... }
+        
+        const status = entryData.isLate ? 'pending_review' : 'approved';
+        
+        await addDoc(collection(db, 'competition_entries'), {
+            ...entryData,
+            status: status,
+            submittedAt: serverTimestamp(),
+            submittedBy: auth.currentUser.uid
+        });
+
+        const msg = entryData.isLate 
+            ? "Resultat inskickat för granskning (pga sen inlämning)." 
+            : "Resultat registrerat!";
+            
+        showModal('confirmationModal', msg);
         return true;
-    } catch (e) { showModal('errorModal', "Kunde inte skicka resultat."); return false; }
+    } catch (error) {
+        console.error("Fel vid inskick av resultat:", error);
+        showModal('errorModal', "Kunde inte skicka resultat.");
+        return false;
+    }
 }
 
+// --- ADMIN HANTERING ---
+
+// Hämta anmälningar som väntar på betalning (för en viss tävling eller alla)
+export async function getPendingSignups() {
+    if (!isAdminLoggedIn) return [];
+    const q = query(collection(db, 'competition_signups'), where('paymentStatus', '==', 'pending_payment'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+// Godkänn betalning
+export async function approveSignupPayment(signupId) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await updateDoc(doc(db, 'competition_signups', signupId), {
+            paymentStatus: 'approved'
+        });
+        showModal('confirmationModal', "Betalning godkänd!");
+    } catch (e) {
+        showModal('errorModal', "Kunde inte godkänna.");
+    }
+}
+
+// NYTT: Uppdatera en tävling
+export async function updateCompetition(compId, data) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await updateDoc(doc(db, 'competitions', compId), data);
+        showModal('confirmationModal', "Tävlingen har uppdaterats!");
+    } catch (error) {
+        console.error("Fel vid uppdatering:", error);
+        showModal('errorModal', "Kunde inte uppdatera.");
+    }
+}
+
+// NYTT: Hämta alla resultat för en specifik tävling (för leaderboard)
 export async function getCompetitionEntries(compId) {
-    const q = query(collection(db, 'competition_entries'), where('competitionId', '==', compId));
-    const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const q = query(collection(db, 'competition_entries'), where('competitionId', '==', compId));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Kunde inte hämta tävlingsresultat:", error);
+        return [];
+    }
 }

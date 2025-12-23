@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -7,37 +8,35 @@
     <link id="favicon-link" rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://unpkg.com;">    
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/@sgratzl/chartjs-chart-boxplot@3"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://unpkg.com/@sgratzl/chartjs-chart-boxplot@3.10.0/build/index.umd.min.js"></script>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net;">    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
-  <header class="bg-blue-800 text-white shadow-lg" id="site-header">
-      <div class="container pt-4 pb-2 flex flex-col sm:flex-row justify-between items-center relative">
+    <header class="bg-blue-800 text-white shadow-lg" id="site-header">
+    <div class="container pt-4 pb-2 flex flex-col sm:flex-row justify-between items-center relative">
         <div class="header-content flex items-center space-x-4">
             <a href="#hem" id="site-logo-link" class="flex items-center">
                 <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
             </a>
             <div class="flex flex-col items-start">
                 <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300">Original</p>
+                <p class="text-sm text-gray-300">Ver. 3.17</p>
             </div>
         </div>
         <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
-        <button id="mobile-menu-btn" class="md:hidden focus:outline-none ml-auto text-white mt-4 sm:mt-0 p-2 relative z-20">
+        
+        <button id="mobile-menu-btn" class="md:hidden focus:outline-none ml-auto text-white mt-4 sm:mt-0">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
             </svg>
         </button>
     </div>
+
     <div class="container pb-4">
         <nav id="main-nav" class="hidden md:flex space-x-8 items-center border-t border-blue-400/30 pt-2">
-            <a href="#hem" class="nav-link font-medium hover:text-blue-200 transition">Hem</a>
             
+            <a href="#hem" class="nav-link font-medium hover:text-blue-200 transition">Hem</a>
+
             <div class="relative group py-2"> 
                 <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
                     Föreningen <span class="ml-1 text-xs">▼</span>
@@ -45,40 +44,77 @@
                 <div class="absolute left-0 mt-0 w-48 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
                     <a href="#nyheter" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg">Nyheter</a>
                     <a href="#kalender" class="block px-4 py-2 hover:bg-gray-100">Kalender</a>
-                    <a href="#omoss" class="block px-4 py-2 hover:bg-gray-100">Om oss</a> 
-                    <a href="#omoss" onclick="setTimeout(()=>document.getElementById('contact-info').scrollIntoView(), 100)" class="block px-4 py-2 hover:bg-gray-100">Styrelse & Kontakt</a>
-                    <a href="#sponsorer" id="nav-sponsors-link" class="block px-4 py-2 hover:bg-gray-100">Sponsorer</a>
-                    <a href="#bilder" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">Bilder</a> 
+                    <a href="#omoss" class="block px-4 py-2 hover:bg-gray-100">Om oss</a> <a href="#omoss" onclick="setTimeout(()=>document.getElementById('contact-info').scrollIntoView(), 100)" class="block px-4 py-2 hover:bg-gray-100">Styrelse & Kontakt</a>
+                    <a href="#sponsorer" class="block px-4 py-2 hover:bg-gray-100">Sponsorer</a>
+                    <a href="#bilder" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">Bilder</a> </div>
+            </div>
+
+            <div class="relative group py-2">
+                <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
+                    Skytte & Tävling <span class="ml-1 text-xs">▼</span>
+                </button>
+                <div class="absolute left-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+                    <a href="#tavling-user" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-100 font-bold text-purple-700">
+                        🏆 Tävlingar Online
+                    </a>
+                    <a href="#topplistor" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">
+                        Topplistor & Statistik
+                    </a>
                 </div>
             </div>
 
-            <a href="#topplistor" class="nav-link font-medium hover:text-blue-200 transition">
-                Topplistor
-            </a>
+            <div id="nav-my-pages" class="relative group py-2 hidden">
+                <button class="nav-link font-bold text-yellow-300 hover:text-yellow-100 flex items-center transition focus:outline-none">
+                    Mina Sidor <span class="ml-1 text-xs">▼</span>
+                </button>
+                <div class="absolute left-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+                    <a href="#profil" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg font-bold">Min Profil</a>
+                    <a href="#resultat" class="block px-4 py-2 hover:bg-gray-100">Rapportera Resultat</a>
+                    
+                    <a href="#tavling-admin" id="nav-admin-link" class="hidden block px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold border-t">
+                        Tävlingsadmin
+                    </a>
+                    <a href="#admin" id="nav-site-admin-link" class="hidden block px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 text-sm border-t rounded-b-lg">
+                        Inställningar (Webbplats)
+                    </a>
+                </div>
+            </div>
 
-            <a href="#admin" id="nav-site-admin-link" class="nav-link text-yellow-300 hover:text-yellow-100 hidden font-bold">
-                ⚙️ Inställningar
-            </a>
-
-            <button id="user-nav-link" onclick="window.location.hash='#medlem'" class="bg-yellow-400 text-blue-900 px-4 py-2 rounded-full font-bold hover:bg-yellow-300 transition shadow-md ml-auto">
-                Mina Sidor
+            <button id="user-nav-link" class="bg-yellow-400 text-blue-900 px-4 py-2 rounded-full font-bold hover:bg-yellow-300 transition shadow-md ml-auto">
+                Logga in
             </button>
         </nav>
     </div>
-    
+
     <div id="mobile-menu" class="hidden md:hidden bg-blue-900 border-t border-blue-700 p-4">
         <a href="#hem" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Hem</a>
+        
+        <div class="text-blue-300 text-xs uppercase font-bold mt-4 mb-2 px-4">Föreningen</div>
         <a href="#nyheter" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Nyheter</a>
         <a href="#kalender" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Kalender</a>
         <a href="#omoss" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Om oss</a>
         <a href="#bilder" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Bilder</a>
+
+        <div class="text-blue-300 text-xs uppercase font-bold mt-4 mb-2 px-4">Aktivitet</div>
+        <a href="#tavling-user" class="block py-2 px-4 hover:bg-blue-800 rounded text-white font-bold text-yellow-300">🏆 Tävlingar Online</a>
         <a href="#topplistor" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Topplistor</a>
-        <a href="#medlem" class="block py-2 px-4 hover:bg-blue-800 rounded text-white bg-blue-950 font-bold mt-4">Mina Sidor</a>
+
+        <div id="mobile-my-pages" class="hidden">
+            <div class="text-yellow-300 text-xs uppercase font-bold mt-4 mb-2 px-4">Mina Sidor</div>
+            <a href="#profil" class="block py-2 px-4 hover:bg-blue-800 rounded text-white font-bold">Min Profil</a>
+            <a href="#resultat" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Rapportera Resultat</a>
+            <a href="#tavling-admin" id="mobile-admin-link" class="hidden block py-2 px-4 bg-purple-900 text-purple-200 rounded mt-2">Admin & Tävling</a>
+        </div>
+
+        <div id="mobile-login-btn-container" class="mt-6">
+            <button onclick="window.location.hash='#profil'" class="w-full bg-yellow-400 text-blue-900 py-3 rounded font-bold">Logga in</button>
+       </div>
     </div>
-  </header>
+
+    </header>
 
     <main class="container">
-        
+
         <section id="hem" class="page active">
             <div class="bg-blue-100 p-8 rounded-xl text-center mb-8">
                 <h1 class="text-4xl font-extrabold text-blue-900 mb-4">Välkommen till Kumla Skytteförening!</h1>
@@ -86,345 +122,1207 @@
             </div>
             
            <div id="achievements-section" class="hidden mb-12 bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-400 cursor-pointer hover:bg-gray-50 transition">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center justify-between">
-                    <span><span class="text-3xl mr-2">🏆</span> Senaste Prestationerna</span>
-                    <span class="text-sm font-normal text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Klicka för topplistor →</span>
-                </h2>
-                <div id="home-latest-results" class="space-y-2">
-                    <p class="text-gray-500 italic">Laddar prestationer...</p>
-                </div>
-            </div>
-
+    <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center justify-between">
+        <span><span class="text-3xl mr-2">🏆</span> Senaste Prestationerna</span>
+        <span class="text-sm font-normal text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Klicka för topplistor &rarr;</span>
+    </h2>
+    <p class="text-gray-600 mb-4 text-sm">Medaljresultat från medlemmar de senaste 30 dagarna.</p>
+    <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="text-gray-500 italic">Laddar prestationer...</p>
+    </div>
+</div>
             <h2 class="text-3xl font-bold mb-4">Senaste Nyheterna</h2>
-            <div id="news-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <div id="home-news-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </div>
             
             <h2 class="text-3xl font-bold mt-8 mb-4">Kommande Evenemang</h2>
-            <div id="events-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <div id="home-events-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </div>
+	    <h2 class="text-3xl font-bold mt-8 mb-4">Senaste Tävlingsresultat</h2>
+            <div id="home-competitions-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
         </section>
 
-        <section id="omoss" class="page">
-             <h1 class="text-4xl font-bold mb-6">Om oss</h1>
+<section id="omoss" class="page">
+            <h1 class="text-4xl font-bold mb-6">Om oss</h1>
             
             <div class="card mb-6">
                 <h2 class="text-2xl font-bold mb-4">Kontakt</h2>
+                
                 <div id="contact-info" class="text-gray-700 space-y-2">
                     <p>Adress: <span id="contact-address"></span></p>
                     <p>Skyttelokal: <span id="contact-location"></span></p>
                     <p>Telefon: <span id="contact-phone"></span></p>
                     <p>Email: <span id="contact-email"></span></p>
                 </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-200 text-gray-700 space-y-2">
+                    <p>Parkering med infart från Viagatan (infart vid Forma).</p>
+                    <p>Väl inne i Kumla hallen hittar du oss en trappa ner i Älvesta hallen.</p>
+                </div>
+
                 <div class="mt-4 rounded-lg overflow-hidden shadow-md">
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1543.8684086108005!2d15.132685370881802!3d59.121948479400714!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x465c0d725377224b%3A0x6d634e8a469a1090!2sKumlahallen!5e1!3m2!1sen!2sse!4v1765119177356!5m2!1sen!2sse" class="w-full h-64 border-0" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1543.8684086108005!2d15.132685370881802!3d59.121948479400714!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x465c0d725377224b%3A0x6d634e8a469a1090!2sKumlahallen!5e1!3m2!1sen!2sse!4v1765119177356!5m2!1sen!2sse" 
+                        class="w-full h-64 border-0" 
+                        allowfullscreen="" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
                 </div>
             </div>
             
             <h2 class="text-3xl font-bold mt-8 mb-4">Historik</h2>
-            <div id="history-timeline" class="space-y-6"></div>
+            <div id="home-history-container" class="space-y-6">
+            </div>
             
-            <div class="card mt-6 hidden admin-only" id="history-edit-section">
-                <h2 class="text-2xl font-bold mb-4">Lägg till Historik</h2>
+            <div class="card mt-6 hidden" id="history-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="history-form-title">Lägg till Historikpost</h2>
                 <form id="add-history-form">
-                    <input type="hidden" id="history-id"> 
-                    <input type="text" id="history-title" required class="w-full p-2 border rounded mb-2" placeholder="Titel">
-                    <input type="number" id="history-year" required class="w-full p-2 border rounded mb-2" placeholder="Årtal">
-                    <input type="number" id="history-priority" class="w-full p-2 border rounded mb-2" value="10" placeholder="Prio">
-                    <div id="history-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded border mb-2 min-h-[100px]"></div>
-                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded">Spara</button>
+                    <label for="history-title" class="block mb-2 font-semibold">Titel</label>
+                    <input type="text" id="history-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <label for="history-priority" class="block mb-2 font-semibold">Prioritet (lägre nummer visas först)</label>
+                    <input type="number" id="history-priority" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" value="10">
+                    
+                    <label for="history-content" class="block mb-2 font-semibold">Innehåll</label>
+                    <div class="editor-toolbar" data-editor-target="history-content-editor">
+                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
+                    </div>
+                    <div id="history-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                    <input type="hidden" id="history-content-hidden">
+                    
+                    <button type="submit" id="add-history-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
                 </form>
             </div>
         </section>
 
         <section id="nyheter" class="page">
-            <h1 class="text-4xl font-bold mb-6">Nyheter</h1>
+            <h1 class="text-4xl font-bold mb-6">Alla Nyheter</h1>
+            <div id="all-news-container" class="space-y-6">
+                </div>
             
-            <div class="card mt-6 hidden admin-only">
-                <h2 class="text-2xl font-bold mb-4">Skapa Nyhet</h2>
+            <div class="card mt-6 hidden" id="news-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="news-form-title">Lägg till Nyhet</h2>
                 <form id="add-news-form">
-                    <input type="hidden" id="news-id"> 
-                    <input type="text" id="news-title" required class="w-full p-2 border rounded mb-2" placeholder="Rubrik">
-                    <input type="text" id="news-image-url" class="w-full p-2 border rounded mb-2" placeholder="Bild-URL (Valfritt)">
+                    <label for="news-title" class="block mb-2 font-semibold">Titel</label>
+                    <input type="text" id="news-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     
-                    <div class="editor-toolbar mb-2">
-                        <button type="button" class="editor-btn p-1 bg-gray-200 rounded" data-command="bold"><b>B</b></button>
-                        <button type="button" class="editor-btn p-1 bg-gray-200 rounded" data-command="italic"><i>I</i></button>
-                        <button type="button" class="editor-btn p-1 bg-gray-200 rounded" data-command="createLink">🔗</button>
+                    <label for="news-date" class="block mb-2 font-semibold">Datum</label>
+                    <input type="date" id="news-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="news-content" class="block mb-2 font-semibold">Innehåll</label>
+                    <div class="editor-toolbar" data-editor-target="news-content-editor">
+                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
                     </div>
-                    <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded border mb-2 min-h-[150px] bg-white"></div>
+                    <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                    <input type="hidden" id="news-content-hidden">
                     
-                    <button type="submit" id="add-news-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded">Publicera Nyhet</button>
+                    <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
                 </form>
             </div>
         </section>
-        
+<section id="tavlingar" class="page">
+    <h1 class="text-4xl font-bold mb-6">Tävlingsresultat</h1>
+    <p class="mb-6 text-gray-700">Här hittar du rapporter och resultatlistor från tävlingar vi deltagit i.</p>
+    
+    <div id="competitions-container" class="space-y-6">
+        </div>
+
+    <div class="card mt-6 hidden" id="competition-edit-section">
+        <h2 class="text-2xl font-bold mb-4" id="competition-form-title">Lägg till Tävlingsrapport</h2>
+        <form id="add-competition-form">
+            <label for="comp-title" class="block mb-2 font-semibold">Tävlingens namn</label>
+            <input type="text" id="comp-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="comp-date" class="block mb-2 font-semibold">Datum</label>
+                    <input type="date" id="comp-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                </div>
+                <div>
+                    <label for="comp-location" class="block mb-2 font-semibold">Ort/Arrangör</label>
+                    <input type="text" id="comp-location" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                </div>
+            </div>
+            
+            <label for="comp-content" class="block mb-2 font-semibold">Rapport / Sammanfattning</label>
+            <div class="editor-toolbar" data-editor-target="comp-content-editor">
+                <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+		<button type="button" data-command="insertGold" class="px-2 py-1 bg-yellow-100 hover:bg-yellow-200 rounded-md border border-yellow-300" title="Guld">🥇</button>
+    		<button type="button" data-command="insertSilver" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-md border border-gray-300" title="Silver">🥈</button>
+    		<button type="button" data-command="insertBronze" class="px-2 py-1 bg-orange-100 hover:bg-orange-200 rounded-md border border-orange-300" title="Brons">🥉</button>
+            </div>
+            <div id="comp-content-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+
+            <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4 mb-4">
+                <label class="block mb-2 font-semibold">Ladda upp Resultatlista (PDF)</label>
+                <input type="file" id="comp-pdf-upload" accept="application/pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <p id="comp-pdf-name" class="text-sm text-gray-500 mt-1"></p>
+                <input type="hidden" id="comp-pdf-url">
+                <input type="hidden" id="comp-storage-path">
+                
+                <div id="comp-upload-progress-container" class="mt-2 hidden">
+                    <p class="text-sm">Laddar upp PDF...</p>
+                    <progress id="comp-upload-progress" class="w-full" value="0" max="100"></progress>
+                </div>
+            </div>
+            
+            <button type="submit" id="add-comp-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Publicera rapport</button>
+        </form>
+    </div>
+</section>
         <section id="kalender" class="page">
             <h1 class="text-4xl font-bold mb-6">Kalender</h1>
-            
-            <div class="card mt-6 hidden admin-only">
-                <h2 class="text-2xl font-bold mb-4">Lägg till Händelse</h2>
+            <div id="calendar-container" class="space-y-6">
+                </div>
+
+            <div class="card mt-6 hidden" id="calendar-edit-section">
+                <h2 class="text-2xl font-bold mb-4">Lägg till Kalenderhändelse</h2>
                 <form id="add-event-form">
-                    <input type="hidden" id="event-id">
-                    <input type="text" id="event-title" required class="w-full p-2 border rounded mb-2" placeholder="Titel">
-                    <div class="flex items-center mb-2">
-                        <input type="checkbox" id="is-recurring" class="mr-2"> <label>Återkommande?</label>
-                    </div>
+                    <label for="event-title" class="block mb-2 font-semibold">Titel</label>
+                    <input type="text" id="event-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="is-recurring" class="mr-2">
+                        <label for="is-recurring" class="font-semibold">Återkommande händelse</label>
+                    </div>
+
                     <div id="single-event-fields">
-                        <input type="date" id="event-date" class="w-full p-2 border rounded mb-2">
-                        <input type="time" id="event-time" class="w-full p-2 border rounded mb-2">
+                        <label for="event-date" class="block mb-2 font-semibold">Datum</label>
+                        <input type="date" id="event-date" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     </div>
 
                     <div id="recurring-event-fields" class="hidden">
-                        <select id="weekday-select" class="w-full p-2 border rounded mb-2">
-                            <option value="monday">Måndag</option>
-                            <option value="tuesday">Tisdag</option>
-                            <option value="wednesday">Onsdag</option>
-                            <option value="thursday">Torsdag</option>
-                        </select>
-                        <div class="flex gap-2">
-                            <input type="time" id="start-time" class="w-full p-2 border rounded">
-                            <input type="time" id="end-time" class="w-full p-2 border rounded">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="start-date" class="block mb-2 font-semibold">Startdatum</label>
+                                <input type="date" id="start-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="end-date" class="block mb-2 font-semibold">Slutdatum</label>
+                                <input type="date" id="end-date" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
                         </div>
+                        <label class="block mb-2 font-semibold">Veckodag</label>
+                        <select id="weekday-select" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                            <option value="1">Måndag</option>
+                            <option value="2">Tisdag</option>
+                            <option value="3">Onsdag</option>
+                            <option value="4">Torsdag</option>
+                            <option value="5">Fredag</option>
+                            <option value="6">Lördag</option>
+                            <option value="0">Söndag</option>
+                        </select>
                     </div>
 
-                    <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-2 border rounded mb-2 min-h-[50px]" placeholder="Beskrivning"></div>
-                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded">Spara</button>
+                    <label for="event-description" class="block mb-2 font-semibold">Beskrivning</label>
+                    <div class="editor-toolbar" data-editor-target="event-description-editor">
+                        <button type="button" data-command="bold" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold">B</button>
+                        <button type="button" data-command="italic" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 italic">I</button>
+                        <button type="button" data-command="createLink" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Länk</button>
+                        <button type="button" data-command="insertImage" class="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300">Bild</button>
+                    </div>
+                    <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"></div>
+                    <input type="hidden" id="event-description-hidden">
+
+                    <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till</button>
                 </form>
             </div>
         </section>
 
         <section id="bilder" class="page">
             <h1 class="text-4xl font-bold mb-6">Bildgalleri</h1>
-            <div id="image-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+            <div id="gallery-container">
+            </div>
 
-            <div class="card mt-6 hidden admin-only">
-                <h2 class="text-2xl font-bold mb-4">Ladda upp bild</h2>
-                <form id="image-upload-form">
-                    <input type="file" id="gallery-file" accept="image/*" class="mb-2">
-                    <input type="text" id="gallery-title" placeholder="Bildtext" class="w-full p-2 border rounded mb-2">
-                    <input type="number" id="gallery-year" placeholder="Årtal" class="w-full p-2 border rounded mb-2">
-                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Ladda upp</button>
+            <div class="card mt-6 hidden" id="image-edit-section">
+                <h2 class="text-2xl font-bold mb-4" id="image-form-title">Lägg till Bild</h2>
+                <form id="add-image-form">
+                    <label for="image-title" class="block mb-2 font-semibold">Titel/Beskrivning</label>
+                    <input type="text" id="image-title" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="image-year" class="block mb-2 font-semibold">År</label>
+                            <input type="number" id="image-year" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        </div>
+                        <div>
+                            <label for="image-month" class="block mb-2 font-semibold">Månad</label>
+                            <select id="image-month" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                                <option value="1">Januari</option>
+                                <option value="2">Februari</option>
+                                <option value="3">Mars</option>
+                                <option value="4">April</option>
+                                <option value="5">Maj</option>
+                                <option value="6">Juni</option>
+                                <option value="7">Juli</option>
+                                <option value="8">Augusti</option>
+                                <option value="9">September</option>
+                                <option value="10">Oktober</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <label for="image-priority" class="block mb-2 font-semibold">Prioritet (lägre nummer visas först)</label>
+                    <input type="number" id="image-priority" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" value="10">
+
+                    <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4">
+                        <label for="image-upload-label" class="block mb-2 font-semibold">Ladda upp en bild</label>
+                        <label for="image-upload" class="cursor-pointer bg-gray-200 hover:bg-gray-300 transition duration-300 px-4 py-2 rounded-lg inline-block">
+                            Välj fil
+                        </label>
+                        <span id="file-name-display" class="ml-2 text-gray-600">Ingen fil vald</span>
+                        <input type="file" id="image-upload" class="hidden" accept="image/png, image/jpeg">
+                        <button type="button" id="clear-image-upload" class="hidden px-2 py-1 bg-red-500 text-white rounded-lg ml-2 hover:bg-red-600">Rensa</button>
+
+                        
+                        <p class="text-sm text-gray-500 my-4 text-center">Eller</p>
+                        
+                        <label for="image-url" class="block mb-2 font-semibold">Länka till en extern bild (URL)</label>
+                        <input type="url" id="image-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    </div>
+
+                    <div id="upload-progress-container" class="mt-4 hidden">
+                        <p id="upload-status" class="text-sm"></p>
+                        <progress id="upload-progress" class="w-full" value="0" max="100"></progress>
+                    </div>
+                    
+                    <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Bild</button>
                 </form>
             </div>
         </section>
 
         <section id="sponsorer" class="page">
-            <h1 class="text-4xl font-bold mb-6">Våra Sponsorer</h1>
-            <div id="sponsors-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6"></div>
+            <h1 class="text-4xl font-bold mb-6">Sponsorer</h1>
+            <div id="sponsors-container">
+                <div id="sponsors-by-1" class="sponsors-grid-container-1"></div>
+                <div id="sponsors-by-2" class="sponsors-grid-container-2"></div>
+                <div id="sponsors-by-4" class="sponsors-grid-container-4"></div>
+            </div>
 
-            <div class="card mt-6 hidden admin-only">
+            <div class="card mt-6 hidden" id="sponsors-edit-section">
                 <h2 class="text-2xl font-bold mb-4" id="sponsor-form-title">Lägg till Sponsor</h2>
                 <form id="add-sponsor-form">
-                    <input type="text" id="sponsor-name" placeholder="Företagsnamn" class="w-full p-2 border rounded mb-2" required>
-                    <input type="url" id="sponsor-website" placeholder="Hemsida (https://...)" class="w-full p-2 border rounded mb-2">
-                    <label class="block text-sm mb-1">Logotyp:</label>
-                    <input type="file" id="sponsor-logo-file" accept="image/*" class="mb-4">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded font-bold">Spara Sponsor</button>
-                </form>
-            </div>
-        </section>
+                    <label for="sponsor-name" class="block mb-2 font-semibold">Sponsorns namn</label>
+                    <input type="text" id="sponsor-name" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="sponsor-extra-text" class="block mb-2 font-semibold">Extra text (valfritt)</label>
+                    <input type="text" id="sponsor-extra-text" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="sponsor-url" class="block mb-2 font-semibold">Länk till webbplats</label>
+                    <input type="url" id="sponsor-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="sponsor-priority" class="block mb-2 font-semibold">Prioritet (lägre nummer visas först)</label>
+                    <input type="number" id="sponsor-priority" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" value="10">
 
-        <section id="medlem" class="page container mx-auto px-4 py-8 hidden">
-            
-            <div id="user-login-panel" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10">
-                <h2 class="text-3xl font-bold mb-6 text-center text-blue-900">Medlemsinloggning</h2>
-                <form id="user-login-form" class="space-y-5">
-                    <div>
-                        <label class="block text-sm font-bold mb-1 text-gray-700">E-postadress</label>
-                        <input type="email" id="login-email" class="w-full p-3 border rounded-lg" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold mb-1 text-gray-700">Lösenord</label>
-                        <input type="password" id="login-password" class="w-full p-3 border rounded-lg" required>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Logga in</button>
-                </form>
-                <p class="mt-6 text-center text-sm">Har du inget konto? <a href="#" id="show-register-link" class="text-blue-600 font-bold">Registrera dig</a></p>
-            </div>
+                    <label for="sponsor-size" class="block mb-2 font-semibold">Sponsorns storlek (visuell bredd)</label>
+                    <select id="sponsor-size" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <option value="1/1">Full bredd (1 per rad)</option>
+                        <option value="1/2">Halv bredd (2 per rad)</option>
+                        <option value="1/4">Fjärdedels bredd (4 per rad)</option>
+                    </select>
+                    
+                    <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4">
+                        <label for="sponsor-logo-upload-label" class="block mb-2 font-semibold">Ladda upp logotyp</label>
+                        <label for="sponsor-logo-upload" class="cursor-pointer bg-gray-200 hover:bg-gray-300 transition duration-300 px-4 py-2 rounded-lg inline-block">
+                            Välj fil
+                        </label>
+                        <span id="sponsor-logo-name-display" class="ml-2 text-gray-600">Ingen fil vald</span>
+                        <input type="file" id="sponsor-logo-upload" class="hidden" accept="image/png, image/jpeg">
+                        <button type="button" id="clear-sponsor-logo-upload" class="hidden px-2 py-1 bg-red-500 text-white rounded-lg ml-2 hover:bg-red-600">Rensa</button>
 
-            <div id="register-panel" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10 hidden">
-                <h2 class="text-3xl font-bold mb-6 text-center text-blue-900">Skapa konto</h2>
-                <form id="register-form" class="space-y-5">
-                    <input type="email" id="reg-email" class="w-full p-3 border rounded-lg" required placeholder="E-post">
-                    <input type="password" id="reg-password" class="w-full p-3 border rounded-lg" required placeholder="Lösenord">
-                    <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Skapa konto</button>
-                </form>
-                <p class="mt-6 text-center text-sm"><a href="#" id="show-login-link" class="text-blue-600 font-bold">Logga in istället</a></p>
-            </div>
-
-            <div id="profile-panel" class="hidden animate-fade-in">
-                <div class="flex justify-between items-center mb-8 bg-blue-900 text-white p-6 rounded-xl shadow-md">
-                    <div>
-                        <h2 class="text-3xl font-bold">Mina Sidor</h2>
-                        <p class="text-blue-200 mt-1">Inloggad som: <span id="profile-name-display" class="font-bold">...</span> <span class="bg-blue-800 text-xs px-2 py-1 rounded ml-2" id="profile-role-display">Medlem</span></p>
-                    </div>
-                    <button id="logout-btn" class="bg-white text-blue-900 px-6 py-2 rounded-lg font-bold">Logga ut</button>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div class="lg:col-span-4 space-y-8">
-                        <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500">
-                            <h3 class="text-xl font-bold mb-4">📝 Rapportera Resultat</h3>
-                            <form id="add-result-form" class="space-y-4">
-                                <div>
-                                    <label class="text-xs font-bold text-gray-500">Skytt</label>
-                                    <select id="result-shooter-selector" class="w-full p-2 border rounded"><option value="">Laddar...</option></select>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="text-xs font-bold text-gray-500">Datum</label><input type="date" id="result-date" class="w-full p-2 border rounded" required></div>
-                                    <div><label class="text-xs font-bold text-gray-500">Typ</label><select id="result-type" class="w-full p-2 border rounded"><option value="training">Träning</option><option value="competition">Tävling</option></select></div>
-                                </div>
-                                
-                                <div class="bg-gray-50 p-4 rounded border">
-                                    <div class="flex justify-between mb-2">
-                                        <label class="text-xs font-bold text-gray-500">Serier</label>
-                                        <select id="result-shot-count" class="text-xs border rounded"><option value="20">20 skott</option><option value="40" selected>40 skott</option></select>
-                                    </div>
-                                    <div id="series-inputs-container" class="grid grid-cols-4 gap-2 mb-2">
-                                        <div class="flex flex-col"><label class="text-[10px] text-center">S1</label><input type="text" class="series-input border p-1 text-center font-bold" placeholder="0"></div>
-                                        <div class="flex flex-col"><label class="text-[10px] text-center">S2</label><input type="text" class="series-input border p-1 text-center font-bold" placeholder="0"></div>
-                                        <div class="flex flex-col"><label class="text-[10px] text-center">S3</label><input type="text" class="series-input border p-1 text-center font-bold" placeholder="0"></div>
-                                        <div class="flex flex-col"><label class="text-[10px] text-center">S4</label><input type="text" class="series-input border p-1 text-center font-bold" placeholder="0"></div>
-                                    </div>
-                                    <div class="flex justify-between pt-2 border-t"><span class="font-bold">Totalt:</span><span id="live-total-display" class="font-bold text-xl text-green-600">0</span></div>
-                                </div>
-                                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">Spara</button>
-                            </form>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-xl shadow-md">
-                            <h3 class="text-lg font-bold mb-4">Min Profil</h3>
-                            <form id="profile-form" class="space-y-3">
-                                <input type="email" id="profile-email-display" class="w-full p-2 border rounded bg-gray-100" readonly>
-                                <input type="text" id="profile-name-input" class="w-full p-2 border rounded" placeholder="Visningsnamn">
-                                <button type="submit" class="w-full bg-gray-800 text-white py-2 rounded">Uppdatera</button>
-                            </form>
-                            <div class="mt-4 pt-4 border-t text-center"><button id="delete-account-btn" class="text-red-500 text-xs hover:underline">Radera konto</button></div>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-8 space-y-8">
-                        <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
-                            <div class="flex justify-between items-center mb-6">
-                                <h3 class="text-xl font-bold">📈 Utveckling</h3>
-                                <select id="shooter-selector" class="p-2 border rounded"><option value="">Välj skytt...</option></select>
-                            </div>
-                            <div class="relative h-72 w-full"><canvas id="statisticsChart"></canvas></div>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-xl shadow-md">
-                            <h3 class="text-xl font-bold mb-4">Historik</h3>
-                            <table class="w-full text-left text-sm">
-                                <thead class="bg-gray-100"><tr><th class="p-3">Datum</th><th class="p-3">Skytt</th><th class="p-3">Poäng</th><th class="p-3 text-right"></th></tr></thead>
-                                <tbody id="my-results-list"><tr><td colspan="4" class="p-4 text-center">Laddar...</td></tr></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="topplistor" class="page">
-            <h1 class="text-4xl font-bold mb-6">Topplistor</h1>
-            <div id="toplist-container" class="space-y-8"></div>
-            <h2 class="text-2xl font-bold mt-12 mb-4 text-yellow-600">🏆 Klubbrekord</h2>
-            <div id="record-container" class="bg-yellow-50 border border-yellow-200 rounded-lg"></div>
-        </section>
-
-        <section id="admin" class="page">
-            <h1 class="text-4xl font-bold mb-6">Admin & Inställningar</h1>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="card">
-                    <h2 class="text-2xl font-bold mb-4">Utseende & Kontakt</h2>
-                    <form id="site-settings-form" class="space-y-4">
-                        <div><label class="font-bold">Header Färg</label><input type="color" id="header-color-input" class="block w-20 h-10 border rounded"></div>
-                        <div><label class="font-bold">Logotyp URL</label><input type="text" id="logo-url-input" class="w-full p-2 border rounded"></div>
-                        <div><label class="flex items-center gap-2"><input type="checkbox" id="show-sponsors-checkbox"> Visa sponsorer i menyn</label></div>
                         
-                        <h3 class="font-bold mt-4 border-t pt-2">Kontaktuppgifter</h3>
-                        <input type="text" id="contact-email-input" placeholder="Email" class="w-full p-2 border rounded">
-                        <input type="text" id="contact-address-input" placeholder="Adress" class="w-full p-2 border rounded">
-                        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Spara</button>
-                    </form>
-                </div>
-
-                <div class="space-y-8">
-                    <div class="card border-l-4 border-green-500">
-                        <h2 class="text-xl font-bold mb-4">Skjutklasser (Statistik)</h2>
-                        <div id="admin-classes-list" class="space-y-2 max-h-60 overflow-y-auto mb-4 bg-gray-50 p-2 rounded"></div>
+                        <p class="text-sm text-gray-500 my-4 text-center">Eller</p>
                         
-                        <form id="create-class-form" class="bg-gray-100 p-3 rounded">
-                            <input type="hidden" id="class-id">
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <input type="text" id="class-name" placeholder="Namn (L11)" class="p-2 border rounded" required>
-                                <select id="class-discipline" class="p-2 border rounded"><option value="sitting">Sittande</option><option value="standing">Stående</option></select>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <input type="number" id="class-min-age" placeholder="Min ålder" class="p-2 border rounded" required>
-                                <input type="number" id="class-max-age" placeholder="Max ålder" class="p-2 border rounded" required>
-                            </div>
-                            <input type="text" id="class-desc" placeholder="Beskrivning" class="w-full p-2 border rounded mb-2">
-                            <div class="flex gap-2">
-                                <button type="submit" id="create-class-btn" class="flex-1 bg-green-600 text-white font-bold py-2 rounded">Skapa Klass</button>
-                                <button type="button" id="cancel-class-edit-btn" class="hidden px-4 bg-gray-400 text-white rounded">Avbryt</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="card">
-                        <h2 class="text-xl font-bold mb-4">Användare</h2>
-                        <div id="all-users-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
-                        <h3 class="font-bold mt-4 mb-2 text-indigo-700">Administratörer</h3>
-                        <ul id="admin-users-list" class="text-sm space-y-1"></ul>
+                        <label for="sponsor-logo-url" class="block mb-2 font-semibold">Länka till extern logotyp (URL)</label>
+                        <input type="url" id="sponsor-logo-url" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
                     </div>
                     
-                    <div class="card hidden" id="shooters-admin-section">
-                        <h2 class="text-xl font-bold mb-4 text-indigo-900">Alla Skyttprofiler</h2>
-                        <div id="admin-shooters-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                    <div id="sponsor-upload-progress-container" class="mt-4 hidden">
+                        <p id="sponsor-upload-status" class="text-sm"></p>
+                        <progress id="sponsor-upload-progress" class="w-full" value="0" max="100"></progress>
                     </div>
+
+                    <button type="submit" id="add-sponsor-btn" disabled class="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg">Lägg till Sponsor</button>
+                </form>
+            </div>
+        </section>
+        <section id="tavling-admin" class="page">
+    <h1 class="text-4xl font-bold mb-6">Tävlingsadministration</h1>
+    
+    <div class="card mb-6">
+        <h2 class="text-2xl font-bold mb-4">Skapa ny tävling</h2>
+        <form id="create-comp-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block font-bold mb-1">Tävlingens namn</label>
+                    <input type="text" id="new-comp-name" required class="w-full p-2 border rounded" placeholder="T.ex. Vintercupen 2025">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Swish-nummer</label>
+                    <input type="text" id="new-comp-swish" class="w-full p-2 border rounded" placeholder="123...">
                 </div>
             </div>
 
-            <div class="card mt-8 border-t-4 border-blue-600">
-                <h2 class="text-2xl font-bold mb-4">Dokumentarkiv</h2>
-                <form id="upload-doc-form" class="flex gap-4 mb-6 bg-blue-50 p-4 rounded items-end">
-                    <div class="flex-1">
-                        <label class="text-xs font-bold">Filnamn</label>
-                        <input type="text" id="doc-name" class="w-full p-2 border rounded" required>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="block font-bold mb-1">Startdatum</label>
+                    <input type="date" id="new-comp-start" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Slutdatum</label>
+                    <input type="date" id="new-comp-end" required class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1 text-red-700">Sista anmälan</label>
+                    <input type="date" id="new-comp-signup-deadline" required class="w-full p-2 border rounded bg-red-50 border-red-200">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Kostnad (kr)</label>
+                    <input type="number" id="new-comp-cost" class="w-full p-2 border rounded" value="0">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-bold mb-1">Resultatvisning</label>
+                <select id="new-comp-visibility" class="w-full p-2 border rounded bg-white">
+                    <option value="public">Visa direkt (Live)</option>
+                    <option value="hidden">Dolt tills tävlingen är slut (Blind)</option>
+                </select>
+                <p class="text-xs text-gray-500">Om "Dolt" väljs, ser skyttar bara sina egna resultat fram till slutdatumet.</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-bold mb-2">Inställningar</label>
+                <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2 rounded border">
+                        <input type="checkbox" id="rule-decimals" checked class="w-5 h-5 text-blue-600">
+                        <span>Tillåt decimaler</span>
+                    </label>
+                    <label class="flex items-center space-x-2 bg-gray-50 p-2 rounded border">
+                        <input type="checkbox" id="rule-image-req" class="w-5 h-5 text-blue-600">
+                        <span>Kräv alltid bild</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                 <label class="block font-bold mb-1">Omgångar/Perioder</label>
+                 <p class="text-xs text-gray-500 mb-2">Skapa deadlines för delmoment (t.ex. Vecka 1, Vecka 2). Lämna tomt för en enda öppen period.</p>
+                 <div id="comp-rounds-container" class="space-y-2">
+                     </div>
+                 <button type="button" id="add-round-btn" class="mt-2 text-sm text-blue-600 font-bold">+ Lägg till omgång</button>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex justify-between items-end mb-1">
+                    <label class="block font-bold">Valbara Klasser</label>
+                    <a href="#admin" onclick="setTimeout(() => { document.getElementById('admin-classes-list').scrollIntoView({behavior: 'smooth'}); }, 300)" class="text-xs text-blue-600 font-bold hover:underline cursor-pointer bg-blue-50 px-2 py-1 rounded">
+                        + Skapa/Ändra klasser (i Adminpanelen)
+                    </a>
+                </div>
+                <div id="comp-classes-select-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-gray-50">
+                    <p class="text-sm text-gray-400">Laddar klasser...</p>
+                </div>
+            </div>
+
+            <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded hover:bg-green-700">Skapa Tävling</button>
+        </form>
+    </div>
+    
+    <div class="card mb-6">
+        <h2 class="text-2xl font-bold mb-4">Befintliga Tävlingar</h2>
+        <div id="admin-competitions-list" class="space-y-2 max-h-60 overflow-y-auto">
+            <p class="text-gray-500">Laddar...</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4">Hantera Anmälningar & Resultat</h2>
+        <div class="flex border-b border-gray-200 mb-4">
+            <button class="px-4 py-2 font-bold text-blue-600 border-b-2 border-blue-600" id="tab-admin-signups">Anmälningar (Swish)</button>
+            <button class="px-4 py-2 font-bold text-gray-500 hover:text-gray-700" id="tab-admin-reviews">Att Godkänna (Bilder)</button>
+        </div>
+        
+        <div id="admin-signups-list" class="space-y-2"></div>
+        <div id="admin-reviews-list" class="space-y-2 hidden"></div>
+    </div>
+</section>
+
+<section id="tavling-user" class="page">
+    <h1 class="text-4xl font-bold mb-6">Tävlingar Online</h1>
+    
+    <div id="active-competitions-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        </div>
+
+    <div class="card border-t-4 border-blue-600">
+        <h2 class="text-2xl font-bold mb-4">Mina Tävlingar & Rapportering</h2>
+        <p class="text-gray-600 mb-4">Här rapporterar du resultat för tävlingar du är anmäld till.</p>
+        
+        <div class="mb-4">
+            <label class="block font-bold text-gray-700 mb-2">Välj Tävling</label>
+            <select id="user-comp-select" class="w-full p-3 border rounded-lg bg-gray-50 font-bold text-lg">
+                <option value="">-- Välj i listan --</option>
+            </select>
+        </div>
+
+        <div id="comp-reporting-area" class="hidden">
+             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-lg text-blue-900" id="reporting-comp-name">-</h3>
+                        <p class="text-sm text-blue-700" id="reporting-round-info">-</p>
                     </div>
-                    <div class="flex-1">
-                        <label class="text-xs font-bold">Kategori</label>
-                        <input type="text" id="doc-category" class="w-full p-2 border rounded" list="doc-cats" required>
-                        <datalist id="doc-cats"><option value="Protokoll"><option value="Inbjudan"></datalist>
+                    <span id="reporting-status-badge" class="bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Väntar på Swish</span>
+                </div>
+             </div>
+
+             <form id="submit-comp-result-form">
+                 <input type="hidden" id="report-comp-id">
+                 <input type="hidden" id="report-shooter-id">
+                 <input type="hidden" id="report-round-id">
+                 
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div>
+                        <label class="block font-bold mb-1">Skjutdatum</label>
+                        <input type="date" id="report-date" required class="w-full p-3 border rounded">
+                        <p class="text-xs text-red-500 hidden mt-1" id="late-warning">⚠️ Datumet är efter deadline. Bildkrav aktiverat.</p>
                     </div>
-                    <div class="flex-1">
-                        <label class="text-xs font-bold">Fil</label>
-                        <input type="file" id="doc-file" class="w-full p-2 bg-white border rounded" required>
+                    <div>
+                        <label class="block font-bold mb-1">Totalpoäng</label>
+                        <input type="number" id="report-score" required step="0.01" class="w-full p-3 border rounded font-mono text-xl" placeholder="0.0">
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-6 rounded h-10">Ladda upp</button>
-                </form>
-                <div id="document-list" class="space-y-2"></div>
+                 </div>
+
+                 <div class="mb-4">
+                    <label class="block font-bold mb-1">Serier</label>
+                    <div id="report-series-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                 </div>
+
+                 <div class="mb-6 border-2 border-dashed border-gray-300 p-4 rounded bg-gray-50" id="report-image-section">
+                     <label class="block font-bold mb-2">Ladda upp Tavelbild <span id="img-req-label" class="text-gray-500 font-normal">(Valfritt)</span></label>
+                     <input type="file" id="report-image-upload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                     <div id="report-upload-progress" class="w-full bg-gray-200 rounded-full h-2.5 mt-2 hidden">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                     </div>
+                 </div>
+
+                 <button type="submit" id="send-report-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-lg">Skicka in Resultat</button>
+             </form>
+        </div>
+    </div>
+</section>
+
+<div id="compSignupModal" class="modal">
+    <div class="modal-content max-w-lg text-left">
+        <span id="close-signup-modal" class="modal-close-btn">&times;</span>
+        <h3 class="text-2xl font-bold mb-2">Anmälan till Tävling</h3>
+        <p id="signup-comp-name" class="text-gray-600 mb-6 font-bold"></p>
+
+        <form id="comp-signup-form">
+            <input type="hidden" id="signup-comp-id">
+            
+            <label class="block font-bold mb-1">Välj Skytt</label>
+            <select id="signup-shooter-select" class="w-full p-3 border rounded mb-4 bg-white">
+                </select>
+
+            <label class="block font-bold mb-1">Klubb/Förening</label>
+            <input type="text" id="signup-club-name" required class="w-full p-3 border rounded mb-4" placeholder="T.ex. Kumla Skytteförening">
+
+            <label class="block font-bold mb-1">Tävlingsklass</label>
+            <select id="signup-class-select" class="w-full p-3 border rounded mb-6 bg-white">
+                </select>
+            
+            <div id="swish-info-box" class="bg-green-50 border border-green-200 p-4 rounded mb-6 text-center hidden">
+                <p class="text-sm text-green-800 font-bold mb-2">Betala med Swish</p>
+                <img id="swish-qr-code" src="" class="mx-auto w-32 h-32 mb-2 bg-gray-200 object-contain">
+                <p class="font-mono text-lg font-bold" id="swish-msg-ref">REF-123</p>
+                <p class="text-xs text-gray-500">Ange koden ovan som meddelande</p>
+            </div>
+
+            <button type="submit" id="confirm-signup-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">Anmäl och Generera Swish-kod</button>
+        </form>
+        <div class="mt-8 border-t pt-6">
+                 <h3 class="text-xl font-bold text-gray-800 mb-4">Mina inskickade resultat</h3>
+                 <div id="user-entries-history" class="space-y-2 mb-6">
+                     </div>
+
+                 <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center">
+                    Tävlingsställning
+                    <span id="results-visibility-badge" class="ml-2 text-xs px-2 py-1 rounded bg-gray-200 text-gray-600"></span>
+                 </h3>
+                 <div id="competition-leaderboard" class="overflow-x-auto">
+                </div>
+            </div>
+    </div>
+</div>
+        <section id="admin" class="page">
+            <div id="admin-login-panel" class="card max-w-md mx-auto hidden">
+                <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
+                <p class="text-gray-600 mb-4">Logga in med ditt befintliga konto. Om du är administratör får du tillgång till panelen.</p>
+            </div>
+
+            <div id="admin-panel" class="hidden">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-4xl font-bold">Administrationspanel</h1>
+        <button id="logout-btn" class="px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
+    </div>
+    <div id="admin-user-info" class="mb-4 text-sm text-gray-500"></div>
+
+    <a href="#tavling-admin" class="block w-full text-center bg-purple-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-purple-700 transition duration-300 shadow-md mb-8 flex items-center justify-center text-lg">
+        <span class="mr-2">🏆</span> Gå till Tävlingsadministration &rarr;
+    </a>
+
+                <div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Webbplatsinställningar</h2>
+                    <form id="settings-form">
+                        <input type="hidden" id="site-name-input" value="Kumla Skytteförening">
+                        
+                        <label for="logo-url-input" class="block mb-2 font-semibold">Logotyp-URL</label>
+                        <input type="url" id="logo-url-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <label for="header-color-input" class="block mb-2 font-semibold">Färg på sidhuvudet</label>
+                        <input type="color" id="header-color-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                        <div class="flex items-center mb-4">
+                            <input type="checkbox" id="show-sponsors-checkbox" class="mr-2">
+                            <label for="show-sponsors-checkbox" class="font-semibold">Visa sponsorsidan</label>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-2">Kontaktinformation</h3>
+                        <label for="contact-address-input" class="block mb-2 font-semibold">Adress</label>
+                        <input type="text" id="contact-address-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <label for="contact-location-input" class="block mb-2 font-semibold">Skyttelokal</label>
+                        <input type="text" id="contact-location-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <label for="contact-phone-input" class="block mb-2 font-semibold">Telefon</label>
+                        <input type="text" id="contact-phone-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        <label for="contact-email-input" class="block mb-2 font-semibold">E-post</label>
+                        <input type="email" id="contact-email-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                        
+                        <button type="submit" id="save-settings-btn" class="mt-4 bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara inställningar</button>
+                    </form>
+                </div>
+                <div class="card mt-6">
+    <h2 class="text-2xl font-bold mb-4">Tävlingsklasser</h2>
+    <p class="text-gray-600 mb-4">Ställ in åldersgränser för topplistorna. (Ålder räknas på det år man fyller).</p>
+    
+    <div id="admin-classes-list" class="space-y-2 mb-6"></div>
+
+    <h3 class="text-lg font-bold mb-2">Lägg till / Ändra klass</h3>
+    <form id="add-class-form" class="bg-gray-50 p-4 rounded border">
+        <input type="hidden" id="class-id">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold mb-1">Klassnamn</label>
+                <input type="text" id="class-name" placeholder="T.ex. Lsi11" required class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold mb-1">Beskrivning</label>
+                <input type="text" id="class-desc" placeholder="Sittande 11-12 år" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold mb-1">Min Ålder (fyller i år)</label>
+                <input type="number" id="class-min" placeholder="0" required class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-xs font-bold mb-1">Max Ålder (fyller i år)</label>
+                <input type="number" id="class-max" placeholder="99" required class="w-full p-2 border rounded">
+            </div>
+            <div class="col-span-1 md:col-span-2">
+                <label class="block text-xs font-bold mb-1">Skjutstil</label>
+                <select id="class-discipline" class="w-full p-2 border rounded">
+                    <option value="sitting">Sittande</option>
+                    <option value="standing">Stående</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">Spara Klass</button>
+        <button type="button" id="cancel-class-btn" class="ml-2 text-gray-500 hidden">Avbryt</button>
+    </form>
+</div>
+                <div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Adminhantering</h2>
+                    <p class="text-gray-600 mb-4">Befintliga administratörer</p>
+                    <div id="admin-list" class="space-y-2">
+                    </div>
+                    <h3 class="text-xl font-bold mt-8 mb-2">Lägg till ny administratör</h3>
+                    <p class="text-gray-600 mb-4">Markera en användare för att ge dem administratörsbehörighet. Observera att detta kräver att användaren har ett konto på webbplatsen.</p>
+                    <div id="all-users-container" class="space-y-2">
+                    </div>
+                </div>
+
+		<div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Hantera Skyttar (Profiler)</h2>
+                    <p class="text-gray-600 mb-4">Här visas alla skapade skytt-profiler (barn/medlemmar).</p>
+                    <div id="admin-shooters-list" class="space-y-2"></div>
+                </div>
+
+                <div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Användarrapport</h2>
+                    <p class="text-gray-600 mb-4">Här kan du se en rapport över alla registrerade användare.</p>
+                    <div id="user-report-list" class="space-y-4"></div>
+                </div>
+
+                <div class="card mt-6">
+                    <h2 class="text-2xl font-bold mb-4">Utskicksläslista</h2>
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-gray-600">E-postadresser för användare som vill ha utskick.</p>
+                        <button id="copy-mailing-list-btn" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300">Kopiera</button>
+                    </div>
+                    <div id="mailing-list-report" class="space-y-2"></div>
+                </div>
+
             </div>
         </section>
+
+        <section id="profil" class="page">
+            <h1 class="text-4xl font-bold mb-6">Min Profil</h1>
+            <div id="profile-panel" class="card max-w-md mx-auto hidden">
+                <p id="profile-welcome-message" class="mb-4 text-gray-700"></p>
+                
+                <h2 class="text-2xl font-bold mt-6 mb-4">Din information</h2>
+                <form id="profile-form">
+                    <label for="profile-name-input" class="block mb-2 font-semibold">Namn</label>
+                    <input type="text" id="profile-name-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="profile-address-input" class="block mb-2 font-semibold">Adress</label>
+                    <input type="text" id="profile-address-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <label for="profile-phone-input" class="block mb-2 font-semibold">Telefonnummer</label>
+                    <input type="tel" id="profile-phone-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="profile-birthyear-input" class="block mb-2 font-semibold">Födelseår</label>
+                    <input type="number" id="profile-birthyear-input" min="1900" max="2100" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="profile-mailing-list-checkbox" class="mr-2">
+                        <label for="profile-mailing-list-checkbox" class="font-semibold">Ja, jag vill ha eventuella Mail utskick, du kan ändra detta när som helst.</label>
+                    </div>
+			<hr class="my-6 border-gray-200">
+
+		    <button type="submit" id="save-profile-btn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara profil</button>
+                </form>
+
+                <div class="mt-4">
+                    <button id="logout-profile-btn" class="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition duration-300">Logga ut</button>
+                </div>
+                 <div class="mt-4">
+                    <button id="delete-account-btn" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition duration-300">Ta bort konto</button>
+                </div>
+            </div>
+            
+            <div id="register-panel" class="card max-w-md mx-auto hidden">
+                <h2 class="text-2xl font-bold mb-4">Registrera konto</h2>
+                <form id="register-form">
+                    <label for="register-email" class="block mb-2 font-semibold">E-post</label>
+                    <input type="email" id="register-email" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <label for="register-password" class="block mb-2 font-semibold">Lösenord</label>
+                    <input type="password" id="register-password" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300">Skapa konto</button>
+                </form>
+                <p class="mt-4 text-sm">Har du redan ett konto? <a href="#" id="show-login-link" class="text-blue-600">Logga in här</a></p>
+            </div>
+
+            <div id="user-login-panel" class="card max-w-md mx-auto">
+                <h2 class="text-2xl font-bold mb-4">Logga in</h2>
+                <form id="user-login-form">
+                    <label for="user-login-email" class="block mb-2 font-semibold">E-post</label>
+                    <input type="email" id="user-login-email" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <label for="user-login-password" class="block mb-2 font-semibold">Lösenord</label>
+                    <input type="password" id="user-login-password" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Logga in</button>
+                </form>
+            <p class="mt-4 text-sm">Inget konto? <a href="#" id="show-register-link" class="text-blue-600">Registrera dig här</a></p>
+        </div>
+            
+        </section>
+	
+	<section id="resultat" class="page">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold mb-6">Mina Resultat</h1>
+
+<div class="flex justify-between items-center mb-2">
+    <label for="shooter-selector" class="text-sm font-bold text-blue-900">Vem är det som skjuter?</label>
+    <div class="flex space-x-2">
+        <button id="edit-shooter-btn" class="text-xs bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition" title="Ändra inställningar för vald skytt">
+            ⚙️ Inställningar
+        </button>
+        <button id="open-add-shooter-modal-btn" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+            + Ny skytt
+        </button>
+    </div>
+</div>
+    
+    <div class="relative">
+        <select id="shooter-selector" class="block w-full p-4 rounded-lg border border-blue-200 text-lg font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white">
+            <option value="">Laddar profiler...</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+        </div>
+    </div>
+    <p class="text-xs text-blue-600 mt-2 ml-1">Välj dig själv eller någon annan profil du hanterar.</p>
+</div>
+
+        <div class="card mb-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Registrera ny omgång</h2>
+            <form id="add-result-form">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Datum</label>
+                        <input type="date" id="result-date" required class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Typ av skytte</label>
+                        <select id="result-type" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="training">Träning</option>
+                            <option value="competition">Tävling</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Skjutstil</label>
+                        <select id="result-discipline" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="sitting">Sittande</option>
+                            <option value="standing">Stående</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-2">Antal skott</label>
+                        <div class="flex bg-gray-200 rounded-lg p-1">
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md bg-white shadow text-blue-800 font-bold transition-all" data-count="20">20</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="40">40</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="60">60</button>
+                        </div>
+                        <input type="hidden" id="result-shot-count" value="20">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block font-semibold text-gray-700 mb-3">Serier (10 skott per ruta)</label>
+                    <div id="series-inputs-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                       <div class="text-center">
+    				<span class="text-xs text-gray-500 block mb-1">Serie 1</span>
+    				<input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg" placeholder="-">
+			</div>
+			<div class="text-center">
+    				<span class="text-xs text-gray-500 block mb-1">Serie 2</span>
+    				<input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg" placeholder="-">
+			</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center bg-gray-900 text-white p-5 rounded-xl mb-6 shadow-lg">
+                    <div>
+                        <span class="text-gray-400 text-xs uppercase tracking-wider font-bold">Totalpoäng</span>
+                        <div class="text-4xl font-extrabold text-blue-400" id="live-total-display">0</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-400 text-xs uppercase tracking-wider font-bold">Bästa Serie</span>
+                        <div class="text-2xl font-bold text-green-400" id="live-best-series">-</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 mb-8 p-4 bg-indigo-50 rounded-lg border border-indigo-100 flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" id="result-share-checkbox" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="result-share-checkbox" class="font-bold text-indigo-900">Dela med klubben</label>
+                        <p class="text-indigo-700">Om ikryssad syns detta resultat i topplistor och nyhetsflöden. (Du kan ställa in standardvärdet i din profil).</p>
+                    </div>
+                </div>
+
+                <button type="submit" id="save-result-btn" class="w-full bg-green-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-green-700 transition duration-300 transform hover:scale-[1.02] shadow-md">
+                    Spara Resultat
+                </button>
+            </form>
+        </div>
+	<div class="card mb-8 bg-white border border-gray-200 shadow-sm" id="stats-card">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Mina Bästa Resultat</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 rounded-l-lg">Period</th>
+                            <th scope="col" class="px-4 py-3 text-center">Bästa Serie (10)</th>
+                            <th scope="col" class="px-4 py-3 text-center">20 Skott</th>
+                            <th scope="col" class="px-4 py-3 text-center">40 Skott</th>
+                            <th scope="col" class="px-4 py-3 text-center rounded-r-lg">60 Skott</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-white border-b">
+                            <th scope="row" class="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">
+                                I år (<span id="stats-current-year">2025</span>)
+                            </th>
+                            <td class="px-4 py-4 text-center text-blue-600 font-bold text-lg" id="stats-year-series">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-year-20">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-year-40">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-year-60">-</td>
+                        </tr>
+                        <tr class="bg-white">
+                            <th scope="row" class="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">
+                                Personbästa (Totalt)
+                            </th>
+                            <td class="px-4 py-4 text-center text-green-600 font-bold text-lg" id="stats-all-series">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-all-20">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-all-40">-</td>
+                            <td class="px-4 py-4 text-center font-medium" id="stats-all-60">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+		<div id="medal-league-section">
+		<div class="mt-6 pt-4 border-t border-gray-100">
+                <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Antal kvalificerade serier (Totalt)</h3>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center mb-6">
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <div class="text-2xl mb-1">🏆</div>
+                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold3">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 3</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <div class="text-2xl mb-1">🥇</div>
+                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold2">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 2</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <div class="text-2xl mb-1">🥇</div>
+                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold1">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 1</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <div class="text-2xl mb-1">🥇</div>
+                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold">-</div>
+                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld</div>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3 border border-gray-300">
+                        <div class="text-2xl mb-1">🥈</div>
+                        <div class="font-bold text-gray-700 text-xl leading-none" id="count-silver">-</div>
+                        <div class="text-[10px] text-gray-500 uppercase font-bold mt-1">Silver</div>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                        <div class="text-2xl mb-1">🥉</div>
+                        <div class="font-bold text-orange-900 text-xl leading-none" id="count-bronze">-</div>
+                        <div class="text-[10px] text-orange-800 uppercase font-bold mt-1">Brons</div>
+                    </div>
+                </div>
+
+                <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Märkesöversikt (10 serier = 1 märke)</h3>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center">
+                    
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold3">
+                        </div>
+
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold2">
+                        </div>
+
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold1">
+                        </div>
+
+                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold">
+                        </div>
+
+                    <div class="bg-gray-100 rounded-lg p-3 border border-gray-300 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-silver">
+                        </div>
+
+                    <div class="bg-orange-50 rounded-lg p-3 border border-orange-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-bronze">
+                        </div>
+                </div>
+           	 </div>
+		</div>
+            </div> <h2 class="text-2xl font-bold mb-4 mt-8 text-gray-800">Historik</h2>
+            <div id="results-history-container" class="space-y-4"></div>
+            </div> </section>
+</section>
+<section id="topplistor" class="page">
+    <h1 class="text-4xl font-bold mb-6">Topplistor & Statistik</h1>
+    <p class="mb-6 text-gray-600">Här visas veckans bästa resultat baserat på våra tävlingsklasser, samt delad historik.</p>
+
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-4 text-blue-900">Veckans Topp 5 (Senaste 7 dagarna)</h2>
+        <div id="top-lists-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-gray-500">Laddar listor...</p>
+        </div>
+    </div>
+
+    <div class="card bg-white p-6 shadow-lg border-t-4 border-blue-500">
+        <h2 class="text-2xl font-bold mb-4">Sök Skytt</h2>
+        <p class="text-sm text-gray-600 mb-4">Välj en skytt för att se deras *delade* resultat och statistik.</p>
+        
+        <div class="relative mb-6">
+            <select id="public-shooter-selector" class="block w-full p-4 rounded-lg border border-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Välj skytt i listan...</option>
+            </select>
+        </div>
+
+        <div id="public-shooter-stats" class="hidden">
+             <h3 class="text-xl font-bold mb-2" id="public-shooter-name"></h3>
+             <div class="grid grid-cols-2 gap-4 mb-4 text-center">
+                <div class="bg-green-50 p-2 rounded border border-green-200">
+                    <span class="block text-xs text-gray-500 uppercase">Personbästa</span>
+                    <span class="text-xl font-bold text-green-700" id="public-pb">-</span>
+                </div>
+                <div class="bg-blue-50 p-2 rounded border border-blue-200">
+                    <span class="block text-xs text-gray-500 uppercase">Årsbästa</span>
+                    <span class="text-xl font-bold text-blue-700" id="public-sb">-</span>
+                </div>
+             </div>
+             <div id="public-results-list" class="space-y-2"></div>
+        </div>
+    </div>
+</section>
+        <div id="errorModal" class="modal">
+            <div class="modal-content">
+                <span id="close-error-modal" class="modal-close-btn">&times;</span>
+                <p id="error-message" class="text-lg font-semibold text-red-600"></p>
+            </div>
+        </div>
+
+        <div id="confirmationModal" class="modal">
+            <div class="modal-content">
+                <p id="confirmation-message" class="text-lg font-semibold text-green-600"></p>
+            </div>
+        </div>
+        
+        <div id="deleteConfirmationModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold mb-4">Bekräfta borttagning</h3>
+                <p id="delete-confirmation-message" class="mb-4"></p>
+                <div class="flex justify-center space-x-4">
+                    <button id="confirm-delete-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Ja</button>
+                    <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="deleteEventModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold mb-4">Radera händelse</h3>
+                <p id="delete-event-message" class="mb-4"></p>
+                <div class="flex justify-center space-x-4">
+                    <button id="delete-single-event-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Radera enskild händelse</button>
+                    <button id="delete-series-event-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Radera hel serie</button>
+                    <button id="cancel-event-delete-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="shareModal" class="modal">
+            <div class="modal-content">
+                <span id="close-share-modal" class="modal-close-btn">&times;</span>
+                <h3 class="text-xl font-bold mb-4">Dela nyhet</h3>
+                <p id="share-message-title" class="mb-4 text-sm"></p>
+                <div class="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 mt-4 justify-center">
+                    <a id="share-facebook-btn" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-300 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
+                        </svg>
+                        <span class="ml-2">Dela på Facebook</span>
+                    </a>
+                    <button id="copy-link-btn" class="flex items-center justify-center px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8.463 11.233c-.768.768-1.042 1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378c1.674-1.674 4.093-2.146 6.415-1.705l-1.378 1.378c-1.091-.523-2.265-.249-3.033.519l-1.705 1.705c-.768.768-1.042-1.942-.519 3.033l-1.378 1.378c-.781-2.454.124-4.834 1.705-6.415l1.378-1.378z"/>
+                        </svg>
+                        <span class="ml-2">Kopiera länk</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="userInfoModal" class="modal">
+            <div class="modal-content">
+                <span id="close-user-info-modal" class="modal-close-btn">&times;</span>
+                <p></p>
+            </div>
+        </div>
+        
+        <div id="deleteProfileModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold mb-4">Bekräfta borttagning</h3>
+                <p id="delete-profile-message" class="mb-4 text-red-600">Är du säker på att du vill ta bort ditt konto? Denna åtgärd kan inte ångras.</p>
+                <div class="flex justify-center space-x-4">
+                    <button id="confirm-delete-profile-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Ja, ta bort</button>
+                    <button id="cancel-delete-profile-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="deleteUserModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold mb-4">Bekräfta borttagning</h3>
+                <p id="delete-user-message" class="mb-4 text-red-600">Är du säker på att du vill ta bort denna användare?</p>
+                <div class="flex justify-center space-x-4">
+                    <button id="confirm-delete-user-btn" class="px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600">Ja, ta bort</button>
+                    <button id="cancel-delete-user-btn" class="px-4 py-2 bg-gray-400 text-white font-bold rounded-lg hover:bg-gray-500">Avbryt</button>
+                </div>
+            </div>
+        </div>
+        
+	<div id="editResultModal" class="modal">
+    	<div class="modal-content">
+        <span id="close-edit-result-modal" class="modal-close-btn">×</span>
+        <h3 class="text-xl font-bold mb-4">Redigera Resultat</h3>
+        
+        <form id="edit-result-form">
+            <input type="hidden" id="edit-result-id">
+            
+            <label class="block mb-2 font-semibold">Datum</label>
+            <input type="date" id="edit-result-date" required class="w-full p-3 rounded-lg border border-gray-300 mb-4">
+            
+            <label class="block mb-2 font-semibold">Typ</label>
+            <select id="edit-result-type" class="w-full p-3 rounded-lg border border-gray-300 mb-4">
+                <option value="training">Träning</option>
+                <option value="competition">Tävling</option>
+            </select>
+
+            <label class="block mb-2 font-semibold">Skjutstil</label>
+            <select id="edit-result-discipline" class="w-full p-3 rounded-lg border border-gray-300 mb-4">
+                <option value="sitting">Sittande</option>
+                <option value="standing">Stående</option>
+            </select>
+
+            <div class="mt-2 mb-6 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center">
+                <input type="checkbox" id="edit-result-share" class="w-5 h-5 text-blue-600 rounded">
+                <div class="ml-3 text-left">
+                    <label for="edit-result-share" class="font-bold text-blue-900">Dela med klubben</label>
+                    <p class="text-xs text-blue-700">Ändra om resultatet ska synas för andra.</p>
+                </div>
+            </div>
+            
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Spara ändringar</button>
+        </form>
+    </div>
+</div>
+
+
+	<div id="addShooterModal" class="modal">
+    <div class="modal-content">
+        <span id="close-add-shooter-modal" class="modal-close-btn">×</span>
+        <h3 class="text-xl font-bold mb-4">Lägg till ny skytt</h3>
+        <p class="text-sm text-gray-600 mb-4">Skapa en profil för t.ex. ditt barn så att du kan mata in resultat åt dem.</p>
+        
+        <form id="add-shooter-form">
+            <label for="new-shooter-name" class="block mb-2 font-semibold">Namn</label>
+            <input type="text" id="new-shooter-name" required class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="T.ex. Kalle Svensson">
+            
+            <label for="new-shooter-birthyear" class="block mb-2 font-semibold">Födelseår</label>
+            <input type="number" id="new-shooter-birthyear" required min="1900" max="2100" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="T.ex. 2012">
+            
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Skapa Profil</button>
+        </form>
+    </div>
+</div>
+
+<div id="editShooterModal" class="modal">
+    <div class="modal-content text-left">
+        <span id="close-edit-shooter-modal" class="modal-close-btn">×</span>
+        <h3 class="text-xl font-bold mb-4">Inställningar för Skytt</h3>
+        <form id="edit-shooter-form">
+            <input type="hidden" id="edit-shooter-id">
+            
+            <label class="block mb-2 font-semibold">Namn</label>
+            <input type="text" id="edit-shooter-name" required class="w-full p-2 border rounded mb-4">
+            
+            <label class="block mb-2 font-semibold">Födelseår</label>
+            <input type="number" id="edit-shooter-birthyear" required class="w-full p-2 border rounded mb-6">
+            
+            <h4 class="font-bold text-gray-700 mb-2">Anpassning</h4>
+            
+            <div class="mb-4 p-3 bg-gray-50 rounded border flex items-center justify-between">
+                <div class="mr-4">
+                    <label for="edit-shooter-gamification" class="font-medium text-sm cursor-pointer block">Gamification & Medaljer</label>
+                    <p class="text-xs text-gray-500">Visa animationer och samla märken.</p>
+                </div>
+                <input type="checkbox" id="edit-shooter-gamification" class="w-5 h-5">
+            </div>
+
+            <div class="mb-6 p-3 bg-gray-50 rounded border flex items-center justify-between">
+                <div class="mr-4">
+                    <label for="edit-shooter-share" class="font-medium text-sm cursor-pointer block">Dela resultat automatiskt</label>
+                    <p class="text-xs text-gray-500">Förväljer "Dela med klubben" vid inmatning.</p>
+                </div>
+                <input type="checkbox" id="edit-shooter-share" class="w-5 h-5">
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">Spara ändringar</button>
+        </form>
+    </div>
+</div>
+
+<div id="linkParentModal" class="modal">
+    <div class="modal-content">
+        <span id="close-link-parent-modal" class="modal-close-btn">×</span>
+        <h3 class="text-xl font-bold mb-2">Koppla användare till skytt</h3>
+        <p class="text-sm text-gray-600 mb-4">Välj vilken inloggning (förälder) som ska få administrera denna skytt.</p>
+        
+        <input type="hidden" id="link-shooter-id">
+        <label class="block text-left mb-1 font-semibold">Välj användare:</label>
+        <select id="link-parent-select" class="w-full p-3 border rounded mb-6"></select>
+        
+        <button id="confirm-link-parent-btn" class="w-full bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700">Koppla ihop</button>
+    </div>
+</div>
+        <div id="editUserModal" class="modal">
+            <div class="modal-content">
+                <span id="close-edit-user-modal" class="modal-close-btn">&times;</span>
+                <h3 class="text-xl font-bold mb-4">Redigera användare</h3>
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id">
+                    
+                    <label for="edit-user-name" class="block mb-2 font-semibold">Namn</label>
+                    <input type="text" id="edit-user-name" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="edit-user-address" class="block mb-2 font-semibold">Adress</label>
+                    <input type="text" id="edit-user-address" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <label for="edit-user-phone" class="block mb-2 font-semibold">Telefonnummer</label>
+                    <input type="tel" id="edit-user-phone" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                    
+                    <label for="edit-user-birthyear" class="block mb-2 font-semibold">Födelseår</label>
+                    <input type="number" id="edit-user-birthyear" min="1900" max="2100" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="edit-user-mailing-list" class="mr-2">
+                        <label for="edit-user-mailing-list" class="font-semibold">Vill ha utskick</label>
+                    </div>
+                    
+                    <button type="submit" id="save-edited-user-btn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Spara ändringar</button>
+                </form>
+            </div>
+        </div>
 
     </main>
 
     <footer class="bg-blue-800 text-white text-center py-4 mt-8">
-        <p>Kumla Skytteförening &copy; 2025</p>
+        <div class="container text-sm flex flex-col sm:flex-row justify-between items-center">
+            <p class="font-bold">Kumla Skytteförening</p>
+            <div class="mt-2 sm:mt-0">
+                <a href="https://www.facebook.com/Kumlaskytte/" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-300 transition duration-300 mx-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
+                    </svg>
+                </a>
+            </div>
+            <p class="mt-2 sm:mt-0">Adress: <span id="contact-address"></span></p>
+            <p class="mt-2 sm:mt-0">Skyttelokal: <span id="contact-location"></span></p>
+            <p class="mt-2 sm:mt-0">Telefon: <span id="contact-phone"></span></p>
+            <p class="mt-2 sm:mt-0">Email: <span id="contact-email"></span></p>
+        </div>
     </footer>
     
-    <div id="errorModal" class="modal"><div class="modal-content"><p class="text-red-600 font-bold"></p></div></div>
-    <div id="confirmationModal" class="modal"><div class="modal-content"><p class="text-green-600 font-bold"></p></div></div>
-    <div id="shareModal" class="modal"><div class="modal-content"><span class="modal-close-btn">×</span><h3>Dela</h3><input type="text" id="share-url-input" class="w-full p-2 border rounded"></div></div>
-    <div id="userInfoModal" class="modal"><div class="modal-content"><span class="modal-close-btn">×</span><div id="user-info-content"></div></div></div>
-    <div id="imageSelectionModal" class="modal">
-        <div class="modal-content w-3/4 h-3/4 flex flex-col">
-            <div class="flex justify-between mb-4"><h3 class="font-bold text-xl">Välj bild</h3><span class="modal-close-btn text-2xl cursor-pointer">×</span></div>
-            <div class="flex gap-2 mb-4"><input type="text" id="manual-image-url" placeholder="http://..." class="flex-1 p-2 border rounded"><button id="use-manual-url-btn" class="bg-blue-600 text-white px-4 rounded">Ok</button></div>
-            <div id="image-selection-grid" class="grid grid-cols-4 gap-4 overflow-y-auto flex-1 p-2 bg-gray-50 rounded border"></div>
-        </div>
-    </div>
-
     <script type="module" src="firebase-config.js"></script>
     <script type="module" src="auth.js"></script>
     <script type="module" src="ui-handler.js"></script>
@@ -433,8 +1331,30 @@
     <script type="module" src="form-validation.js"></script>
     <script type="module" src="event-listeners.js"></script>
     <script type="module" src="main.js"></script>
-    <script type="module" src="statistics-chart.js"></script>
-    <script type="module" src="result-handler.js"></script>
+
+    <div id="imageSelectionModal" class="modal">
+    <div class="modal-content w-11/12 max-w-4xl h-3/4 flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">Välj bild</h3>
+            <span id="close-image-selection-modal" class="modal-close-btn cursor-pointer text-2xl">&times;</span>
+        </div>
+
+        <div class="mb-4 pb-4 border-b border-gray-200">
+            <label class="block text-sm font-bold mb-2">Alternativ 1: Klistra in extern länk</label>
+            <div class="flex gap-2">
+                <input type="text" id="manual-image-url" placeholder="https://..." class="flex-grow p-2 border rounded">
+                <button id="use-manual-url-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Använd</button>
+            </div>
+        </div>
+
+        <div class="flex-grow overflow-hidden flex flex-col">
+            <label class="block text-sm font-bold mb-2">Alternativ 2: Klicka på en bild från galleriet</label>
+            <div id="gallery-selection-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 overflow-y-auto p-2 bg-gray-50 rounded border h-full">
+                </div>
+        </div>
+    </div>
+</div>
 
 </body>
+
 </html>
