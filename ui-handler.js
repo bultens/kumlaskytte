@@ -1,1552 +1,313 @@
 // ui-handler.js
 import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getMedalForScore } from "./result-handler.js";
+import { loadAndRenderChart } from "./statistics-chart.js";
 
-
-// Ver. 1.5 (Fixed Syntax)
+// Ver. STABLE 1.0 (Medaljer & Statistik inkluderat)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
+// --- MODALER & HJÄLPFUNKTIONER ---
 export function showModal(modalId, message) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
-    
-    const messageEl = modal.querySelector('p');
-    if (messageEl) {
-        messageEl.innerHTML = message;
-    }
-    
+    const msg = modal.querySelector('p');
+    if (msg) msg.innerHTML = message;
     modal.classList.add('active');
-    
-    if (modalId === 'errorModal' || modalId === 'confirmationModal') {
-        setTimeout(() => hideModal(modalId), 4000);
-    }
+    if (modalId === 'errorModal' || modalId === 'confirmationModal') setTimeout(() => hideModal(modalId), 4000);
 }
-
-export function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (!modal) return;
-    modal.classList.remove('active');
-}
-
+export function hideModal(modalId) { document.getElementById(modalId)?.classList.remove('active'); }
 export function showUserInfoModal(user) {
     const modal = document.getElementById('userInfoModal');
     if (!modal) return;
-    
-    const content = `
-        <h3 class="text-xl font-bold mb-4">Användarinformation</h3>
-        <p><strong>E-post:</strong> ${user.email}</p>
-        <p><strong>Namn:</strong> ${user.name || 'Ej angivet'}</p>
-        <p><strong>Adress:</strong> ${user.address || 'Ej angivet'}</p>
-        <p><strong>Telefon:</strong> ${user.phone || 'Ej angivet'}</p>
-        <p><strong>Födelseår:</strong> ${user.birthyear || 'Ej angivet'}</p>
-        <p><strong>Vill ha utskick:</strong> ${user.mailingList ? 'Ja' : 'Nej'}</p>
-        <p class="text-sm text-gray-500 mt-4">ID: ${user.id}</p>
-    `;
-
-    const messageEl = modal.querySelector('.modal-content p');
-    if (messageEl) {
-        messageEl.innerHTML = content;
-    }
-
-    modal.classList.add('active');
-    
-    const closeBtn = modal.querySelector('.modal-close-btn');
-    if (closeBtn) {
-        closeBtn.onclick = () => hideModal('userInfoModal');
-    }
-
-    modal.onclick = (e) => {
-        if (e.target === modal) hideModal('userInfoModal');
-    };
-}
-
-export function showDeleteProfileModal() {
-    const modal = document.getElementById('deleteProfileModal');
-    if (modal) {
-        // Hämta kontaktmail från sidfoten
-        const emailEl = document.getElementById('contact-email');
-        const email = emailEl && emailEl.textContent ? emailEl.textContent.trim() : 'styrelsen';
-
-        const messageEl = document.getElementById('delete-profile-message');
-        if (messageEl) {
-            messageEl.innerHTML = `
-                <span class="block mb-2 font-bold text-lg">Är du säker på att du vill ta bort ditt konto?</span>
-                <span class="block mb-4 text-sm text-gray-700">
-                    Denna åtgärd tar bort din inloggning och profil omedelbart. Det går inte att ångra.
-                </span>
-                
-                <div class="text-left text-sm bg-blue-50 p-4 rounded-lg border border-blue-200 text-blue-900 mt-2">
-                    <strong class="block mb-1 text-blue-800">⚠️ Viktigt om dina resultat:</strong>
-                    All data under "Mina Resultat" sparas i föreningens databas för statistik och historik, även om du tar bort ditt konto.
-                    <br><br>
-                    Om du även vill att dina tidigare resultat ska raderas eller anonymiseras måste du kontakta administratören manuellt på:
-                    <br>
-                    👉 <a href="mailto:${email}" class="underline font-bold hover:text-blue-700">${email}</a>
-                </div>
-            `;
-        }
-
-        modal.classList.add('active');
-        
-        const cancelButton = document.getElementById('cancel-delete-profile-btn');
-        if (cancelButton) {
-            cancelButton.onclick = () => hideModal('deleteProfileModal');
-        }
-    }
-}
-
-export function showDeleteUserModal() {
-    const modal = document.getElementById('deleteUserModal');
-    if (modal) {
-        modal.classList.add('active');
-        const cancelButton = document.getElementById('cancel-delete-user-btn');
-        if (cancelButton) {
-            cancelButton.onclick = () => hideModal('deleteUserModal');
-        }
-    }
-}
-
-export function showEditUserModal(user) {
-    const modal = document.getElementById('editUserModal');
-    if (!modal) return;
-    
-    document.getElementById('edit-user-id').value = user.id;
-    document.getElementById('edit-user-name').value = user.name || '';
-    document.getElementById('edit-user-address').value = user.address || '';
-    document.getElementById('edit-user-phone').value = user.phone || '';
-    document.getElementById('edit-user-birthyear').value = user.birthyear || '';
-    document.getElementById('edit-user-mailing-list').checked = user.mailingList || false;
-
+    document.getElementById('user-info-content').innerHTML = `
+        <h3 class="font-bold mb-2">Info</h3><p>${user.username}</p><p>${user.email}</p><p>ID: ${user.id}</p>
+        <p>Admin: ${user.isAdmin?'Ja':'Nej'}</p>`;
     modal.classList.add('active');
 }
-
-export function showShareModal(title, url) {
-    const modal = document.getElementById('shareModal');
-    if (!modal) return;
-
-    const messageTitleEl = document.getElementById('share-message-title');
-    if (messageTitleEl) {
-        messageTitleEl.textContent = `Dela nyheten: "${title}"`;
-    }
-
-    const shareFacebookBtn = document.getElementById('share-facebook-btn');
-    if (shareFacebookBtn) {
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        shareFacebookBtn.onclick = () => {
-            window.open(facebookUrl, '_blank');
-            hideModal('shareModal');
-        };
-    }
-    
-    const copyLinkBtn = document.getElementById('copy-link-btn');
-    if (copyLinkBtn) {
-        copyLinkBtn.onclick = () => {
-            navigator.clipboard.writeText(url)
-                .then(() => {
-                    showModal('confirmationModal', 'Länken har kopierats till urklipp!');
-                    hideModal('shareModal');
-                })
-                .catch(err => showModal('errorModal', 'Kunde inte kopiera länken.'));
-        };
-    }
-    
-    modal.classList.add('active');
+export function showDeleteProfileModal() { showModal('confirmationModal', "Är du säker?"); }
+export function showShareModal(t, u) { 
+    const m = document.getElementById('shareModal'); 
+    if(m) { document.getElementById('share-url-input').value = u; m.classList.add('active'); } 
 }
+export function applyEditorCommand(ed, cmd, val=null) { ed.focus(); document.execCommand(cmd, false, val); }
+export function updateToolbarButtons(ed) {}
 
-export function updateHeaderColor(color) {
-    const header = document.getElementById('site-header');
-    if (header) {
-        header.classList.remove('bg-blue-800');
-        header.style.backgroundColor = color;
-    }
-}
+// --- ADMIN CHECK ---
+export async function handleAdminUI(user) {
+    const adminLink = document.getElementById('nav-site-admin-link');
+    const profilePanel = document.getElementById('profile-panel');
+    const loginPanel = document.getElementById('user-login-panel');
+    document.querySelectorAll('.admin-only').forEach(e => e.classList.add('hidden'));
+    if(adminLink) adminLink.classList.add('hidden');
 
-export function toggleSponsorsNavLink(isVisible) {
-    const sponsorsLink = document.getElementById('sponsors-nav-link');
-    if (sponsorsLink) {
-        if (isVisible) {
-            sponsorsLink.classList.remove('hidden');
-        } else {
-            sponsorsLink.classList.add('hidden');
-        }
-    }
-}
-
-export function renderCompetitions(data, isAdminLoggedIn) {
-    // 1. Hantera huvudlistan (sidan Tävlingar)
-    const container = document.getElementById('competitions-container');
-    
-    // Sortera: Nyast datum först
-    data.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    if (container) {
-        container.innerHTML = '';
-        data.forEach(item => {
-            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-            
-            let pdfButton = '';
-            if (item.pdfUrl) {
-                pdfButton = `
-                    <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        Resultatlista (PDF)
-                    </a>
-                `;
+    if (user) {
+        if(loginPanel) loginPanel.classList.add('hidden');
+        if(profilePanel) profilePanel.classList.remove('hidden');
+        try {
+            const snap = await getFirestoreDoc(doc(db, 'users', user.uid));
+            if (snap.exists()) {
+                const u = snap.data();
+                if (u.isAdmin) {
+                    isAdminLoggedIn = true;
+                    loggedInAdminUsername = u.username;
+                    if(adminLink) adminLink.classList.remove('hidden');
+                    document.querySelectorAll('.admin-only').forEach(e => e.classList.remove('hidden'));
+                    document.getElementById('shooters-admin-section')?.classList.remove('hidden');
+                } else { isAdminLoggedIn = false; }
+                renderProfileInfo({email: user.email, username: u.username, role: isAdminLoggedIn?'Admin':'Medlem'});
             }
-
-            container.innerHTML += `
-                <div class="card">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
-                            <p class="text-sm text-gray-500 mb-2">Datum: ${date} | Ort: ${item.location}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
-                    ${pdfButton}
-
-                    ${isAdminLoggedIn ? `
-                        <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
-                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="online_competitions">Ta bort</button>
-                            <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        });
-    }
-
-    // 2. Hantera startsidan (kvarstår oförändrad men bra att ha med)
-    const homeContainer = document.getElementById('home-competitions-container');
-    if (homeContainer) {
-        homeContainer.innerHTML = '';
-        // ... (resten av koden för startsidan är oförändrad)
-        const getFirstLineText = (htmlContent) => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-            const firstChild = tempDiv.firstElementChild;
-            if (firstChild && firstChild.tagName === 'P') {
-                return firstChild.textContent;
-            }
-            return tempDiv.textContent.split('\n')[0].trim();
-        };
-
-        data.slice(0, 2).forEach(item => {
-            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-            const rawText = getFirstLineText(item.content);
-            const shortContent = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
-            const compUrl = '#tavlingar';
-
-            homeContainer.innerHTML += `
-                <a href="${compUrl}" class="card flex flex-col items-start hover:shadow-md transition duration-300">
-                    <h3 class="text-2xl font-semibold mb-1 text-blue-900">${item.title}</h3>
-                    <p class="text-sm text-gray-500 mb-2">${date} | ${item.location}</p>
-                    <div class="text-gray-700 markdown-content">${shortContent}</div>
-                    <span class="text-blue-600 text-sm mt-4 font-semibold">Läs hela rapporten &rarr;</span>
-                </a>
-            `;
-        });
-    }
-}
-
-export function handleAdminUI(isAdmin) {
-    const adminIndicator = document.getElementById('admin-indicator');
-    const newsEditSection = document.getElementById('news-edit-section');
-    const competitionEditSection = document.getElementById('competition-edit-section');
-    const calendarEditSection = document.getElementById('calendar-edit-section');
-    const imageEditSection = document.getElementById('image-edit-section');
-    const historyEditSection = document.getElementById('history-edit-section');
-    const sponsorsEditSection = document.getElementById('sponsors-edit-section');
-    const adminPanel = document.getElementById('admin-panel');
-    const adminLoginPanel = document.getElementById('admin-login-panel');
-    const adminUserInfo = document.getElementById('admin-user-info');
-    
-    // --- HÄR ÄR ÄNDRINGEN ---
-    // Hämta de korrekta länkarna från index.html
-    const navTavlingAdminLink = document.getElementById('nav-admin-link');      // Tävlingsadmin
-    const navSiteAdminLink = document.getElementById('nav-site-admin-link');    // Inställningar (Webbplats) - Den du saknade
-    const mobileAdminLinkEl = document.getElementById('mobile-admin-link');     // Mobil-länken
-    
-    if (isAdmin) {
-        isAdminLoggedIn = true;
-        
-        // Visa admin-länkarna i menyn
-        if (navTavlingAdminLink) navTavlingAdminLink.classList.remove('hidden');
-        if (navSiteAdminLink) navSiteAdminLink.classList.remove('hidden'); // Tänd "Inställningar"
-        if (mobileAdminLinkEl) mobileAdminLinkEl.classList.remove('hidden');
-
-        if (adminIndicator) adminIndicator.classList.remove('hidden');
-        if (newsEditSection) newsEditSection.classList.remove('hidden');
-        if (competitionEditSection) competitionEditSection.classList.remove('hidden');
-        if (calendarEditSection) calendarEditSection.classList.remove('hidden');
-        if (imageEditSection) imageEditSection.classList.remove('hidden');
-        if (historyEditSection) historyEditSection.classList.remove('hidden');
-        if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
-        if (adminPanel) adminPanel.classList.remove('hidden');
-        if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
-        
-        if (adminUserInfo && auth.currentUser) {
-            loggedInAdminUsername = auth.currentUser.email || 'Admin';
-            adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
-        }
+        } catch (e) { console.error(e); }
     } else {
         isAdminLoggedIn = false;
-        
-        // Göm admin-länkarna i menyn
-        if (navTavlingAdminLink) navTavlingAdminLink.classList.add('hidden');
-        if (navSiteAdminLink) navSiteAdminLink.classList.add('hidden');
-        if (mobileAdminLinkEl) mobileAdminLinkEl.classList.add('hidden');
-
-        if (adminIndicator) adminIndicator.classList.add('hidden');
-        if (newsEditSection) newsEditSection.classList.add('hidden');
-        if (competitionEditSection) competitionEditSection.classList.add('hidden');
-        if (calendarEditSection) calendarEditSection.classList.add('hidden');
-        if (imageEditSection) imageEditSection.classList.add('hidden');
-        if (historyEditSection) historyEditSection.classList.add('hidden');
-        if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
-        if (adminPanel) adminPanel.classList.add('hidden');
-        if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
-    }
-}
-
-export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
-    const news = newsData;
-    const homeNewsContainer = document.getElementById('home-news-container');
-    const allNewsContainer = document.getElementById('all-news-container');
-
-    if (!homeNewsContainer || !allNewsContainer) return;
-
-    homeNewsContainer.innerHTML = '';
-    allNewsContainer.innerHTML = '';
-
-    news.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        return dateB - dateA;
-    });
-    
-    const getFirstLineText = (htmlContent) => {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = htmlContent;
-        const firstChild = tempDiv.firstElementChild;
-        if (firstChild && firstChild.tagName === 'P') {
-            return firstChild.textContent;
-        }
-        return tempDiv.textContent.split('\n')[0].trim();
-    };
-
-    const getFirstImage = (htmlContent) => {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = htmlContent;
-        const firstImage = tempDiv.querySelector('img');
-        return firstImage ? firstImage.outerHTML : '';
-    };
-
-    news.slice(0, 2).forEach(item => {
-        const date = new Date(item.date);
-        const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-        const firstLine = getFirstLineText(item.content);
-        const firstImage = getFirstImage(item.content);
-        
-        let imageHtml = '';
-        if (firstImage) {
-            const tempImgDiv = document.createElement('div');
-            tempImgDiv.innerHTML = firstImage;
-            const img = tempImgDiv.querySelector('img');
-            img.setAttribute('style', 'width: 150px; height: auto;');
-            img.classList.add('rounded-lg', 'object-cover', 'mr-4');
-            imageHtml = `<div class="flex-shrink-0">${img.outerHTML}</div>`;
-        }
-        
-        const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
-
-        const newsUrl = `#nyheter#news-${item.id}`;
-
-        homeNewsContainer.innerHTML += `
-            <a href="${newsUrl}" class="card flex items-start news-post home-news-post" data-id="${item.id}">
-                ${imageHtml}
-                <div class="flex-grow">
-                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                    <p class="text-sm text-gray-500 mb-2">Publicerad: ${formattedDate}</p>
-                    <div class="text-gray-700 markdown-content">${shortContent}</div>
-                </div>
-            </a>
-        `;
-    });
-
-    news.forEach(item => {
-        const date = new Date(item.date);
-        const createdAt = item.createdAt?.toDate() || new Date();
-        const updatedAt = item.updatedAt?.toDate() || createdAt;
-        const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-        const likes = item.likes || {};
-        const likeCount = Object.keys(likes).length;
-        const userHasLiked = currentUserId && likes[currentUserId];
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
-
-        allNewsContainer.innerHTML += `
-            <div class="card" id="news-${item.id}">
-                <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                <div class="text-gray-700 markdown-content">${item.content}</div>
-                <div class="flex items-center space-x-2 mt-4">
-                    <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="news" data-liked="${userHasLiked}">
-                        👍 <span class="like-count">${likeCount}</span>
-                    </button>
-                    <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
-                        </svg>
-                        <span class="ml-1 hidden sm:inline">Dela</span>
-                    </button>
-                    ${isAdminLoggedIn ? `
-                        <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
-                        <button class="edit-news-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    });
-    // Kontrollera om URL:en pekar på en specifik nyhet (t.ex. #nyheter#news-ID)
-    const hash = window.location.hash;
-    if (hash && hash.includes('#news-')) {
-        const parts = hash.split('#');
-        // Formatet är oftast ["", "nyheter", "news-ID"]
-        const targetId = parts[2]; 
-        
-        if (targetId) {
-            // Ge webbläsaren en liten stund att rita ut DOM-elementen
-            setTimeout(() => {
-                const element = document.getElementById(targetId);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Valfritt: Markera nyheten så man ser vilken det är
-                    element.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
-                    setTimeout(() => element.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50'), 2000);
-                }
-            }, 500);
-        }
-    }
-}
-
-export function renderEvents(eventsData, isAdminLoggedIn) {
-    const events = eventsData;
-    const calendarContainer = document.getElementById('calendar-container');
-    const homeEventsContainer = document.getElementById('home-events-container');
-
-    if (!calendarContainer || !homeEventsContainer) return;
-
-    calendarContainer.innerHTML = '';
-    homeEventsContainer.innerHTML = '';
-    
-    const today = new Date().toISOString().split('T')[0];
-    const upcomingEvents = events.filter(e => e.date >= today);
-    
-    upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
-
-    upcomingEvents.slice(0, 2).forEach(item => {
-        const eventDate = new Date(item.date);
-        const day = eventDate.getDate();
-        const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
-
-        const eventUrl = `#kalender#event-${item.id}`;
-        
-        homeEventsContainer.innerHTML += `
-            <a href="${eventUrl}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
-                <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                    <p class="text-xl leading-none">${day}</p>
-                    <p class="text-xs uppercase">${month}</p>
-                </div>
-                <div class="flex-grow">
-                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                </div>
-            </a>
-        `;
-    });
-
-    upcomingEvents.forEach(item => {
-        const eventDate = new Date(item.date);
-        const day = eventDate.getDate();
-        const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
-        
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = item.description;
-        const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
-        const createdAt = item.createdAt?.toDate() || new Date();
-        const updatedAt = item.updatedAt?.toDate() || createdAt;
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
-
-        calendarContainer.innerHTML += `
-            <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
-                <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                    <p class="text-xl leading-none">${day}</p>
-                    <p class="text-xs uppercase">${month}</p>
-                </div>
-                <div class="flex-grow">
-                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                    <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                    <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
-                    <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
-                    ${isAdminLoggedIn ? `
-                        <div class="flex space-x-2 mt-4">
-                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
-                            <button class="edit-event-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    });
-
-    document.querySelectorAll('.calendar-post').forEach(post => {
-        post.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn')) {
-                return;
-            }
-            const isExpanded = post.getAttribute('data-expanded') === 'true';
-            post.setAttribute('data-expanded', !isExpanded);
-            const shortText = post.querySelector('.calendar-post-short');
-            const expandedText = post.querySelector('.calendar-post-expanded');
-            if (isExpanded) {
-                shortText.classList.remove('hidden');
-                expandedText.classList.add('hidden');
-            } else {
-                shortText.classList.add('hidden');
-                expandedText.classList.remove('hidden');
-            }
-        });
-    });
-}
-
-export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {
-    const historyContainer = document.getElementById('home-history-container');
-    if (!historyContainer) return;
-
-    historyContainer.innerHTML = '';
-
-    historyData.sort((a, b) => {
-        return a.priority - b.priority;
-    });
-    
-    historyData.forEach(item => {
-        const createdAt = item.createdAt?.toDate() || new Date();
-        const updatedAt = item.updatedAt?.toDate() || createdAt;
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
-        const likes = item.likes || {};
-        const likeCount = Object.keys(likes).length;
-        const userHasLiked = currentUserId && likes[currentUserId];
-
-        historyContainer.innerHTML += `
-            <div class="card" id="history-${item.id}">
-                <h3 class="text-2xl font-semibold mb-2">${item.title}</h3>
-                <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                <div class="text-gray-700 markdown-content">${item.content}</div>
-                <div class="flex items-center space-x-2 mt-4">
-                    <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" data-id="${item.id}" data-type="history" data-liked="${userHasLiked}">
-                        👍 <span class="like-count">${likeCount}</span>
-                    </button>
-                    <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
-                        </svg>
-                        <span class="ml-1 hidden sm:inline">Dela</span>
-                    </button>
-                    ${isAdminLoggedIn ? `
-                        <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="history">Ta bort</button>
-                        <button class="edit-history-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    });
-}
-
-export function renderImages(imageData, isAdminLoggedIn) {
-    const galleryContainer = document.getElementById('gallery-container');
-    if (!galleryContainer) return;
-
-    galleryContainer.innerHTML = '';
-    
-    imageData.sort((a, b) => {
-        const dateA = new Date(a.year, a.month - 1);
-        const dateB = new Date(b.year, b.month - 1);
-        const priorityA = a.priority || 10;
-        const priorityB = b.priority || 10;
-        if (dateB - dateA !== 0) {
-            return dateB - dateA;
-        }
-        return priorityA - priorityB;
-    });
-    
-    const groupedImages = imageData.reduce((acc, curr) => {
-        const key = `${curr.year}-${curr.month}`;
-        if (!acc[key]) {
-            acc[key] = [];
-        }
-        acc[key].push(curr);
-        return acc;
-    }, {});
-
-    for (const key in groupedImages) {
-        const imagesInGroup = groupedImages[key];
-        const itemDate = new Date(imagesInGroup[0].year, imagesInGroup[0].month - 1);
-        const itemYear = itemDate.getFullYear();
-        const itemMonth = itemDate.toLocaleString('sv-SE', { month: 'long' });
-
-        const galleryGroupHtml = `
-            <h2 class="text-2xl font-bold mt-8 mb-4">${itemMonth} ${itemYear}</h2>
-            <hr class="border-gray-300 mb-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-                ${imagesInGroup.map(item => `
-                    <div class="relative group">
-                        <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300">
-                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
-                            <h3 class="text-lg font-bold">${item.title}</h3>
-                        </div>
-                        ${isAdminLoggedIn ? `
-                            <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                                <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
-                            </div>
-                        ` : ''}
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        galleryContainer.innerHTML += galleryGroupHtml;
-    }
-}
-
-export function renderSponsors(sponsorsData, isAdminLoggedIn) {
-    const sponsorsContainer = document.getElementById('sponsors-container');
-    if (!sponsorsContainer) return;
-    sponsorsContainer.innerHTML = '';
-    
-    const sizeOrder = {'1/1': 1, '1/2': 2, '1/4': 3};
-    sponsorsData.sort((a, b) => {
-        const sizeDiff = sizeOrder[a.size] - sizeOrder[b.size];
-        if (sizeDiff !== 0) {
-            return sizeDiff;
-        }
-        return a.priority - b.priority;
-    });
-
-    const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
-    const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
-    const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
-
-    const renderSponsorGroup = (group, className) => {
-        return group.map(sponsor => {
-            const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
-            const closingTag = sponsor.url ? '</a>' : '';
-            
-            const sponsorHtml = `
-                <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
-                    ${sponsorLink}
-                        <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
-                        <h3 class="text-xl font-semibold">${sponsor.name}</h3>
-                        ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
-                    ${closingTag}
-                    ${isAdminLoggedIn ? `
-                        <div class="flex space-x-2 mt-2">
-                            <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
-                            <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            return sponsorHtml;
-        }).join('');
-    };
-
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByFull, 'sponsor-card-1-1')}</div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByHalf, 'sponsor-card-1-2')}</div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
-}
-
-export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
-    const adminListEl = document.getElementById('admin-users-list');
-    const allUsersContainer = document.getElementById('all-users-list');
-    if (!adminListEl || !allUsersContainer) return;
-
-    adminListEl.innerHTML = '';
-    allUsersContainer.innerHTML = '';
-    
-    usersData.forEach(user => {
-        const isUserAdmin = user.isAdmin || false;
-        const isMember = user.isMember || false;
-        
-        // UI för medlemsstatus
-        const memberBtnText = isMember ? "Medlem (Neka)" : "Ej Medlem (Godkänn)";
-        const memberBtnClass = isMember 
-            ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-200" 
-            : "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200";
-        const statusIcon = isMember ? "✅ Medlem" : "⏳ Väntar";
-
-        const userEl = document.createElement('div');
-        userEl.className = 'flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 mb-2';
-        
-        let actionButtons = `
-            <div class="flex flex-wrap gap-2 mt-2 sm:mt-0">
-                <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" data-id="${user.id}">Info</button>
-                ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition" data-user-id="${user.id}">Redigera</button>` : ''}
-                
-                ${isAdminLoggedIn ? `<button class="toggle-member-btn px-3 py-1 border text-xs font-bold rounded transition ${memberBtnClass}" data-id="${user.id}" data-status="${isMember}">${memberBtnText}</button>` : ''}
-                
-                ${!isUserAdmin && isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-gray-800 text-white text-xs font-bold rounded hover:bg-black transition" data-id="${user.id}">Gör till Admin</button>` : ''}
-            </div>
-        `;
-
-        if (isUserAdmin) {
-            actionButtons = `
-                <div class="flex gap-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded" data-id="${user.id}">Info</button>
-                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 text-xs font-bold" data-id="${user.id}">Ta bort Admin</button>` : ''}
-                </div>
-            `;
-        }
-
-        userEl.innerHTML = `
-            <div class="mb-1 sm:mb-0">
-                <span class="font-bold block text-gray-800">${user.email}</span>
-                <span class="text-xs text-gray-500">${user.name || 'Inget namn'} | ${isUserAdmin ? 'Administratör' : statusIcon}</span>
-            </div>
-            ${actionButtons}
-        `;
-        // NYTT: Hantera Admin-länkar i menyn
-        // Vi hämtar elementen här för att vara säkra
-        const navTavlingAdminLink = document.getElementById('nav-admin-link');      // Tävlingsadmin
-        const navSiteAdminLink = document.getElementById('nav-site-admin-link');    // Inställningar
-        const mobileAdminLinkEl = document.getElementById('mobile-admin-link');     // Mobil
-
-        if (isAdminLoggedIn) {
-            // Visa länkarna om man är admin
-            if (navTavlingAdminLink) navTavlingAdminLink.classList.remove('hidden');
-            if (navSiteAdminLink) navSiteAdminLink.classList.remove('hidden');
-            if (mobileAdminLinkEl) mobileAdminLinkEl.classList.remove('hidden');
-        } else {
-            // Dölj dem annars
-            if (navTavlingAdminLink) navTavlingAdminLink.classList.add('hidden');
-            if (navSiteAdminLink) navSiteAdminLink.classList.add('hidden');
-            if (mobileAdminLinkEl) mobileAdminLinkEl.classList.add('hidden');
-        }
-
-        if (isUserAdmin) {
-            adminListEl.appendChild(userEl);
-        } else {
-            allUsersContainer.appendChild(userEl);
-        }
-    });
-}
-export function renderShootersAdmin(shootersData) {
-    const container = document.getElementById('admin-shooters-list');
-    if (!container) return;
-
-    container.innerHTML = '';
-    
-    // Sortera: De som kräver åtgärd först, sen alfabetiskt
-    shootersData.sort((a, b) => {
-        if (a.requiresAdminAction && !b.requiresAdminAction) return -1;
-        if (!a.requiresAdminAction && b.requiresAdminAction) return 1;
-        return a.name.localeCompare(b.name);
-    });
-
-    shootersData.forEach(shooter => {
-        const parentCount = shooter.parentUserIds ? shooter.parentUserIds.length : 0;
-        
-        // Kolla om den är "föräldralös"
-        const isOrphan = shooter.requiresAdminAction || parentCount === 0;
-        
-        let statusHtml = `<p class="text-xs text-gray-500">Administreras av ${parentCount} konton</p>`;
-        let bgClass = "bg-gray-100 border-gray-200";
-
-        if (isOrphan) {
-            bgClass = "bg-red-50 border-red-300"; // Röd bakgrund för att varna admin
-            statusHtml = `
-                <p class="text-xs text-red-600 font-bold">⚠️ SAKNAR KOPPLING (Föräldralös)</p>
-                <p class="text-xs text-red-500">Denna profil syns inte för någon medlem just nu.</p>
-            `;
-        }
-        
-        container.innerHTML += `
-            <div class="flex items-center justify-between p-3 rounded-lg border ${bgClass}">
-                <div>
-                    <span class="font-bold text-gray-800">${shooter.name}</span>
-                    <span class="text-sm text-gray-500"> (Född: ${shooter.birthyear})</span>
-                    ${statusHtml}
-                </div>
-                <div class="flex space-x-2">
-                    <button class="link-parent-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" 
-                            data-id="${shooter.id}" data-name="${shooter.name}">
-                        Koppla
-                    </button>
-                    <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition" 
-                            data-id="${shooter.id}" 
-                            data-type="shooters">
-                        Ta bort
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-}
-
-export function renderUserReport(usersData) {
-    const userListContainer = document.getElementById('user-report-list');
-    const mailingListContainer = document.getElementById('mailing-list-report');
-    if (!userListContainer || !mailingListContainer) return;
-    
-    userListContainer.innerHTML = '';
-    mailingListContainer.innerHTML = '';
-
-    const sortedUsers = usersData.sort((a, b) => a.email.localeCompare(b.email));
-
-    sortedUsers.forEach(user => {
-        const userHtml = `
-            <div class="p-2 border-b border-gray-200 last:border-0">
-                <p><strong>E-post:</strong> ${user.email}</p>
-                <p><strong>Namn:</strong> ${user.name || 'Ej angivet'}</p>
-                <p><strong>Adress:</strong> ${user.address || 'Ej angivet'}</p>
-                <p><strong>Telefon:</strong> ${user.phone || 'Ej angivet'}</p>
-                <p><strong>Födelseår:</strong> ${user.birthyear || 'Ej angivet'}</p>
-                <p><strong>Admin:</strong> ${user.isAdmin ? 'Ja' : 'Nej'}</p>
-                <p><strong>Vill ha utskick:</strong> ${user.mailingList ? 'Ja' : 'Nej'}</p>
-            </div>
-        `;
-        userListContainer.innerHTML += userHtml;
-    });
-
-    const mailingListUsers = sortedUsers.filter(user => user.mailingList);
-    mailingListUsers.forEach(user => {
-        mailingListContainer.innerHTML += `
-            <div class="p-2 border-b border-gray-200 last:border-0">
-                <p><strong>E-post:</strong> ${user.email}</p>
-            </div>
-        `;
-    });
-}
-
-
-export function renderContactInfo() {
-    const contactAddressEls = document.querySelectorAll('#contact-address');
-    const contactLocationEls = document.querySelectorAll('#contact-location'); 
-    const contactPhoneEls = document.querySelectorAll('#contact-phone');
-    const contactEmailEls = document.querySelectorAll('#contact-email');
-
-    getFirestoreDoc(doc(db, 'settings', 'siteSettings')).then(docSnap => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            
-            contactAddressEls.forEach(el => el.textContent = data.contactAddress || 'Ej angivet');
-            contactLocationEls.forEach(el => el.textContent = data.contactLocation || 'Ej angivet');
-            contactPhoneEls.forEach(el => el.textContent = data.contactPhone || 'Ej angivet');
-            contactEmailEls.forEach(el => el.textContent = data.contactEmail || 'Ej angivet');
-        }
-    });
-}
-
-export async function renderSiteSettings() {
-    const siteSettingsDoc = await getFirestoreDoc(doc(db, 'settings', 'siteSettings'));
-    if (siteSettingsDoc.exists()) {
-        const data = siteSettingsDoc.data();
-        document.getElementById('logo-url-input').value = data.logoUrl || '';
-        document.getElementById('header-color-input').value = data.headerColor || '#1e40af';
-        document.getElementById('show-sponsors-checkbox').checked = data.showSponsors || false;
-        document.getElementById('contact-address-input').value = data.contactAddress || '';
-        document.getElementById('contact-location-input').value = data.contactLocation || '';
-        document.getElementById('contact-phone-input').value = data.contactPhone || '';
-        document.getElementById('contact-email-input').value = data.contactEmail || '';
-    }
-}
-
-export function renderProfileInfo(userDoc, myShooters = []) {
-    if (!userDoc || !userDoc.exists()) {
-        const profileNameInput = document.getElementById('profile-name-input');
-        const profileAddressInput = document.getElementById('profile-address-input');
-        const profilePhoneInput = document.getElementById('profile-phone-input');
-        const profileBirthyearInput = document.getElementById('profile-birthyear-input');
-        const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
-
-        profileNameInput.value = '';
-        profileAddressInput.value = '';
-        profilePhoneInput.value = '';
-        profileBirthyearInput.value = '';
-        profileMailingListCheckbox.checked = false;
-        return;
-    }
-    const data = userDoc.data();
-    const profileNameInput = document.getElementById('profile-name-input');
-    const profileAddressInput = document.getElementById('profile-address-input');
-    const profilePhoneInput = document.getElementById('profile-phone-input');
-    const profileBirthyearInput = document.getElementById('profile-birthyear-input');
-    const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
-
-    profileNameInput.value = data.name || '';
-    profileAddressInput.value = data.address || '';
-    profilePhoneInput.value = data.phone || '';
-    profileBirthyearInput.value = data.birthyear || '';
-    profileMailingListCheckbox.checked = data.mailingList || false;
-
-    const profileForm = document.getElementById('profile-form');
-    const oldList = document.getElementById('profile-linked-shooters');
-    if (oldList) oldList.remove();
-
-    if (myShooters && myShooters.length > 0) {
-        const listHtml = document.createElement('div');
-        listHtml.id = 'profile-linked-shooters';
-        listHtml.className = "mt-6 p-4 bg-blue-50 rounded border border-blue-100";
-        
-        let html = '<h3 class="font-bold text-blue-900 mb-2">Kopplade Skyttprofiler</h3><ul class="list-disc pl-5 text-sm text-blue-800">';
-        myShooters.forEach(s => {
-            html += `<li>${s.name} (Född ${s.birthyear})</li>`;
-        });
-        html += '</ul>';
-        listHtml.innerHTML = html;
-        
-        const saveBtn = document.getElementById('save-profile-btn');
-        profileForm.insertBefore(listHtml, saveBtn);
-    }
-}
-
-export function applyEditorCommand(editor, command, value = null) {
-    editor.focus();
-    document.execCommand(command, false, value);
-}
-
-export function updateToolbarButtons(editor) {
-    const toolbar = editor.previousElementSibling;
-    if (!toolbar) return;
-    const boldButton = toolbar.querySelector('[data-command="bold"]');
-    const italicButton = toolbar.querySelector('[data-command="italic"]');
-    
-    if (document.queryCommandState('bold')) {
-        boldButton.classList.add('active');
-    } else {
-        boldButton.classList.remove('active');
-    }
-    
-    if (document.queryCommandState('italic')) {
-        italicButton.classList.add('active');
-    } else {
-        italicButton.classList.remove('active');
+        if(loginPanel) loginPanel.classList.remove('hidden');
+        if(profilePanel) profilePanel.classList.add('hidden');
     }
 }
 
 export function navigate(hash) {
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const id = hash.split('#')[1] || 'hem';
+    const target = document.getElementById(id) || document.getElementById('hem');
+    target.classList.add('active');
+    window.scrollTo(0,0);
+    document.querySelectorAll('.nav-link').forEach(l => {
+        l.classList.remove('active','bg-blue-800','text-blue-200');
+        if(l.getAttribute('href')==='#'+id) l.classList.add('active','bg-blue-800','text-blue-200');
     });
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
+}
+
+// --- RENDERING (CONTENT) ---
+export function renderNews(data, isAdmin, uid) {
+    const el = document.getElementById('news-container');
+    if(!el) return;
+    el.innerHTML = '';
+    data.forEach(i => {
+        el.innerHTML += `
+            <div class="card mb-6">
+                ${i.imageUrl ? `<img src="${i.imageUrl}" class="w-full h-64 object-cover rounded-t-lg mb-4 cursor-pointer" onclick="window.open('${i.imageUrl}')">` : ''}
+                <div class="p-4">
+                    <h3 class="text-2xl font-bold text-blue-900">${i.title}</h3>
+                    <p class="text-sm text-gray-500 mb-2">${new Date(i.date).toLocaleDateString()}</p>
+                    <div class="text-gray-700 markdown-content">${i.content}</div>
+                    <div class="mt-4 border-t pt-2 flex justify-between">
+                        <div class="flex gap-4">
+                            <button class="like-btn ${i.likedBy?.includes(uid)?'text-blue-600 font-bold':'text-gray-500'}" data-id="${i.id}" data-liked="${i.likedBy?.includes(uid)}">👍 <span class="like-count">${i.likes||0}</span></button>
+                            <button class="share-btn text-gray-500" data-id="${i.id}" data-title="${i.title}">🔗 Dela</button>
+                        </div>
+                        ${isAdmin ? `<div><button class="edit-news-btn text-blue-600 mr-2" data-id="${i.id}">Ändra</button><button class="delete-btn text-red-600" data-id="${i.id}" data-type="news">Radera</button></div>` : ''}
+                    </div>
+                </div>
+            </div>`;
     });
+}
 
-    const hashParts = hash.split('#');
-    let targetPageId = hashParts[1];
-    
-    if (targetPageId) {
-        targetPageId = targetPageId.split('?')[0];
+export function renderEvents(data, isAdmin) {
+    const el = document.getElementById('events-container');
+    if(!el) return;
+    el.innerHTML = '';
+    const upcoming = data.filter(e => e.isRecurring || new Date(e.date) >= new Date());
+    upcoming.forEach(i => {
+        const date = i.isRecurring ? `Återkommande (${i.weekday})` : new Date(i.date).toLocaleDateString();
+        el.innerHTML += `
+            <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500 mb-4 flex justify-between">
+                <div><h4 class="font-bold">${i.title}</h4><p class="text-sm text-gray-500">${date} ${i.time||''}</p><p>${i.description}</p></div>
+                ${isAdmin ? `<button class="delete-btn text-red-500" data-id="${i.id}" data-type="events">✕</button>` : ''}
+            </div>`;
+    });
+}
+
+export function renderHistory(data, isAdmin) {
+    const el = document.getElementById('history-timeline');
+    if(!el) return;
+    el.innerHTML = '';
+    data.sort((a,b)=>b.year-a.year).forEach(i => {
+        el.innerHTML += `
+            <div class="pl-8 border-l-2 border-blue-200 pb-8 relative">
+                <div class="absolute -left-2 w-4 h-4 bg-blue-500 rounded-full"></div>
+                <div class="bg-white p-4 rounded shadow">
+                    <span class="text-blue-600 font-bold">${i.year}</span>
+                    <h3 class="font-bold">${i.title}</h3>
+                    <div>${i.content}</div>
+                    ${isAdmin ? `<button class="delete-btn text-red-500 text-xs mt-2" data-id="${i.id}" data-type="history">Ta bort</button>` : ''}
+                </div>
+            </div>`;
+    });
+}
+
+export function renderImages(data, isAdmin) {
+    const el = document.getElementById('image-gallery-grid');
+    if(!el) return;
+    el.innerHTML = '';
+    data.forEach(i => {
+        el.innerHTML += `
+            <div class="relative group h-64 rounded overflow-hidden shadow bg-gray-100">
+                <img src="${i.url}" class="w-full h-full object-cover" onclick="window.open('${i.url}')">
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col justify-end p-2 transition">
+                    <p class="text-white font-bold">${i.title}</p>
+                </div>
+                ${isAdmin ? `<div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100"><button class="delete-btn bg-white p-1 rounded text-red-600" data-id="${i.id}" data-type="images">🗑️</button></div>` : ''}
+            </div>`;
+    });
+}
+
+export function renderSponsors(data, isAdmin) {
+    const el = document.getElementById('sponsors-grid');
+    if(!el) return;
+    el.innerHTML = '';
+    data.forEach(i => {
+        el.innerHTML += `
+            <div class="p-4 bg-white rounded shadow text-center">
+                <img src="${i.imageUrl}" class="h-20 mx-auto object-contain">
+                <h4 class="font-bold mt-2">${i.name}</h4>
+                ${isAdmin ? `<button class="edit-sponsor-btn text-blue-600 mr-2" data-id="${i.id}">Edit</button><button class="delete-btn text-red-500 text-xs mt-2" data-id="${i.id}" data-type="sponsors">Ta bort</button>` : ''}
+            </div>`;
+    });
+}
+
+// --- ADMIN LISTOR ---
+export function renderAdminsAndUsers(users, isAdmin, uid) {
+    const al = document.getElementById('admin-users-list');
+    const ul = document.getElementById('all-users-list');
+    if(al) {
+        al.innerHTML = '';
+        users.filter(u=>u.isAdmin).forEach(u => al.innerHTML += `<li class="flex justify-between p-2 bg-gray-50 border rounded mb-1"><span>${u.username||u.email}</span>${u.id!==uid?`<button class="delete-admin-btn text-red-500 text-xs" data-id="${u.id}">Ta bort</button>`:'(Du)'}</li>`);
     }
-
-    const targetElementId = hashParts[2];
-    
-    if (!targetPageId || targetPageId === 'hem') {
-        targetPageId = 'hem';
-        const homePage = document.getElementById(targetPageId);
-        if (homePage) homePage.classList.add('active');
-    } else {
-        try {
-            const targetPage = document.querySelector(`#${targetPageId}`);
-            if (targetPage) {
-                targetPage.classList.add('active');
-            } else {
-                targetPageId = 'hem';
-                document.getElementById('hem').classList.add('active');
-            }
-        } catch (e) {
-            console.warn("Kunde inte navigera till:", targetPageId);
-            targetPageId = 'hem';
-            document.getElementById('hem').classList.add('active');
-        }
-    }
-
-    const correspondingNavLink = document.querySelector(`a[href="#${targetPageId}"]`);
-    if (correspondingNavLink) {
-        correspondingNavLink.classList.add('active');
-    }
-
-    if (targetElementId) {
-        setTimeout(() => {
-            const targetElement = document.getElementById(targetElementId);
-            if (targetElement) {
-                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 500);
-    } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    if(ul) {
+        ul.innerHTML = '';
+        users.forEach(u => ul.innerHTML += `
+            <div class="flex justify-between p-3 border rounded mb-2 bg-white">
+                <div><div class="font-bold">${u.email}</div><div class="text-xs">${u.username||'-'}</div></div>
+                <div class="flex gap-2">
+                    <button class="toggle-member-btn text-xs px-2 rounded border ${u.isMember?'bg-green-100':'bg-gray-100'}" data-id="${u.id}" data-status="${u.isMember}">${u.isMember?'Medlem':'Ej'}</button>
+                    <button class="show-user-info-btn text-xs px-2 rounded border text-blue-600" onclick="showUserInfoModal({email:'${u.email}', username:'${u.username}', id:'${u.id}', isMember:${u.isMember}, isAdmin:${u.isAdmin}})">Info</button>
+                    ${!u.isAdmin ? `<button class="add-admin-btn text-xs px-2 rounded bg-indigo-100 text-indigo-700" data-id="${u.id}">+Admin</button>`:''}
+                </div>
+            </div>`);
     }
 }
 
-export function renderHomeAchievements(allResults, allShooters, usersData = []) {
-    const container = document.getElementById('achievements-list');
-    const section = document.getElementById('achievements-section');
-    
-    if (!container || !section) return;
-
-    const currentUser = auth.currentUser;
-    const myProfile = currentUser ? usersData.find(u => u.id === currentUser.uid) : null;
-    
-    const isMember = myProfile ? myProfile.isMember === true : false;
-    const isAdminProfile = myProfile ? myProfile.isAdmin === true : false;
-
-    // ÄNDRAD IF-SATS: Lägg till !isAdminLoggedIn
-    if (!currentUser || (!isMember && !isAdminProfile && !isAdminLoggedIn)) {
-        section.classList.add('hidden');
-        return;
-    }
-    
-    section.classList.remove('hidden');
-
-    const chronologicalResults = [...allResults].sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    const records = {
-        totalPB: new Set(), totalSB: new Set(),
-        seriesPB: new Set(), seriesSB: new Set(),
-        s20PB: new Set(), s20SB: new Set(),
-        s40PB: new Set(), s40SB: new Set(),
-        s60PB: new Set(), s60SB: new Set()
-    };
-    
-    const trackers = {
-        pb: {},
-        sb: {}
-    };
-
-    chronologicalResults.forEach(res => {
-        const key = `${res.shooterId}_${res.discipline}`;
-        const year = new Date(res.date).getFullYear();
-        const yearKey = `${key}_${year}`;
-        
-        const total = parseFloat(res.total);
-        const bestSeries = parseFloat(res.bestSeries);
-        const shotCount = parseInt(res.shotCount);
-
-        if (!trackers.pb[key]) trackers.pb[key] = { maxTotal: 0, maxSeries: 0, max20: 0, max40: 0, max60: 0 };
-        if (!trackers.sb[yearKey]) trackers.sb[yearKey] = { maxTotal: 0, maxSeries: 0, max20: 0, max40: 0, max60: 0 };
-
-        const pb = trackers.pb[key];
-        const sb = trackers.sb[yearKey];
-
-        const totalKey = `${key}_${shotCount}`; 
-        const totalYearKey = `${yearKey}_${shotCount}`;
-        
-        if (!trackers.pb[totalKey]) trackers.pb[totalKey] = 0;
-        if (!trackers.sb[totalYearKey]) trackers.sb[totalYearKey] = 0;
-
-        if (total > trackers.pb[totalKey]) {
-            trackers.pb[totalKey] = total;
-            records.totalPB.add(res.id);
-        }
-        if (total > trackers.sb[totalYearKey]) {
-            trackers.sb[totalYearKey] = total;
-            records.totalSB.add(res.id);
-        }
-
-        if (bestSeries > pb.maxSeries) {
-            pb.maxSeries = bestSeries;
-            records.seriesPB.add(res.id);
-        }
-        if (bestSeries > sb.maxSeries) {
-            sb.maxSeries = bestSeries;
-            records.seriesSB.add(res.id);
-        }
-        
-        if (shotCount === 20) {
-            if (total > pb.max20) { pb.max20 = total; records.s20PB.add(res.id); }
-            if (total > sb.max20) { sb.max20 = total; records.s20SB.add(res.id); }
-        } else if (shotCount === 40) {
-            if (total > pb.max40) { pb.max40 = total; records.s40PB.add(res.id); }
-            if (total > sb.max40) { sb.max40 = total; records.s40SB.add(res.id); }
-        } else if (shotCount === 60) {
-            if (total > pb.max60) { pb.max60 = total; records.s60PB.add(res.id); }
-            if (total > sb.max60) { sb.max60 = total; records.s60SB.add(res.id); }
-        }
-    });
-
-    const now = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(now.getDate() - 30);
-
-    const relevantResults = allResults.filter(res => {
-        const resDate = new Date(res.date);
-        const isRecent = resDate >= thirtyDaysAgo;
-        const isShared = res.sharedWithClub === true;
-        const hasEarnedBadge = res.earnedBadges && res.earnedBadges.length > 0;
-        
-        const isAnyRecord = 
-            records.totalPB.has(res.id) || records.totalSB.has(res.id) ||
-            records.seriesPB.has(res.id) || records.seriesSB.has(res.id) ||
-            records.s20PB.has(res.id) || records.s20SB.has(res.id) ||
-            records.s40PB.has(res.id) || records.s40SB.has(res.id) ||
-            records.s60PB.has(res.id) || records.s60SB.has(res.id);
-
-        return isRecent && isShared && (hasEarnedBadge || isAnyRecord);
-    });
-
-    relevantResults.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    container.innerHTML = '';
-    
-    if (relevantResults.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 col-span-full text-center">Inga nya rekord eller märken de senaste 30 dagarna. Kämpa på! 🎯</p>';
-        return;
-    }
-
-    relevantResults.slice(0, 9).forEach(res => {
-        const shooter = allShooters.find(s => s.id === res.shooterId);
-        const shooterName = shooter ? shooter.name : "Okänd skytt";
-        const dateStr = new Date(res.date).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
-
-        const getLabel = (isPB, isSB) => {
-            if (isPB) return `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200 uppercase ml-2">PB 🚀</span>`;
-            if (isSB) return `<span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-blue-200 uppercase ml-2">ÅB 📅</span>`;
-            return '';
-        };
-
-        const totalLabel = getLabel(records.totalPB.has(res.id), records.totalSB.has(res.id));
-        
-        let seriesRow = '';
-        if (records.seriesPB.has(res.id) || records.seriesSB.has(res.id)) {
-            const label = getLabel(records.seriesPB.has(res.id), records.seriesSB.has(res.id));
-            seriesRow = `<div class="flex justify-between items-center text-sm text-gray-600 mt-1">
-                            <span>Bästa serie: <b>${res.bestSeries}</b></span>
-                            ${label}
-                         </div>`;
-        }
-
-        let countRow = '';
-        const shotCount = parseInt(res.shotCount);
-        let hasCountRecord = false;
-        let countLabel = '';
-
-        if (shotCount === 20) {
-            hasCountRecord = records.s20PB.has(res.id) || records.s20SB.has(res.id);
-            countLabel = getLabel(records.s20PB.has(res.id), records.s20SB.has(res.id));
-        } else if (shotCount === 40) {
-            hasCountRecord = records.s40PB.has(res.id) || records.s40SB.has(res.id);
-            countLabel = getLabel(records.s40PB.has(res.id), records.s40SB.has(res.id));
-        } else if (shotCount === 60) {
-            hasCountRecord = records.s60PB.has(res.id) || records.s60SB.has(res.id);
-            countLabel = getLabel(records.s60PB.has(res.id), records.s60SB.has(res.id));
-        }
-
-        if (hasCountRecord) {
-            countRow = `<div class="flex justify-between items-center text-sm text-gray-600 mt-1">
-                            <span>${shotCount} skott: <b>${res.total}</b></span>
-                            ${countLabel}
-                        </div>`;
-        }
-
-        let badgeHtml = '';
-        if (res.earnedBadges && res.earnedBadges.length > 0) {
-            res.earnedBadges.forEach(badge => {
-                let color = 'text-yellow-800 bg-yellow-50 border-yellow-200';
-                let icon = '🏆';
-                if(badge.includes('Silver')) { color = 'text-slate-700 bg-slate-50 border-slate-200'; icon = '🥈'; }
-                if(badge.includes('Brons')) { color = 'text-orange-800 bg-orange-50 border-orange-200'; icon = '🥉'; }
-                
-                badgeHtml += `<div class="${color} flex items-center justify-center font-bold text-xs border px-2 py-1 rounded-md mt-1 w-full">
-                    <span class="mr-1">${icon}</span> ${badge}-märke!
-                </div>`;
-            });
-        }
-
-        let bgClass = "bg-white border-gray-100";
-        if (records.totalPB.has(res.id)) bgClass = "bg-green-50 border-green-200";
-        else if (records.totalSB.has(res.id)) bgClass = "bg-blue-50 border-blue-200";
-        else if (res.earnedBadges && res.earnedBadges.length > 0) bgClass = "bg-yellow-50 border-yellow-200";
-
-        container.innerHTML += `
-            <div class="flex flex-col p-4 rounded-xl border ${bgClass} shadow-sm hover:shadow-md transition-shadow relative">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-800 truncate text-lg">${shooterName}</span>
-                    <span class="text-xs text-gray-400 whitespace-nowrap">${dateStr}</span>
+export function renderShootersAdmin(shooters) {
+    const el = document.getElementById('admin-shooters-list');
+    if(!el) return;
+    el.innerHTML = '';
+    shooters.forEach(s => {
+        const hasP = s.parentUserIds?.length > 0;
+        el.innerHTML += `
+            <div class="flex justify-between p-3 bg-white border-l-4 ${hasP?'border-green-500':'border-red-500'} rounded mb-2 shadow-sm">
+                <div><h4 class="font-bold">${s.name}</h4><p class="text-xs">Född: ${s.birthYear}</p></div>
+                <div>
+                    ${!hasP ? `<button class="link-parent-btn bg-blue-100 text-blue-700 px-2 rounded text-xs" data-id="${s.id}" data-name="${s.name}">Koppla</button>` : ''}
+                    <button class="delete-btn text-red-500 ml-2 text-xs" data-id="${s.id}" data-type="shooters">Radera</button>
                 </div>
-                
-                <div class="flex items-center justify-between mb-2 pb-2 border-b border-black/5">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-blue-900 text-2xl leading-none">${res.total}p</span>
-                        <span class="text-[10px] text-gray-500 uppercase tracking-wide mt-1">${res.discipline} (${res.shotCount} skott)</span>
-                    </div>
-                     <div>${totalLabel}</div>
-                </div>
-
-                <div class="flex flex-col gap-0 mb-2">
-                    ${seriesRow}
-                    ${countRow}
-                </div>
-
-                <div class="flex flex-col gap-1 mt-auto">
-                    ${badgeHtml}
-                </div>
-            </div>
-        `;
+            </div>`;
     });
 }
 
 export function renderClassesAdmin(classes) {
-    const container = document.getElementById('admin-classes-list');
-    if (!container) return;
-
-    container.innerHTML = '';
-    
-    classes.forEach(cls => {
-        let discLabel = cls.discipline === 'sitting' ? 'Sittande' : 'Stående';
-        container.innerHTML += `
-            <div class="flex items-center justify-between p-3 bg-white border rounded shadow-sm">
+    const el = document.getElementById('admin-classes-list');
+    if(!el) return;
+    el.innerHTML = '';
+    classes.sort((a,b)=>a.minAge-b.minAge).forEach(c => {
+        el.innerHTML += `
+            <div class="flex justify-between p-3 bg-white border rounded mb-2">
+                <div><h4 class="font-bold">${c.name}</h4><p class="text-sm">${c.minAge}-${c.maxAge} år</p></div>
                 <div>
-                    <h4 class="font-bold text-blue-900">${cls.name}</h4>
-                    <p class="text-sm text-gray-600">${cls.description || ''} (${cls.minAge}-${cls.maxAge} år, ${discLabel})</p>
+                    <button class="edit-class-btn text-blue-600 mr-2" data-obj='${JSON.stringify(c)}'>Ändra</button>
+                    <button class="delete-btn text-red-600" data-id="${c.id}" data-type="competitionClasses">Ta bort</button>
                 </div>
-                <div>
-                    <button class="edit-class-btn text-blue-600 font-bold mr-2 text-sm" 
-                        data-obj='${JSON.stringify(cls)}'>Ändra</button>
-                    <button class="delete-btn text-red-600 font-bold text-sm" 
-                        data-id="${cls.id}" data-type="online_competition_classes">Ta bort</button>
-                </div>
-            </div>
-        `;
-    });
-}
-// NY FUNKTION: Ritar ut kryssrutor för klasser i "Skapa tävling"-formuläret
-export function renderSelectableClasses(classes) {
-    const container = document.getElementById('comp-classes-select-container');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (!classes || classes.length === 0) {
-        container.innerHTML = '<p class="text-sm text-gray-400 italic">Inga klasser skapade än.</p>';
-        return;
-    }
-
-    // Sortera för snygghetens skull
-    const sortedClasses = [...classes].sort((a, b) => a.minAge - b.minAge);
-
-    sortedClasses.forEach(cls => {
-        const wrapper = document.createElement('div');
-        wrapper.className = "flex items-center space-x-2 p-1 hover:bg-gray-100 rounded";
-        
-        const discLabel = cls.discipline === 'sitting' ? 'Sit' : 'Stå';
-        
-        wrapper.innerHTML = `
-            <input type="checkbox" id="chk-cls-${cls.id}" value="${cls.id}" class="comp-class-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-            <label for="chk-cls-${cls.id}" class="text-sm text-gray-700 cursor-pointer select-none flex-grow">
-                <span class="font-bold">${cls.name}</span> 
-                <span class="text-xs text-gray-500">(${discLabel}, ${cls.minAge}-${cls.maxAge}år)</span>
-            </label>
-        `;
-        container.appendChild(wrapper);
+            </div>`;
     });
 }
 
-export function renderTopLists(classes, allResults, allShooters, usersData = []) {
-    const container = document.getElementById('top-lists-container');
-    const searchCard = document.querySelector('#topplistor .card');
-    
-    if (!container) return;
-    
-    // Hämta inloggad status
-    const currentUser = auth.currentUser;
-    const myProfile = currentUser ? usersData.find(u => u.id === currentUser.uid) : null;
-    
-    // SÄKERHETSKOLL:
-    // Vi kollar tre saker:
-    // 1. Är profilen markerad som medlem? (isMember)
-    // 2. Är profilen markerad som admin? (isAdmin)
-    // 3. Är den globala admin-variabeln true? (isAdminLoggedIn) <- DETTA FIXAR DITT PROBLEM
-    const isMember = myProfile ? myProfile.isMember === true : false;
-    const isAdminProfile = myProfile ? myProfile.isAdmin === true : false;
+// --- MINA RESULTAT & PROFIL ---
+export function renderProfileInfo(u) {
+    document.getElementById('profile-name-display').textContent = u.username||u.email;
+    document.getElementById('profile-role-display').textContent = u.role;
+    document.getElementById('profile-email-display').value = u.email;
+    document.getElementById('profile-name-input').value = u.username||'';
+}
 
-    // Om man inte är inloggad alls
-    if (!currentUser) {
-        container.innerHTML = `
-            <div class="col-span-full text-center p-8 bg-blue-50 rounded-xl border border-blue-100">
-                <h3 class="text-2xl font-bold text-blue-900 mb-2">Endast för medlemmar</h3>
-                <p class="text-gray-600 mb-4">Du måste vara inloggad för att se topplistor och statistik.</p>
-                <button onclick="document.getElementById('user-nav-link').click(); window.location.hash='#profil';" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition">
-                    Gå till inloggning
-                </button>
-            </div>
-        `;
-        if(searchCard) searchCard.classList.add('hidden');
-        return;
-    }
-
-    // Om man INTE är medlem OCH INTE är admin (varken i profil eller globalt)
-    if (!isMember && !isAdminProfile && !isAdminLoggedIn) {
-        container.innerHTML = `
-            <div class="col-span-full text-center p-8 bg-yellow-50 rounded-xl border border-yellow-200">
-                <h3 class="text-2xl font-bold text-yellow-800 mb-2">Medlemskap krävs</h3>
-                <p class="text-gray-700 mb-4">
-                    Ditt konto väntar på godkännande av en administratör.
-                </p>
-            </div>
-        `;
-        if(searchCard) searchCard.classList.add('hidden');
-        return;
-    }
-    
-    // Om godkänd: Visa sök-rutan och kör logiken
-    if(searchCard) searchCard.classList.remove('hidden');
-
-    if (classes.length === 0) {
-        container.innerHTML = '<p class="text-gray-500">Inga klasser konfigurerade än.</p>';
-        return;
-    }
-
-    container.innerHTML = '';
-
-    const now = new Date();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(now.getDate() - 7);
-
-    const recentResults = allResults.filter(res => {
-        const d = new Date(res.date);
-        return d >= oneWeekAgo && res.sharedWithClub === true;
+export function renderShooterSelector(shooters) {
+    const els = [document.getElementById('shooter-selector'), document.getElementById('result-shooter-selector')];
+    const my = shooters.filter(s => s.parentUserIds?.includes(auth.currentUser?.uid));
+    els.forEach(sel => {
+        if(!sel) return;
+        const val = sel.value;
+        sel.innerHTML = '<option value="">Välj skytt...</option>';
+        my.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+        if(val) sel.value = val;
     });
+}
 
-    const currentYear = new Date().getFullYear();
+export function renderProfilePage(results, shooters) {
+    const myIds = shooters.filter(s => s.parentUserIds?.includes(auth.currentUser?.uid)).map(s=>s.id);
+    const myRes = results.filter(r => myIds.includes(r.shooterId));
+    const el = document.getElementById('my-results-list');
+    if(el) {
+        el.innerHTML = '';
+        myRes.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(r => {
+            const name = shooters.find(s=>s.id===r.shooterId)?.name || '-';
+            el.innerHTML += `<tr class="border-b"><td class="p-2">${r.date}</td><td class="p-2">${name}</td><td class="p-2 font-bold">${r.total}p</td><td class="p-2"><button class="delete-btn text-red-500" data-id="${r.id}" data-type="results">x</button></td></tr>`;
+        });
+    }
+    const sel = document.getElementById('shooter-selector');
+    if(sel && sel.value) loadAndRenderChart(sel.value);
+}
 
+// --- TOPPLISTOR ---
+export function renderTopLists(classes, results, shooters) {
+    const el = document.getElementById('toplist-container');
+    const recEl = document.getElementById('record-container');
+    if(el) el.innerHTML = ''; if(recEl) recEl.innerHTML = '';
+    
     classes.forEach(cls => {
-        const classResults = recentResults.filter(res => {
-            if (res.discipline !== cls.discipline) return false;
-
-            const shooter = allShooters.find(s => s.id === res.shooterId);
-            if (!shooter || !shooter.birthyear) return false;
-
-            const age = currentYear - shooter.birthyear;
+        const clsRes = results.filter(r => {
+            const s = shooters.find(x => x.id === r.shooterId);
+            if(!s) return false;
+            const age = new Date().getFullYear() - s.birthYear;
             return age >= cls.minAge && age <= cls.maxAge;
-        });
+        }).sort((a,b)=>b.total-a.total);
 
-        if (classResults.length === 0) return;
-
-        classResults.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
-
-        const top5 = classResults.slice(0, 5);
-
-        let rowsHtml = '';
-        top5.forEach((res, index) => {
-            const shooter = allShooters.find(s => s.id === res.shooterId);
-            const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
-            
-            rowsHtml += `
-                <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                    <div class="flex items-center">
-                        <span class="w-6 font-bold text-gray-500">${medal}</span>
-                        <span class="font-semibold text-gray-800 truncate max-w-[120px]">${shooter.name}</span>
-                    </div>
-                    <span class="font-bold text-blue-900">${res.total}</span>
-                </div>
-            `;
-        });
-
-        container.innerHTML += `
-            <div class="bg-white rounded-xl shadow p-4 border-t-4 border-blue-600">
-                <div class="flex justify-between items-baseline mb-3">
-                    <h3 class="text-xl font-bold text-gray-800">${cls.name}</h3>
-                    <span class="text-xs text-gray-500 uppercase">${cls.discipline === 'sitting' ? 'Sittande' : 'Stående'}</span>
-                </div>
-                <div class="flex flex-col">
-                    ${rowsHtml}
-                </div>
-            </div>
-        `;
-    });
-    
-    if (container.innerHTML === '') {
-        container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Inga resultat registrerade den senaste veckan.</p>';
-    }
-}
-
-export function renderPublicShooterStats(shooterId, allResults, allShooters) {
-    const container = document.getElementById('public-results-list');
-    const statsContainer = document.getElementById('public-shooter-stats');
-    if (!container || !statsContainer) return;
-
-    if (!shooterId) {
-        statsContainer.classList.add('hidden');
-        return;
-    }
-
-    const shooter = allShooters.find(s => s.id === shooterId);
-    if (!shooter) return;
-
-    document.getElementById('public-shooter-name').textContent = shooter.name;
-    statsContainer.classList.remove('hidden');
-
-    const myResults = allResults.filter(r => r.shooterId === shooterId && r.sharedWithClub === true);
-    myResults.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    let maxTotal = 0;
-    let maxYear = 0;
-    const currentYear = new Date().getFullYear();
-
-    myResults.forEach(r => {
-        if (r.total > maxTotal) maxTotal = r.total;
-        if (new Date(r.date).getFullYear() === currentYear) {
-            if (r.total > maxYear) maxYear = r.total;
+        if(clsRes.length > 0) {
+            let html = `<div class="mb-6 bg-white rounded shadow border"><div class="bg-blue-900 text-white p-2 font-bold">${cls.name}</div><table class="w-full text-sm">`;
+            clsRes.slice(0,5).forEach((r,i) => {
+                const s = shooters.find(x=>x.id===r.shooterId)?.name || '-';
+                const rank = i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)));
+                html += `<tr class="border-b"><td class="p-2 w-8 text-center">${rank}</td><td class="p-2">${s}</td><td class="p-2 text-right font-bold">${r.total}</td></tr>`;
+            });
+            html += '</table></div>';
+            if(el) el.innerHTML += html;
+            if(recEl) recEl.innerHTML += `<div class="flex justify-between p-2 border-b bg-white"><span>${cls.name}</span><span class="font-bold text-blue-900">${clsRes[0].total}p (${shooters.find(x=>x.id===clsRes[0].shooterId)?.name})</span></div>`;
         }
     });
-
-    document.getElementById('public-pb').textContent = maxTotal > 0 ? maxTotal : '-';
-    document.getElementById('public-sb').textContent = maxYear > 0 ? maxYear : '-';
-
-    container.innerHTML = '';
-    if (myResults.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic">Inga delade resultat än.</p>';
-        return;
-    }
-
-    myResults.slice(0, 10).forEach(res => {
-        container.innerHTML += `
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-100">
-                <div>
-                    <span class="font-bold text-gray-800">${res.total}p</span>
-                    <span class="text-xs text-gray-500 ml-2">${res.date} (${res.discipline})</span>
-                </div>
-                ${res.isPB ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">PB</span>' : ''}
-            </div>
-        `;
-    });
-}
-export function renderShooterSelector(shooters) {
-    const selector = document.getElementById('shooter-selector');
-    if (!selector) return;
-    
-    // Spara valt värde om det finns
-    const currentValue = selector.value;
-    
-    selector.innerHTML = '<option value="">-- Välj Skytt --</option>';
-    
-    shooters.forEach(shooter => {
-        const opt = document.createElement('option');
-        opt.value = shooter.id;
-        opt.textContent = `${shooter.name} (${shooter.birthyear})`;
-        selector.appendChild(opt);
-    });
-    
-    // Återställ värde eller välj automatiskt om bara en finns
-    if (currentValue && shooters.find(s => s.id === currentValue)) {
-        selector.value = currentValue;
-    } else if (shooters.length === 1) {
-        selector.value = shooters[0].id;
-        // Trigga change event för att ladda grafen direkt
-        selector.dispatchEvent(new Event('change'));
-    }
 }
 
-export function renderPublicShooterSelector(shooters) {
-    const selector = document.getElementById('public-shooter-selector');
-    if (!selector) return;
-    
-    const currentValue = selector.value;
-    selector.innerHTML = '<option value="">Välj skytt i listan...</option>';
-    
-    // Sortera alfabetiskt
-    const sorted = [...shooters].sort((a,b) => a.name.localeCompare(b.name));
-    
-    sorted.forEach(shooter => {
-        const opt = document.createElement('option');
-        opt.value = shooter.id;
-        opt.textContent = `${shooter.name} (${shooter.birthyear})`;
-        selector.appendChild(opt);
+export function renderHomeAchievements(results, shooters) {
+    const el = document.getElementById('home-latest-results');
+    if(!el) return;
+    el.innerHTML = '';
+    results.slice(0,5).forEach(r => {
+        const s = shooters.find(x=>x.id===r.shooterId)?.name || '-';
+        el.innerHTML += `<div class="flex justify-between py-2 border-b border-blue-800/30"><span>${s}</span><span class="font-bold text-white bg-blue-800/50 px-2 rounded">${r.total}p</span></div>`;
     });
-
-    if (currentValue) selector.value = currentValue;
 }
 
-// --- DOKUMENTARKIV ---
+// --- DOKUMENT & SETTINGS ---
 export function renderDocumentArchive(docs) {
-    const container = document.getElementById('document-archive-list');
-    const dataList = document.getElementById('category-suggestions');
-    
-    // Om container inte finns (t.ex. vanlig användare som inte ser admin-panelen), avbryt bara.
-    if (!container) return;
-
-    container.innerHTML = '';
-    
-    if (!docs || docs.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic text-center py-4">Inga dokument uppladdade än.</p>';
-        return;
-    }
-
-    // 1. Gruppera dokument per kategori
-    const grouped = {};
-    const categories = new Set(); 
-    
-    docs.forEach(doc => {
-        const cat = doc.category || 'Övrigt';
-        categories.add(cat);
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(doc);
-    });
-
-    // Uppdatera datalist för autocomplete
-    if (dataList) {
-        dataList.innerHTML = '';
-        categories.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            dataList.appendChild(opt);
-        });
-    }
-
-    // 2. Rita ut grupper
-    Object.keys(grouped).sort().forEach(category => {
-        const groupItems = grouped[category];
-        
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4'; // Added mb-4 spacing
-        
-        groupDiv.innerHTML = `
-            <div class="flex items-center mb-3 border-b border-gray-200 pb-2">
-                <span class="text-2xl mr-2">📂</span>
-                <h3 class="font-bold text-lg text-gray-800">${category}</h3>
-                <span class="ml-auto text-xs text-gray-500 bg-white px-2 py-1 rounded border">${groupItems.length} filer</span>
-            </div>
-            <div class="grid grid-cols-1 gap-2 list-container"></div>
-        `;
-
-        const listContainer = groupDiv.querySelector('.list-container');
-
-        groupItems.forEach(doc => {
-            const date = doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toLocaleDateString('sv-SE') : 'Just nu';
-            
-            let icon = '📄';
-            if (doc.fileType?.includes('pdf')) icon = '📕';
-            else if (doc.fileType?.includes('word') || doc.fileType?.includes('document')) icon = '📘';
-            else if (doc.fileType?.includes('sheet') || doc.fileType?.includes('excel')) icon = '📗';
-
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'flex items-center justify-between p-2 bg-white rounded hover:bg-blue-50 transition shadow-sm border border-transparent hover:border-blue-100';
-            itemDiv.innerHTML = `
-                <div class="flex items-center overflow-hidden">
-                    <span class="text-xl mr-3">${icon}</span>
-                    <div class="truncate">
-                        <a href="${doc.url}" target="_blank" class="font-medium text-blue-700 hover:underline truncate block">${doc.name}</a>
-                        <span class="text-xs text-gray-400">${date}</span>
-                    </div>
-                </div>
-                <button class="delete-btn text-red-400 hover:text-red-600 ml-4 p-1 rounded hover:bg-red-50" data-id="${doc.id}" data-type="documents" title="Radera fil">
-                    🗑️
-                </button>
-            `;
-            listContainer.appendChild(itemDiv);
-        });
-
-        container.appendChild(groupDiv);
-    });
+    const el = document.getElementById('document-list');
+    if(!el) return;
+    el.innerHTML = '';
+    docs.forEach(d => el.innerHTML += `<div class="flex justify-between p-2 border rounded mb-2 bg-white"><a href="${d.url}" target="_blank" class="text-blue-600 hover:underline">📄 ${d.name}</a><button class="delete-btn text-red-500" data-id="${d.id}" data-type="documents">🗑️</button></div>`);
 }
+export function renderSiteSettings(s) {
+    if(s.design) {
+        document.getElementById('header-color-input').value = s.design.headerColor||'#1e3a8a';
+        document.getElementById('show-sponsors-checkbox').checked = s.design.showSponsors;
+        document.getElementById('contact-email-input').value = s.design.contactEmail||'';
+        document.getElementById('logo-url-input').value = s.design.logoUrl||'';
+    }
+}
+export function updateHeaderColor(c) { document.querySelector('header').style.backgroundColor = c; }
+export function toggleSponsorsNavLink(s) { document.getElementById('nav-sponsors-link').classList.toggle('hidden', !s); }
+export function renderContactInfo() {}
