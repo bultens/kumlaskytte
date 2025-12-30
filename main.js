@@ -1,4 +1,3 @@
-
 // main.js
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";

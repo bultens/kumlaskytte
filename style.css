@@ -1,4 +1,5 @@
-/* style.css * Ver 1.01 */
+
+/* style.css * Ver 1.01/
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 body {
     font-family: 'Inter', sans-serif;
@@ -300,42 +301,4 @@ img.img-large {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-/* =========================================
-   FIXAR FÖR LAYOUT OCH BILDHANTERING
-   ========================================= */
-
-/* Viktig fix: "flow-root" gör att behållaren (kortet) alltid omsluter 
-   allt innehåll, även flytande bilder (som "img-small").
-   Detta förhindrar att layouten går sönder.
-*/
-.card, .editor-content {
-    display: flow-root;
-}
-
-/* Snyggare scrollbar i bildväljaren */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-/* Justeringar för bildväljar-modalen */
-#imageSelectionModal .modal-content {
-    text-align: left; /* Vänsterjustera text i denna modal */
-    max-height: 90vh; /* Förhindra att den blir högre än skärmen */
-}
-
-.gallery-selection-item img {
-    height: 100%; /* Fyller hela rutan */
-    object-fit: cover;
 }

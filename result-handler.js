@@ -1,4 +1,3 @@
-
 // result-handler.js
 import { showModal } from "./ui-handler.js";
 

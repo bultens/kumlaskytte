@@ -264,14 +264,8 @@ export function handleAdminUI(isAdmin) {
     const adminLoginPanel = document.getElementById('admin-login-panel');
     const adminUserInfo = document.getElementById('admin-user-info');
     
-    // NYTT: Hämta admin-länken i menyn
-    const adminNavLink = document.getElementById('admin-nav-link');
-    
     if (isAdmin) {
         isAdminLoggedIn = true;
-        // Visa admin-länken i menyn
-        if (adminNavLink) adminNavLink.classList.remove('hidden');
-
         if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (competitionEditSection) competitionEditSection.classList.remove('hidden');
@@ -288,9 +282,6 @@ export function handleAdminUI(isAdmin) {
         }
     } else {
         isAdminLoggedIn = false;
-        // Göm admin-länken i menyn
-        if (adminNavLink) adminNavLink.classList.add('hidden');
-
         if (adminIndicator) adminIndicator.classList.add('hidden');
         if (newsEditSection) newsEditSection.classList.add('hidden');
         if (competitionEditSection) competitionEditSection.classList.add('hidden');
@@ -648,61 +639,28 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
     
     usersData.forEach(user => {
         const isUserAdmin = user.isAdmin || false;
-        const isMember = user.isMember || false;
-        
-        // UI för medlemsstatus
-        const memberBtnText = isMember ? "Medlem (Neka)" : "Ej Medlem (Godkänn)";
-        const memberBtnClass = isMember 
-            ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-200" 
-            : "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200";
-        const statusIcon = isMember ? "✅ Medlem" : "⏳ Väntar";
-
         const userEl = document.createElement('div');
-        userEl.className = 'flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 mb-2';
+        userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
         
-        let actionButtons = `
-            <div class="flex flex-wrap gap-2 mt-2 sm:mt-0">
-                <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" data-id="${user.id}">Info</button>
-                ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition" data-user-id="${user.id}">Redigera</button>` : ''}
-                
-                ${isAdminLoggedIn ? `<button class="toggle-member-btn px-3 py-1 border text-xs font-bold rounded transition ${memberBtnClass}" data-id="${user.id}" data-status="${isMember}">${memberBtnText}</button>` : ''}
-                
-                ${!isUserAdmin && isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-gray-800 text-white text-xs font-bold rounded hover:bg-black transition" data-id="${user.id}">Gör till Admin</button>` : ''}
-            </div>
-        `;
-
         if (isUserAdmin) {
-            actionButtons = `
-                <div class="flex gap-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded" data-id="${user.id}">Info</button>
-                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 text-xs font-bold" data-id="${user.id}">Ta bort Admin</button>` : ''}
+            userEl.innerHTML = `
+                <span class="font-semibold">${user.email} (Admin)</span>
+                <div class="flex space-x-2">
+                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
+                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
                 </div>
             `;
-        }
-
-        userEl.innerHTML = `
-            <div class="mb-1 sm:mb-0">
-                <span class="font-bold block text-gray-800">${user.email}</span>
-                <span class="text-xs text-gray-500">${user.name || 'Inget namn'} | ${isUserAdmin ? 'Administratör' : statusIcon}</span>
-            </div>
-            ${actionButtons}
-        `;
-        // NYTT: Uppdatera menyn om inloggad är admin
-    const navAdminLink = document.getElementById('nav-admin-link');
-    const mobileAdminLink = document.getElementById('mobile-admin-link');
-    
-    if (isAdminLoggedIn) {
-        if (navAdminLink) navAdminLink.classList.remove('hidden');
-        if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
-    } else {
-        if (navAdminLink) navAdminLink.classList.add('hidden');
-        if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
-    }
-
-
-        if (isUserAdmin) {
             adminListEl.appendChild(userEl);
         } else {
+            userEl.innerHTML = `
+                <span class="font-semibold">${user.email}</span>
+                <div class="flex space-x-2">
+                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
+                    ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
+                </div>
+            `;
             allUsersContainer.appendChild(userEl);
         }
     });
@@ -956,24 +914,16 @@ export function navigate(hash) {
     }
 }
 
-export function renderHomeAchievements(allResults, allShooters, usersData = []) {
+export function renderHomeAchievements(allResults, allShooters) {
     const container = document.getElementById('achievements-list');
     const section = document.getElementById('achievements-section');
     
     if (!container || !section) return;
 
-    const currentUser = auth.currentUser;
-    const myProfile = currentUser ? usersData.find(u => u.id === currentUser.uid) : null;
-    
-    const isMember = myProfile ? myProfile.isMember === true : false;
-    const isAdminProfile = myProfile ? myProfile.isAdmin === true : false;
-
-    // ÄNDRAD IF-SATS: Lägg till !isAdminLoggedIn
-    if (!currentUser || (!isMember && !isAdminProfile && !isAdminLoggedIn)) {
+    if (!auth.currentUser) {
         section.classList.add('hidden');
         return;
     }
-    
     section.classList.remove('hidden');
 
     const chronologicalResults = [...allResults].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1163,6 +1113,8 @@ export function renderHomeAchievements(allResults, allShooters, usersData = []) 
     });
 }
 
+// --- NYA FUNKTIONERNA ---
+
 export function renderClassesAdmin(classes) {
     const container = document.getElementById('admin-classes-list');
     if (!container) return;
@@ -1188,26 +1140,14 @@ export function renderClassesAdmin(classes) {
     });
 }
 
-export function renderTopLists(classes, allResults, allShooters, usersData = []) {
+export function renderTopLists(classes, allResults, allShooters) {
     const container = document.getElementById('top-lists-container');
-    const searchCard = document.querySelector('#topplistor .card');
+    const searchSection = document.getElementById('public-shooter-search-section'); // Om du har gett sök-diven ett ID, annars ignorera denna rad
     
     if (!container) return;
     
-    // Hämta inloggad status
-    const currentUser = auth.currentUser;
-    const myProfile = currentUser ? usersData.find(u => u.id === currentUser.uid) : null;
-    
-    // SÄKERHETSKOLL:
-    // Vi kollar tre saker:
-    // 1. Är profilen markerad som medlem? (isMember)
-    // 2. Är profilen markerad som admin? (isAdmin)
-    // 3. Är den globala admin-variabeln true? (isAdminLoggedIn) <- DETTA FIXAR DITT PROBLEM
-    const isMember = myProfile ? myProfile.isMember === true : false;
-    const isAdminProfile = myProfile ? myProfile.isAdmin === true : false;
-
-    // Om man inte är inloggad alls
-    if (!currentUser) {
+    // SÄKERHETSKOLL I UI:
+    if (!auth.currentUser) {
         container.innerHTML = `
             <div class="col-span-full text-center p-8 bg-blue-50 rounded-xl border border-blue-100">
                 <h3 class="text-2xl font-bold text-blue-900 mb-2">Endast för medlemmar</h3>
@@ -1217,25 +1157,14 @@ export function renderTopLists(classes, allResults, allShooters, usersData = [])
                 </button>
             </div>
         `;
-        if(searchCard) searchCard.classList.add('hidden');
-        return;
-    }
-
-    // Om man INTE är medlem OCH INTE är admin (varken i profil eller globalt)
-    if (!isMember && !isAdminProfile && !isAdminLoggedIn) {
-        container.innerHTML = `
-            <div class="col-span-full text-center p-8 bg-yellow-50 rounded-xl border border-yellow-200">
-                <h3 class="text-2xl font-bold text-yellow-800 mb-2">Medlemskap krävs</h3>
-                <p class="text-gray-700 mb-4">
-                    Ditt konto väntar på godkännande av en administratör.
-                </p>
-            </div>
-        `;
+        // Dölj sök-rutan om den finns
+        const searchCard = document.querySelector('#topplistor .card');
         if(searchCard) searchCard.classList.add('hidden');
         return;
     }
     
-    // Om godkänd: Visa sök-rutan och kör logiken
+    // Visa sök-rutan igen om man är inloggad
+    const searchCard = document.querySelector('#topplistor .card');
     if(searchCard) searchCard.classList.remove('hidden');
 
     if (classes.length === 0) {
