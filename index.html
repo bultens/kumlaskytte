@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -13,104 +12,77 @@
 <body>
 
     <header class="bg-blue-800 text-white shadow-lg" id="site-header">
-    <div class="container pt-4 pb-2 flex flex-col sm:flex-row justify-between items-center relative">
-        <div class="header-content flex items-center space-x-4">
-            <a href="#hem" id="site-logo-link" class="flex items-center">
-                <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
-            </a>
-            <div class="flex flex-col items-start">
-                <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                <p class="text-sm text-gray-300">Ver. 3.17</p>
+        <div class="container py-4 flex flex-col sm:flex-row justify-between items-center relative">
+            <div class="header-content flex items-center space-x-4">
+                <a href="#hem" id="site-logo-link" class="flex items-center">
+                    <img id="site-logo" src="logo.png" alt="Kumla Skytteförening logotyp" class="logo-large mr-2 rounded-full">
+                </a>
+                <div class="flex flex-col items-start">
+                    <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
+                    <p class="text-sm text-gray-300">Ver. 3.15</p>
+                </div>
             </div>
+            <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
         </div>
-        <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
-        
-        <button id="mobile-menu-btn" class="md:hidden focus:outline-none ml-auto text-white mt-4 sm:mt-0">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-            </svg>
+ <nav id="main-nav" class="hidden md:flex space-x-8 items-center">
+    
+    <a href="#hem" class="nav-link font-medium hover:text-blue-200 transition">Hem</a>
+
+    <div class="relative group py-4"> 
+        <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
+            Föreningen <span class="ml-1 text-xs">▼</span>
         </button>
-    </div>
-
-    <div class="container pb-4">
-        <nav id="main-nav" class="hidden md:flex space-x-8 items-center border-t border-blue-400/30 pt-2">
-            
-            <a href="#hem" class="nav-link font-medium hover:text-blue-200 transition">Hem</a>
-
-            <div class="relative group py-2"> 
-                <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
-                    Föreningen <span class="ml-1 text-xs">▼</span>
-                </button>
-                <div class="absolute left-0 mt-0 w-48 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
-                    <a href="#nyheter" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg">Nyheter</a>
-                    <a href="#kalender" class="block px-4 py-2 hover:bg-gray-100">Kalender</a>
-                    <a href="#omoss" class="block px-4 py-2 hover:bg-gray-100">Om oss</a> <a href="#omoss" onclick="setTimeout(()=>document.getElementById('contact-info').scrollIntoView(), 100)" class="block px-4 py-2 hover:bg-gray-100">Styrelse & Kontakt</a>
-                    <a href="#sponsorer" class="block px-4 py-2 hover:bg-gray-100">Sponsorer</a>
-                    <a href="#bilder" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">Bilder</a> </div>
-            </div>
-
-            <div class="relative group py-2">
-                <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
-                    Skytte & Tävling <span class="ml-1 text-xs">▼</span>
-                </button>
-                <div class="absolute left-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
-                    <a href="#tavling-user" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-100 font-bold text-purple-700">
-                        🏆 Tävlingar Online
-                    </a>
-                    <a href="#topplistor" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">
-                        Topplistor & Statistik
-                    </a>
-                </div>
-            </div>
-
-            <div id="nav-my-pages" class="relative group py-2 hidden">
-                <button class="nav-link font-bold text-yellow-300 hover:text-yellow-100 flex items-center transition focus:outline-none">
-                    Mina Sidor <span class="ml-1 text-xs">▼</span>
-                </button>
-                <div class="absolute left-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
-                    <a href="#profil" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg font-bold">Min Profil</a>
-                    <a href="#resultat" class="block px-4 py-2 hover:bg-gray-100">Rapportera Resultat</a>
-                    
-                    <a href="#tavling-admin" id="nav-admin-link" class="hidden block px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold border-t">
-                        Tävlingsadmin
-                    </a>
-                    <a href="#admin" id="nav-site-admin-link" class="hidden block px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 text-sm border-t rounded-b-lg">
-                        Inställningar (Webbplats)
-                    </a>
-                </div>
-            </div>
-
-            <button id="user-nav-link" class="bg-yellow-400 text-blue-900 px-4 py-2 rounded-full font-bold hover:bg-yellow-300 transition shadow-md ml-auto">
-                Logga in
-            </button>
-        </nav>
-    </div>
-
-    <div id="mobile-menu" class="hidden md:hidden bg-blue-900 border-t border-blue-700 p-4">
-        <a href="#hem" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Hem</a>
-        
-        <div class="text-blue-300 text-xs uppercase font-bold mt-4 mb-2 px-4">Föreningen</div>
-        <a href="#nyheter" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Nyheter</a>
-        <a href="#kalender" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Kalender</a>
-        <a href="#omoss" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Om oss</a>
-        <a href="#bilder" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Bilder</a>
-
-        <div class="text-blue-300 text-xs uppercase font-bold mt-4 mb-2 px-4">Aktivitet</div>
-        <a href="#tavling-user" class="block py-2 px-4 hover:bg-blue-800 rounded text-white font-bold text-yellow-300">🏆 Tävlingar Online</a>
-        <a href="#topplistor" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Topplistor</a>
-
-        <div id="mobile-my-pages" class="hidden">
-            <div class="text-yellow-300 text-xs uppercase font-bold mt-4 mb-2 px-4">Mina Sidor</div>
-            <a href="#profil" class="block py-2 px-4 hover:bg-blue-800 rounded text-white font-bold">Min Profil</a>
-            <a href="#resultat" class="block py-2 px-4 hover:bg-blue-800 rounded text-white">Rapportera Resultat</a>
-            <a href="#tavling-admin" id="mobile-admin-link" class="hidden block py-2 px-4 bg-purple-900 text-purple-200 rounded mt-2">Admin & Tävling</a>
+        <div class="absolute left-0 mt-0 w-48 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+            <a href="#nyheter" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg">Nyheter</a>
+            <a href="#kalender" class="block px-4 py-2 hover:bg-gray-100">Kalender</a>
+            <a href="#om-oss" class="block px-4 py-2 hover:bg-gray-100">Om oss</a>
+            <a href="#styrelse" class="block px-4 py-2 hover:bg-gray-100">Styrelse & Kontakt</a>
+            <a href="#sponsorer" class="block px-4 py-2 hover:bg-gray-100">Sponsorer</a>
+            <a href="#galleri" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">Bilder</a>
         </div>
-
-        <div id="mobile-login-btn-container" class="mt-6">
-            <button onclick="window.location.hash='#profil'" class="w-full bg-yellow-400 text-blue-900 py-3 rounded font-bold">Logga in</button>
-       </div>
     </div>
 
+    <div class="relative group py-4">
+        <button class="nav-link font-medium hover:text-blue-200 flex items-center transition focus:outline-none">
+            Skytte & Tävling <span class="ml-1 text-xs">▼</span>
+        </button>
+        <div class="absolute left-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+            <a href="#tavling-user" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-100 font-bold text-purple-700">
+                🏆 Tävlingar Online
+            </a>
+            <a href="#topplistor" class="block px-4 py-2 hover:bg-gray-100 rounded-b-lg">
+                Topplistor & Statistik
+            </a>
+        </div>
+    </div>
+
+    <div id="nav-my-pages" class="relative group py-4 hidden">
+        <button class="nav-link font-bold text-yellow-300 hover:text-yellow-100 flex items-center transition focus:outline-none">
+            Mina Sidor <span class="ml-1 text-xs">▼</span>
+        </button>
+        <div class="absolute right-0 mt-0 w-56 bg-white text-gray-800 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform group-hover:translate-y-0 translate-y-2">
+            <a href="#profil" class="block px-4 py-2 hover:bg-gray-100 rounded-t-lg font-bold">Min Profil</a>
+            <a href="#resultat" class="block px-4 py-2 hover:bg-gray-100">Rapportera Resultat</a>
+            
+            <a href="#tavling-admin" id="nav-admin-link" class="hidden block px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold border-t">
+                Tävlingsadmin
+            </a>
+            <a href="#admin" id="nav-site-admin-link" class="hidden block px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 text-sm border-t rounded-b-lg">
+                Inställningar (Webbplats)
+            </a>
+        </div>
+    </div>
+
+    <button id="user-nav-link" class="bg-yellow-400 text-blue-900 px-4 py-2 rounded-full font-bold hover:bg-yellow-300 transition shadow-md">
+        Logga in
+    </button>
+</nav>
+
+<button id="mobile-menu-btn" class="md:hidden focus:outline-none ml-auto text-white">
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+    </svg>
+</button>
     </header>
 
     <main class="container">
@@ -475,7 +447,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                     <label class="block font-bold mb-1">Startdatum</label>
                     <input type="date" id="new-comp-start" required class="w-full p-2 border rounded">
@@ -485,22 +457,9 @@
                     <input type="date" id="new-comp-end" required class="w-full p-2 border rounded">
                 </div>
                 <div>
-                    <label class="block font-bold mb-1 text-red-700">Sista anmälan</label>
-                    <input type="date" id="new-comp-signup-deadline" required class="w-full p-2 border rounded bg-red-50 border-red-200">
-                </div>
-                <div>
                     <label class="block font-bold mb-1">Kostnad (kr)</label>
                     <input type="number" id="new-comp-cost" class="w-full p-2 border rounded" value="0">
                 </div>
-            </div>
-
-            <div class="mb-4">
-                <label class="block font-bold mb-1">Resultatvisning</label>
-                <select id="new-comp-visibility" class="w-full p-2 border rounded bg-white">
-                    <option value="public">Visa direkt (Live)</option>
-                    <option value="hidden">Dolt tills tävlingen är slut (Blind)</option>
-                </select>
-                <p class="text-xs text-gray-500">Om "Dolt" väljs, ser skyttar bara sina egna resultat fram till slutdatumet.</p>
             </div>
 
             <div class="mb-4">
@@ -526,12 +485,7 @@
             </div>
 
             <div class="mb-6">
-                <div class="flex justify-between items-end mb-1">
-                    <label class="block font-bold">Valbara Klasser</label>
-                    <a href="#admin" onclick="setTimeout(() => { document.getElementById('admin-classes-list').scrollIntoView({behavior: 'smooth'}); }, 300)" class="text-xs text-blue-600 font-bold hover:underline cursor-pointer bg-blue-50 px-2 py-1 rounded">
-                        + Skapa/Ändra klasser (i Adminpanelen)
-                    </a>
-                </div>
+                <label class="block font-bold mb-1">Valbara Klasser</label>
                 <div id="comp-classes-select-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded bg-gray-50">
                     <p class="text-sm text-gray-400">Laddar klasser...</p>
                 </div>
@@ -539,13 +493,6 @@
 
             <button type="submit" class="bg-green-600 text-white font-bold py-2 px-6 rounded hover:bg-green-700">Skapa Tävling</button>
         </form>
-    </div>
-    
-    <div class="card mb-6">
-        <h2 class="text-2xl font-bold mb-4">Befintliga Tävlingar</h2>
-        <div id="admin-competitions-list" class="space-y-2 max-h-60 overflow-y-auto">
-            <p class="text-gray-500">Laddar...</p>
-        </div>
     </div>
 
     <div class="card">
@@ -653,18 +600,6 @@
 
             <button type="submit" id="confirm-signup-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded hover:bg-green-700">Anmäl och Generera Swish-kod</button>
         </form>
-        <div class="mt-8 border-t pt-6">
-                 <h3 class="text-xl font-bold text-gray-800 mb-4">Mina inskickade resultat</h3>
-                 <div id="user-entries-history" class="space-y-2 mb-6">
-                     </div>
-
-                 <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center">
-                    Tävlingsställning
-                    <span id="results-visibility-badge" class="ml-2 text-xs px-2 py-1 rounded bg-gray-200 text-gray-600"></span>
-                 </h3>
-                 <div id="competition-leaderboard" class="overflow-x-auto">
-                </div>
-            </div>
     </div>
 </div>
         <section id="admin" class="page">

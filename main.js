@@ -1,3 +1,4 @@
+
 // main.js
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -5,9 +6,8 @@ import { initializeDataListeners } from "./data-service.js";
 import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initCompetitionSystem } from "./competition-ui.js";
 
-// Ver. 3.2
+// Ver. 3.11
 export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
@@ -35,7 +35,6 @@ function initializeAuthListener() {
         const isAdmin = await checkAdminStatus(user);
         handleAdminUI(isAdmin);
         initializeDataListeners();
-        initCompetitionSystem();
         if (user) {
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getFirestoreDoc(docRef);

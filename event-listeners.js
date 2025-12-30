@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, competitionClasses, toggleMemberStatus } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
@@ -91,31 +91,6 @@ export function setupEventListeners() {
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     const achievementsSection = document.getElementById('achievements-section');
-// --- MOBILMENY HANTERING ---
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
-
-    if (mobileMenuBtn && mobileMenu) {
-        // Toggla menyn när man klickar på hamburgaren
-        mobileMenuBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            mobileMenu.classList.toggle('hidden');
-        });
-
-        // FIX: Stäng menyn när man klickar på en länk ELLER en knapp (t.ex. Logga in)
-        mobileMenu.querySelectorAll('a, button').forEach(element => {
-            element.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-            });
-        });
-
-        // Stäng menyn om man klickar utanför den
-        document.addEventListener('click', (e) => {
-            if (!mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-                mobileMenu.classList.add('hidden');
-            }
-        });
-    }
     
     // --- NYTT: Hantera klick på "Senaste Prestationer" (CSP Fix) ---
     if (achievementsSection) {
@@ -845,15 +820,6 @@ export function setupEventListeners() {
             const adminId = deleteAdminBtn.getAttribute('data-id');
             deleteAdmin(adminId);
         }
-        
-        const toggleMemberBtn = e.target.closest('.toggle-member-btn');
-        if (toggleMemberBtn) {
-            const userId = toggleMemberBtn.getAttribute('data-id');
-            // Konvertera strängen "true"/"false" till boolean
-            const currentStatus = toggleMemberBtn.getAttribute('data-status') === 'true';
-            
-            toggleMemberStatus(userId, currentStatus);
-        }
 
         const editNewsBtn = e.target.closest('.edit-news-btn');
         if (editNewsBtn) {
@@ -1144,7 +1110,7 @@ export function setupEventListeners() {
                 modal.onclick = (e) => {
                     if (e.target === modal) modal.classList.remove('active');
                 };
-
+                
             } else if (command === 'insertGold') {
                 applyEditorCommand(editorElement, 'insertHTML', '🥇 ');
             } else if (command === 'insertSilver') {

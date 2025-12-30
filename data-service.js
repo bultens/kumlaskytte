@@ -1,7 +1,7 @@
 // data-service.js
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin, renderSelectableClasses } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.3
@@ -32,9 +32,8 @@ export function initializeDataListeners() {
             
             // Uppdatera resultat-vyer om vi har resultat i cachen
              if (latestResultsCache.length > 0) {
-                 // VIKTIGT: Skicka med usersData här
-                 renderHomeAchievements(latestResultsCache, allShootersData, usersData);
-                 renderTopLists(competitionClasses, latestResultsCache, allShootersData, usersData);
+                 renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
              }
         });
 
@@ -61,26 +60,12 @@ export function initializeDataListeners() {
             
             // Rendera startsidan och topplistor om vi har skytt-data
             if (allShootersData.length > 0) {
-                 // VIKTIGT: Skicka med usersData här
-                 renderHomeAchievements(latestResultsCache, allShootersData, usersData);
-                 renderTopLists(competitionClasses, latestResultsCache, allShootersData, usersData);
+                 renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
             }
         });
     }
-    // --- KLASSER (Topplistor) ---
-        onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
-            competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            competitionClasses.sort((a, b) => a.minAge - b.minAge);
-    
-            // Om vi är admin, uppdatera både admin-listan OCH väljaren i "Skapa tävling"
-            if (isAdminLoggedIn) {
-                renderClassesAdmin(competitionClasses);
-                renderSelectableClasses(competitionClasses); // <--- NYTT ANROP HÄR
-            }
-            
-            renderTopLists(competitionClasses, latestResultsCache, allShootersData);
-        });
+
     // --- ÖVRIGA LYSSNARE ---
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
@@ -91,17 +76,15 @@ export function initializeDataListeners() {
         renderAdminsAndUsers(usersData, isAdminLoggedIn, uid); 
         renderUserReport(usersData);
 
+        // Hämta min profil och mina skyttar för att visa i "Min Profil"
         if (uid) {
             const myProfile = usersData.find(u => u.id === uid);
+            // Vi måste hämta skyttarna separat här för att vara säkra
             const myShooters = await getMyShooters(uid);
+            
+            // Skicka med profildata
             const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
             renderProfileInfo(fakeDocSnap, myShooters); 
-            
-            // Uppdatera topplistor när användardata (t.ex. isMember) ändras
-            if (latestResultsCache.length > 0 && allShootersData.length > 0) {
-                renderHomeAchievements(latestResultsCache, allShootersData, usersData);
-                renderTopLists(competitionClasses, latestResultsCache, allShootersData, usersData);
-            }
         }
     });
 
@@ -458,24 +441,4 @@ export function calculateShooterStats(results) {
     });
 
     return stats;
-}
-export async function toggleMemberStatus(userId, currentStatus) {
-    if (!isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet.");
-        return;
-    }
-    
-    // Invertera statusen (om true -> false, om false -> true)
-    const newStatus = !currentStatus;
-    
-    try {
-        await updateDoc(doc(db, 'users', userId), {
-            isMember: newStatus
-        });
-        const msg = newStatus ? "Användaren är nu godkänd som medlem." : "Användarens medlemskap har inaktiverats.";
-        showModal('confirmationModal', msg);
-    } catch (error) {
-        console.error("Fel vid ändring av medlemskap:", error);
-        showModal('errorModal', "Kunde inte ändra status.");
-    }
 }

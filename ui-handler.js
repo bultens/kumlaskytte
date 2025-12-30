@@ -687,23 +687,18 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
             </div>
             ${actionButtons}
         `;
-        // NYTT: Hantera Admin-länkar i menyn
-        // Vi hämtar elementen här för att vara säkra
-        const navTavlingAdminLink = document.getElementById('nav-admin-link');      // Tävlingsadmin
-        const navSiteAdminLink = document.getElementById('nav-site-admin-link');    // Inställningar
-        const mobileAdminLinkEl = document.getElementById('mobile-admin-link');     // Mobil
+        // NYTT: Uppdatera menyn om inloggad är admin
+    const navAdminLink = document.getElementById('nav-admin-link');
+    const mobileAdminLink = document.getElementById('mobile-admin-link');
+    
+    if (isAdminLoggedIn) {
+        if (navAdminLink) navAdminLink.classList.remove('hidden');
+        if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
+    } else {
+        if (navAdminLink) navAdminLink.classList.add('hidden');
+        if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
+    }
 
-        if (isAdminLoggedIn) {
-            // Visa länkarna om man är admin
-            if (navTavlingAdminLink) navTavlingAdminLink.classList.remove('hidden');
-            if (navSiteAdminLink) navSiteAdminLink.classList.remove('hidden');
-            if (mobileAdminLinkEl) mobileAdminLinkEl.classList.remove('hidden');
-        } else {
-            // Dölj dem annars
-            if (navTavlingAdminLink) navTavlingAdminLink.classList.add('hidden');
-            if (navSiteAdminLink) navSiteAdminLink.classList.add('hidden');
-            if (mobileAdminLinkEl) mobileAdminLinkEl.classList.add('hidden');
-        }
 
         if (isUserAdmin) {
             adminListEl.appendChild(userEl);
@@ -712,6 +707,7 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
         }
     });
 }
+
 export function renderShootersAdmin(shootersData) {
     const container = document.getElementById('admin-shooters-list');
     if (!container) return;
@@ -1189,37 +1185,6 @@ export function renderClassesAdmin(classes) {
                 </div>
             </div>
         `;
-    });
-}
-// NY FUNKTION: Ritar ut kryssrutor för klasser i "Skapa tävling"-formuläret
-export function renderSelectableClasses(classes) {
-    const container = document.getElementById('comp-classes-select-container');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (!classes || classes.length === 0) {
-        container.innerHTML = '<p class="text-sm text-gray-400 italic">Inga klasser skapade än.</p>';
-        return;
-    }
-
-    // Sortera för snygghetens skull
-    const sortedClasses = [...classes].sort((a, b) => a.minAge - b.minAge);
-
-    sortedClasses.forEach(cls => {
-        const wrapper = document.createElement('div');
-        wrapper.className = "flex items-center space-x-2 p-1 hover:bg-gray-100 rounded";
-        
-        const discLabel = cls.discipline === 'sitting' ? 'Sit' : 'Stå';
-        
-        wrapper.innerHTML = `
-            <input type="checkbox" id="chk-cls-${cls.id}" value="${cls.id}" class="comp-class-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
-            <label for="chk-cls-${cls.id}" class="text-sm text-gray-700 cursor-pointer select-none flex-grow">
-                <span class="font-bold">${cls.name}</span> 
-                <span class="text-xs text-gray-500">(${discLabel}, ${cls.minAge}-${cls.maxAge}år)</span>
-            </label>
-        `;
-        container.appendChild(wrapper);
     });
 }
 
