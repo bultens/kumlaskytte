@@ -253,7 +253,11 @@ export function renderCompetitions(data, isAdminLoggedIn) {
 }
 
 export function handleAdminUI(isAdmin) {
+    // Referenser till element
+    const adminNavLink = document.getElementById('admin-nav-link'); // <-- DETTA SAKNADES
     const adminIndicator = document.getElementById('admin-indicator');
+    
+    // Sektioner som ska visas/döljas
     const newsEditSection = document.getElementById('news-edit-section');
     const competitionEditSection = document.getElementById('competition-edit-section');
     const calendarEditSection = document.getElementById('calendar-edit-section');
@@ -266,7 +270,11 @@ export function handleAdminUI(isAdmin) {
     
     if (isAdmin) {
         isAdminLoggedIn = true;
-        if (adminIndicator) adminIndicator.classList.remove('hidden');
+        
+        // VISA admin-element
+        if (adminNavLink) adminNavLink.classList.remove('hidden'); // Visa menyvalet
+        if (adminIndicator) adminIndicator.classList.remove('hidden'); // Visa flaggan
+        
         if (newsEditSection) newsEditSection.classList.remove('hidden');
         if (competitionEditSection) competitionEditSection.classList.remove('hidden');
         if (calendarEditSection) calendarEditSection.classList.remove('hidden');
@@ -274,15 +282,22 @@ export function handleAdminUI(isAdmin) {
         if (historyEditSection) historyEditSection.classList.remove('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
         if (adminPanel) adminPanel.classList.remove('hidden');
+        
+        // Göm inloggningsrutan på adminsidan (eftersom vi redan är inloggade)
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
+        // Uppdatera välkomsttext
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
-            adminUserInfo.textContent = `Välkommen, ${loggedInAdminUsername}`;
+            adminUserInfo.textContent = `Inloggad som administratör: ${loggedInAdminUsername}`;
         }
     } else {
         isAdminLoggedIn = false;
+        
+        // GÖM admin-element
+        if (adminNavLink) adminNavLink.classList.add('hidden');
         if (adminIndicator) adminIndicator.classList.add('hidden');
+
         if (newsEditSection) newsEditSection.classList.add('hidden');
         if (competitionEditSection) competitionEditSection.classList.add('hidden');
         if (calendarEditSection) calendarEditSection.classList.add('hidden');
@@ -290,6 +305,8 @@ export function handleAdminUI(isAdmin) {
         if (historyEditSection) historyEditSection.classList.add('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
         if (adminPanel) adminPanel.classList.add('hidden');
+        
+        // Visa inloggningsrutan om man går till #admin men inte är admin
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
     }
 }
