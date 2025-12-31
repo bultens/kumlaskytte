@@ -7,6 +7,7 @@
     <link id="favicon-link" rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net;">    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -19,7 +20,7 @@
                 </a>
                 <div class="flex flex-col items-start">
                     <a id="site-title-display" href="#hem" class="text-4xl font-extrabold tracking-tight">Kumla Skytteförening</a>
-                    <p class="text-sm text-gray-300">Ver. 3.01 (Fixed Statpage)</p>
+                    <p class="text-sm text-gray-300">Ver. 3.02</p>
                 </div>
             </div>
             <span id="admin-indicator" class="hidden bg-green-500 text-white text-xs font-bold rounded-full px-2 py-1 sm:static absolute top-4 right-4 z-10">ADMIN</span>
@@ -565,79 +566,83 @@
             
         </section>
 	
-	<section id="resultat" class="page">
-    <div class="max-w-3xl mx-auto">
-        <h1 class="text-4xl font-bold mb-6">Mina Resultat</h1>
+<section id="resultat" class="page">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold mb-6">Mina Resultat & Statistik</h1>
 
-<div class="flex justify-between items-center mb-2">
-    <label for="shooter-selector" class="text-sm font-bold text-blue-900">Vem är det som skjuter?</label>
-    <div class="flex space-x-2">
-        <button id="edit-shooter-btn" class="text-xs bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition" title="Ändra inställningar för vald skytt">
-            ⚙️ Inställningar
-        </button>
-        <button id="open-add-shooter-modal-btn" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-            + Ny skytt
-        </button>
-    </div>
-</div>
-    
-    <div class="relative">
-        <select id="shooter-selector" class="block w-full p-4 rounded-lg border border-blue-200 text-lg font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white">
-            <option value="">Laddar profiler...</option>
-        </select>
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="flex justify-between items-center mb-2">
+                <label for="shooter-selector" class="text-sm font-bold text-blue-900">Vem är det som skjuter?</label>
+                <div class="flex space-x-2">
+                    <button id="edit-shooter-btn" class="text-xs bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition">
+                        ⚙️ Inställningar
+                    </button>
+                    <button id="open-add-shooter-modal-btn" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                        + Ny skytt
+                    </button>
+                </div>
+            </div>
+            <div class="relative">
+                <select id="shooter-selector" class="block w-full p-3 rounded-lg border border-blue-200 text-lg font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                    <option value="">Laddar profiler...</option>
+                </select>
+            </div>
         </div>
-    </div>
-    <p class="text-xs text-blue-600 mt-2 ml-1">Välj dig själv eller någon annan profil du hanterar.</p>
-</div>
 
         <div class="card mb-8">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Registrera ny omgång</h2>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Utvecklingskurva</h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                <select id="chart-data-source" class="p-2 border rounded text-sm bg-gray-50">
+                    <option value="total">Totalpoäng</option>
+                    <option value="best_series">Bästa Serie</option>
+                    <option value="average_series">Snitt per serie</option>
+                </select>
+                <select id="chart-shot-count" class="p-2 border rounded text-sm bg-gray-50">
+                    <option value="all">Alla skottantal</option>
+                    <option value="20" selected>20 skott</option>
+                    <option value="40">40 skott</option>
+                    <option value="60">60 skott</option>
+                </select>
+                <select id="chart-grouping" class="p-2 border rounded text-sm bg-gray-50">
+                    <option value="none">Varje tillfälle</option>
+                    <option value="month">Per Månad (Snitt)</option>
+                </select>
+                <select id="chart-type" class="p-2 border rounded text-sm bg-gray-50">
+                    <option value="line">Linjediagram</option>
+                    <option value="bar">Stapeldiagram</option>
+                </select>
+            </div>
+
+            <div class="relative h-64 w-full">
+                <canvas id="resultsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card mb-8 border-t-4 border-green-500">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Registrera ny omgång</h2>
             <form id="add-result-form">
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label class="block font-semibold text-gray-700 mb-2">Datum</label>
-                        <input type="date" id="result-date" required class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-gray-700 mb-2">Typ av skytte</label>
-                        <select id="result-type" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="training">Träning</option>
-                            <option value="competition">Tävling</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-gray-700 mb-2">Skjutstil</label>
-                        <select id="result-discipline" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="sitting">Sittande</option>
-                            <option value="standing">Stående</option>
-                        </select>
+                        <input type="date" id="result-date" required class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg">
                     </div>
                     <div>
                         <label class="block font-semibold text-gray-700 mb-2">Antal skott</label>
                         <div class="flex bg-gray-200 rounded-lg p-1">
                             <button type="button" class="shot-count-btn flex-1 py-2 rounded-md bg-white shadow text-blue-800 font-bold transition-all" data-count="20">20</button>
                             <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="40">40</button>
-                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="60">60</button>
                         </div>
                         <input type="hidden" id="result-shot-count" value="20">
                     </div>
+                    <input type="hidden" id="result-type" value="training">
+                    <input type="hidden" id="result-discipline" value="sitting">
                 </div>
 
                 <div class="mb-6">
                     <label class="block font-semibold text-gray-700 mb-3">Serier (10 skott per ruta)</label>
-                    <div id="series-inputs-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                       <div class="text-center">
-    				<span class="text-xs text-gray-500 block mb-1">Serie 1</span>
-    				<input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg" placeholder="-">
-			</div>
-			<div class="text-center">
-    				<span class="text-xs text-gray-500 block mb-1">Serie 2</span>
-    				<input type="text" inputmode="decimal" class="series-input w-full p-3 text-center text-2xl font-bold border border-gray-300 rounded-lg" placeholder="-">
-			</div>
-                    </div>
+                    <div id="series-inputs-container" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        </div>
                 </div>
 
                 <div class="flex justify-between items-center bg-gray-900 text-white p-5 rounded-xl mb-6 shadow-lg">
@@ -650,119 +655,29 @@
                         <div class="text-2xl font-bold text-green-400" id="live-best-series">-</div>
                     </div>
                 </div>
-
-                <div class="mt-4 mb-8 p-4 bg-indigo-50 rounded-lg border border-indigo-100 flex items-start">
-                    <div class="flex items-center h-5">
-                        <input type="checkbox" id="result-share-checkbox" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300">
-                    </div>
-                    <div class="ml-3 text-sm">
-                        <label for="result-share-checkbox" class="font-bold text-indigo-900">Dela med klubben</label>
-                        <p class="text-indigo-700">Om ikryssad syns detta resultat i topplistor och nyhetsflöden. (Du kan ställa in standardvärdet i din profil).</p>
-                    </div>
+                 
+                 <div class="flex items-center mb-6">
+                    <input type="checkbox" id="result-share-checkbox" class="w-5 h-5 text-indigo-600 rounded">
+                    <label for="result-share-checkbox" class="ml-2 text-sm text-gray-700">Dela resultat med klubben (Topplistor)</label>
                 </div>
 
-                <button type="submit" id="save-result-btn" class="w-full bg-green-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-green-700 transition duration-300 transform hover:scale-[1.02] shadow-md">
+                <button type="submit" id="save-result-btn" class="w-full bg-green-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-green-700 transition transform hover:scale-[1.02] shadow-md">
                     Spara Resultat
                 </button>
             </form>
         </div>
-	<div class="card mb-8 bg-white border border-gray-200 shadow-sm" id="stats-card">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">Mina Bästa Resultat</h2>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 rounded-l-lg">Period</th>
-                            <th scope="col" class="px-4 py-3 text-center">Bästa Serie (10)</th>
-                            <th scope="col" class="px-4 py-3 text-center">20 Skott</th>
-                            <th scope="col" class="px-4 py-3 text-center">40 Skott</th>
-                            <th scope="col" class="px-4 py-3 text-center rounded-r-lg">60 Skott</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="bg-white border-b">
-                            <th scope="row" class="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">
-                                I år (<span id="stats-current-year">2025</span>)
-                            </th>
-                            <td class="px-4 py-4 text-center text-blue-600 font-bold text-lg" id="stats-year-series">-</td>
-                            <td class="px-4 py-4 text-center font-medium" id="stats-year-20">-</td>
-                            <td class="px-4 py-4 text-center font-medium" id="stats-year-40">-</td>
-                            <td class="px-4 py-4 text-center font-medium" id="stats-year-60">-</td>
-                        </tr>
-                        <tr class="bg-white">
-                            <th scope="row" class="px-4 py-4 font-bold text-gray-900 whitespace-nowrap">
-                                Personbästa (Totalt)
-                            </th>
-                            <td class="px-4 py-4 text-center text-green-600 font-bold text-lg" id="stats-all-series">-</td>
-                            <td class="px-4 py-4 text-center font-medium" id="stats-all-20">-</td>
-                            <td class="px-4 py-4 text-center font-medium" id="stats-all-40">-</td>
-                            <td class="px-4 py-4 text-center font-medium" id="stats-all-60">-</td>
-                        </tr>
-                    </tbody>
-                </table>
-		<div id="medal-league-section">
-		<div class="mt-6 pt-4 border-t border-gray-100">
-                <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Antal kvalificerade serier (Totalt)</h3>
-                <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center mb-6">
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <div class="text-2xl mb-1">🏆</div>
-                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold3">-</div>
-                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 3</div>
-                    </div>
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <div class="text-2xl mb-1">🥇</div>
-                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold2">-</div>
-                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 2</div>
-                    </div>
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <div class="text-2xl mb-1">🥇</div>
-                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold1">-</div>
-                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld 1</div>
-                    </div>
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <div class="text-2xl mb-1">🥇</div>
-                        <div class="font-bold text-yellow-900 text-xl leading-none" id="count-gold">-</div>
-                        <div class="text-[10px] text-yellow-700 uppercase font-bold mt-1">Guld</div>
-                    </div>
-                    <div class="bg-gray-100 rounded-lg p-3 border border-gray-300">
-                        <div class="text-2xl mb-1">🥈</div>
-                        <div class="font-bold text-gray-700 text-xl leading-none" id="count-silver">-</div>
-                        <div class="text-[10px] text-gray-500 uppercase font-bold mt-1">Silver</div>
-                    </div>
-                    <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                        <div class="text-2xl mb-1">🥉</div>
-                        <div class="font-bold text-orange-900 text-xl leading-none" id="count-bronze">-</div>
-                        <div class="text-[10px] text-orange-800 uppercase font-bold mt-1">Brons</div>
-                    </div>
-                </div>
 
-                <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Märkesöversikt (10 serier = 1 märke)</h3>
-                <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center">
-                    
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold3">
-                        </div>
+        <h2 class="text-2xl font-bold mb-4 mt-8 text-gray-800">Historik & Tabell</h2>
+        <div id="results-history-container" class="space-y-4"></div>
+        
+        <div id="stats-card" class="hidden">
+             <span id="stats-current-year"></span>
+             <span id="stats-year-series"></span>
+             </div>
+        <div id="medal-league-section" class="hidden"></div>
 
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold2">
-                        </div>
-
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold1">
-                        </div>
-
-                    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-gold">
-                        </div>
-
-                    <div class="bg-gray-100 rounded-lg p-3 border border-gray-300 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-silver">
-                        </div>
-
-                    <div class="bg-orange-50 rounded-lg p-3 border border-orange-200 flex flex-col items-center justify-center min-h-[90px]" id="badge-status-bronze">
-                        </div>
-                </div>
-           	 </div>
-		</div>
-            </div> <h2 class="text-2xl font-bold mb-4 mt-8 text-gray-800">Historik</h2>
-            <div id="results-history-container" class="space-y-4"></div>
-            </div> </section>
+    </div>
+</section>
 </section>
 <section id="topplistor" class="page">
     <h1 class="text-4xl font-bold mb-6">Topplistor & Statistik</h1>

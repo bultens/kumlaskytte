@@ -8,8 +8,9 @@ import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./re
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
+import { loadAndRenderChart } from "./statistics-chart.js"; //
 
-// Ver. 1.6 (Fixad SyntaxError)
+// Ver. 1.7
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -231,6 +232,7 @@ export function setupEventListeners() {
                 option.dataset.settings = JSON.stringify(shooter.settings || {});
                 option.dataset.birthyear = shooter.birthyear;
                 select.appendChild(option);
+                select.dispatchEvent(new Event('change'));
             });
             select.dispatchEvent(new Event('change'));
         }
@@ -255,13 +257,20 @@ export function setupEventListeners() {
     if (shooterSelect) {
         shooterSelect.addEventListener('change', (e) => {
             const selectedOption = e.target.selectedOptions[0];
+            const shooterId = e.target.value;
+
             if (selectedOption && selectedOption.dataset.settings) {
                 const settings = JSON.parse(selectedOption.dataset.settings);
                 const shareCheckbox = document.getElementById('result-share-checkbox');
                 if (shareCheckbox) {
                     shareCheckbox.checked = settings.defaultShareResults || false;
                 }
-                loadResultsHistory(e.target.value);
+                
+                // Ladda lista och statistik
+                loadResultsHistory(shooterId);
+                
+                // NYTT: Ladda grafen!
+                loadAndRenderChart(shooterId); 
             }
         });
     }
