@@ -1182,23 +1182,32 @@ export function setupEventListeners() {
         
         const results = await getShooterResults(shooterId);
         
+        // HÄMTA STATISTIK
         const stats = calculateShooterStats(results);
-        document.getElementById('stats-current-year').textContent = new Date().getFullYear();
         
+        // --- SÄKER UPPDATERING AV STATISTIK-KORT ---
+        // Denna hjälpfunktion kollar om elementet finns innan den skriver, för att undvika krasch
+        const safeSetText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        };
+
         const show = (val) => val > 0 ? val : '-';
 
-        document.getElementById('stats-year-series').textContent = show(stats.year.series);
-        document.getElementById('stats-year-20').textContent = show(stats.year.s20);
-        document.getElementById('stats-year-40').textContent = show(stats.year.s40);
-        document.getElementById('stats-year-60').textContent = show(stats.year.s60);
+        safeSetText('stats-current-year', new Date().getFullYear());
+        safeSetText('stats-year-series', show(stats.year.series));
+        safeSetText('stats-year-20', show(stats.year.s20));
+        safeSetText('stats-year-40', show(stats.year.s40));
+        safeSetText('stats-year-60', show(stats.year.s60));
 
-        document.getElementById('stats-all-series').textContent = show(stats.allTime.series);
-        document.getElementById('stats-all-20').textContent = show(stats.allTime.s20);
-        document.getElementById('stats-all-40').textContent = show(stats.allTime.s40);
-        document.getElementById('stats-all-60').textContent = show(stats.allTime.s60);
+        safeSetText('stats-all-series', show(stats.allTime.series));
+        safeSetText('stats-all-20', show(stats.allTime.s20));
+        safeSetText('stats-all-40', show(stats.allTime.s40));
+        safeSetText('stats-all-60', show(stats.allTime.s60));
+        // -------------------------------------------
 
         const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
-        const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings) : {};
+        const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings || '{}') : {};
         const medalSection = document.getElementById('medal-league-section');
 
         if (currentSettings.trackMedals === false) {
@@ -1209,8 +1218,8 @@ export function setupEventListeners() {
                 
                 const updateBadgeUI = (type, elementId, icon) => {
                     const count = stats.medals[type] || 0;
-                    const countEl = document.getElementById(`count-${elementId}`);
-                    if(countEl) countEl.textContent = count;
+                    // Säkra dessa också
+                    safeSetText(`count-${elementId}`, count);
 
                     const statusEl = document.getElementById(`badge-status-${elementId}`);
                     if(!statusEl) return;
@@ -1244,12 +1253,14 @@ export function setupEventListeners() {
                 updateBadgeUI('Brons',  'bronze', '🥉');
             }
         }      
+        
         container.innerHTML = '';
         if (results.length === 0) {
             container.innerHTML = '<p class="text-gray-500 italic">Inga resultat registrerade än.</p>';
             return;
         }
 
+        // Rendera historiklistan (senaste 10)
         results.slice(0, 10).forEach(res => { 
             const date = new Date(res.date).toLocaleDateString();
             const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
@@ -1266,7 +1277,7 @@ export function setupEventListeners() {
                             <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
                         </div>
                         <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
-                        <p class="text-xs tloadShootersIntoDropdownxt-gray-400">Serier: ${res.series.join(', ')}</p>
+                        <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
