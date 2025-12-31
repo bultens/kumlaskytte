@@ -23,22 +23,52 @@ const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
+function toggleProfileUI(user) {
+    if (user) {
+        // INLOGGAD
+        profilePanel.classList.remove('hidden');
+        userLoginPanel.classList.add('hidden'); // Gömmer inloggningsrutan
+        registerPanel.classList.add('hidden');
+        
+        if (profileNavLink) profileNavLink.classList.remove('hidden');
+        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
+        if (userNavLink) userNavLink.classList.add('hidden'); // Gömmer "Logga in"-länken
+    } else {
+        // UTLOGGAD
+        profilePanel.classList.add('hidden');
+        userLoginPanel.classList.remove('hidden'); // Visar inloggningsrutan (viktigt!)
+        registerPanel.classList.add('hidden');
+        
+        if (profileNavLink) profileNavLink.classList.add('hidden');
+        if (resultsNavLink) resultsNavLink.classList.add('hidden');
+        if (userNavLink) userNavLink.classList.remove('hidden'); // Visar "Logga in"-länken
+    }
+}
+
 
 function toggleProfileUI(user) {
     if (user) {
+        // INLOGGAD
         profilePanel.classList.remove('hidden');
         userLoginPanel.classList.add('hidden');
         registerPanel.classList.add('hidden');
+        
         if (profileNavLink) profileNavLink.classList.remove('hidden');
-	if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (userNavLink) userNavLink.classList.add('hidden');
+        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
+        if (adminNavLink) adminNavLink.classList.remove('hidden'); // Visa Admin-fliken
+        
+        if (userNavLink) userNavLink.classList.add('hidden'); // Göm "Logga in"
     } else {
+        // UTLOGGAD
         profilePanel.classList.add('hidden');
         userLoginPanel.classList.remove('hidden');
         registerPanel.classList.add('hidden');
+        
         if (profileNavLink) profileNavLink.classList.add('hidden');
-	if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (userNavLink) userNavLink.classList.remove('hidden');
+        if (resultsNavLink) resultsNavLink.classList.add('hidden');
+        if (adminNavLink) adminNavLink.classList.add('hidden'); // Göm Admin-fliken
+        
+        if (userNavLink) userNavLink.classList.remove('hidden'); // Visa "Logga in"
     }
 }
 
@@ -139,23 +169,6 @@ if (deleteAccountBtnEl) {
     });
 }
 
-const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
-if (confirmDeleteProfileBtn) {
-    confirmDeleteProfileBtn.addEventListener('click', async () => {
-        hideModal('deleteProfileModal');
-        const user = auth.currentUser;
-        if (user) {
-            try {
-                await deleteDoc(doc(db, "users", user.uid));
-                await deleteUser(user);
-                showModal('confirmationModal', "Ditt konto har tagits bort.");
-            } catch (error) {
-                console.error("Fel vid borttagning av konto:", error);
-                showModal('errorModal', "Ett fel uppstod när ditt konto skulle tas bort. Vänligen logga in igen för att bekräfta din behörighet.");
-            }
-        }
-    });
-}
 const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
 if (confirmDeleteProfileBtn) {
     confirmDeleteProfileBtn.addEventListener('click', async () => {
