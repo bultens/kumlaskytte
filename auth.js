@@ -5,7 +5,7 @@ import { doc, getFirestore, setDoc, getDoc, deleteDoc, collection, query, where,
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.10
+// Ver. 2.11 (Fixad dubblett av toggleProfileUI och listeners)
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -24,51 +24,24 @@ const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
 function toggleProfileUI(user) {
+    // Om user finns (inloggad)
     if (user) {
-        // INLOGGAD
-        profilePanel.classList.remove('hidden');
-        userLoginPanel.classList.add('hidden'); // Gömmer inloggningsrutan
-        registerPanel.classList.add('hidden');
-        
+        if (profilePanel) profilePanel.classList.remove('hidden');
+        if (userLoginPanel) userLoginPanel.classList.add('hidden');
+        if (registerPanel) registerPanel.classList.add('hidden');
         if (profileNavLink) profileNavLink.classList.remove('hidden');
         if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (userNavLink) userNavLink.classList.add('hidden'); // Gömmer "Logga in"-länken
+        if (userNavLink) userNavLink.classList.add('hidden');
+        if (showLoginLink) showLoginLink.classList.add('hidden'); // Göm "Logga in"-knappen i menyn
     } else {
-        // UTLOGGAD
-        profilePanel.classList.add('hidden');
-        userLoginPanel.classList.remove('hidden'); // Visar inloggningsrutan (viktigt!)
-        registerPanel.classList.add('hidden');
-        
+        // Utloggad
+        if (profilePanel) profilePanel.classList.add('hidden');
+        if (userLoginPanel) userLoginPanel.classList.add('hidden'); // Göm panelen, visa bara knappen
+        if (registerPanel) registerPanel.classList.add('hidden');
         if (profileNavLink) profileNavLink.classList.add('hidden');
         if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (userNavLink) userNavLink.classList.remove('hidden'); // Visar "Logga in"-länken
-    }
-}
-
-
-function toggleProfileUI(user) {
-    if (user) {
-        // INLOGGAD
-        profilePanel.classList.remove('hidden');
-        userLoginPanel.classList.add('hidden');
-        registerPanel.classList.add('hidden');
-        
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
-        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (adminNavLink) adminNavLink.classList.remove('hidden'); // Visa Admin-fliken
-        
-        if (userNavLink) userNavLink.classList.add('hidden'); // Göm "Logga in"
-    } else {
-        // UTLOGGAD
-        profilePanel.classList.add('hidden');
-        userLoginPanel.classList.remove('hidden');
-        registerPanel.classList.add('hidden');
-        
-        if (profileNavLink) profileNavLink.classList.add('hidden');
-        if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (adminNavLink) adminNavLink.classList.add('hidden'); // Göm Admin-fliken
-        
-        if (userNavLink) userNavLink.classList.remove('hidden'); // Visa "Logga in"
+        if (userNavLink) userNavLink.classList.remove('hidden');
+        if (showLoginLink) showLoginLink.classList.remove('hidden'); // Visa "Logga in"-knappen
     }
 }
 
@@ -88,21 +61,26 @@ onAuthStateChanged(auth, async (user) => {
     toggleProfileUI(user);
 });
 
-
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
+        const password = document.getElementById('register-password').value; // Ändrat från reg-password till register-email/password matchning i HTML? 
+        // OBS: I din HTML heter inputen "reg-email" och "reg-password". Vi måste matcha det.
+        // Hämta input baserat på vad de faktiskt heter i din HTML (globala modalerna)
+        const emailVal = document.getElementById('reg-email').value;
+        const passVal = document.getElementById('reg-password').value;
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
             await setDoc(doc(db, "users", user.uid), {
-                email: email,
+                email: emailVal,
                 isAdmin: false
             });
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
+            // Göm modalen efter lyckad reg
+            if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') {
                 showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
@@ -116,12 +94,15 @@ if (registerForm) {
 if (userLoginForm) {
     userLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('user-login-email').value;
-        const password = document.getElementById('user-login-password').value;
+        // Matcha IDn mot din index.html modal (user-email, user-password)
+        const emailVal = document.getElementById('user-email').value;
+        const passVal = document.getElementById('user-password').value;
 
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth, emailVal, passVal);
             showModal('confirmationModal', 'Inloggning lyckades!');
+             // Göm modalen efter lyckad login
+             if (userLoginPanel) userLoginPanel.classList.add('hidden');
         } catch (error) {
             let userMessage = 'Ett fel uppstod vid inloggning. Vänligen försök igen.';
             if (error.code === 'auth/invalid-credential') {
@@ -132,7 +113,7 @@ if (userLoginForm) {
     });
 }
 
-const logoutProfileBtn = document.getElementById('logout-profile-btn');
+const logoutProfileBtn = document.getElementById('logout-btn'); // Ändrat till logout-btn (finns i header)
 if (logoutProfileBtn) {
     logoutProfileBtn.addEventListener('click', async () => {
         try {
@@ -145,21 +126,37 @@ if (logoutProfileBtn) {
     });
 }
 
-if (showLoginLink) {
-    showLoginLink.addEventListener('click', (e) => {
+// Hantera länkarna mellan Login och Register inuti modalerna
+const linkToReg = document.getElementById('show-register-link');
+const linkToLogin = document.getElementById('show-login-link-from-reg');
+
+if (linkToReg) {
+    linkToReg.addEventListener('click', (e) => {
         e.preventDefault();
-        registerPanel.classList.add('hidden');
-        userLoginPanel.classList.remove('hidden');
+        if (userLoginPanel) userLoginPanel.classList.add('hidden');
+        if (registerPanel) registerPanel.classList.remove('hidden');
     });
 }
 
-if (showRegisterLink) {
-    showRegisterLink.addEventListener('click', (e) => {
+if (linkToLogin) {
+    linkToLogin.addEventListener('click', (e) => {
         e.preventDefault();
-        userLoginPanel.classList.add('hidden');
-        registerPanel.classList.remove('hidden');
+        if (registerPanel) registerPanel.classList.add('hidden');
+        if (userLoginPanel) userLoginPanel.classList.remove('hidden');
     });
 }
+
+// Logik för att öppna login-modalen från headern
+if (showLoginLink) {
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (userLoginPanel) {
+            userLoginPanel.classList.remove('hidden');
+            registerPanel.classList.add('hidden');
+        }
+    });
+}
+
 
 // Lade till knappen för att ta bort konto
 const deleteAccountBtnEl = document.getElementById('delete-account-btn');
@@ -172,7 +169,7 @@ if (deleteAccountBtnEl) {
 const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
 if (confirmDeleteProfileBtn) {
     confirmDeleteProfileBtn.addEventListener('click', async () => {
-        // Stäng modalen direkt och visa laddning/feedback om du vill
+        // Stäng modalen direkt
         hideModal('deleteProfileModal');
         
         const user = auth.currentUser;
@@ -196,7 +193,7 @@ if (confirmDeleteProfileBtn) {
                 if (parents.length === 1 && parents.includes(userId)) {
                     batch.update(docSnap.ref, {
                         parentUserIds: arrayRemove(userId),
-                        requiresAdminAction: true, // NYTT FÄLT: Signalerar till admin
+                        requiresAdminAction: true, 
                         adminNote: "Föräldern raderade sitt konto. Profilen är nu föräldralös."
                     });
                 } else {
@@ -217,11 +214,10 @@ if (confirmDeleteProfileBtn) {
             // 4. Ta bort inloggningen (Auth) - Detta loggar ut användaren automatiskt
             await deleteUser(user);
 
-            showModal('confirmationModal', "Ditt konto har tagits bort. Dina skyttprofiler har sparats men kopplats bort från din inloggning.");
+            showModal('confirmationModal', "Ditt konto har tagits bort.");
             
         } catch (error) {
             console.error("Fel vid borttagning av konto:", error);
-            // Om deleteUser kräver om-inloggning (vanligt säkerhetskrav från Firebase)
             if (error.code === 'auth/requires-recent-login') {
                 showModal('errorModal', "Av säkerhetsskäl måste du logga ut och logga in igen innan du kan ta bort kontot.");
             } else {
