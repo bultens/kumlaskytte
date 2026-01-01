@@ -510,3 +510,38 @@ export async function getFolderName(folderId) {
     const docSnap = await getFirestoreDoc(doc(db, 'folders', folderId));
     return docSnap.exists() ? docSnap.data().name : "Okänd mapp";
 }
+
+// Ta bort en mapp (Bara om den är tom)
+export async function deleteAdminFolder(folderId) {
+    if (!isAdminLoggedIn) return;
+    
+    try {
+        // 1. Kolla om mappen innehåller undermappar
+        const subFoldersQ = query(collection(db, 'folders'), where('parentId', '==', folderId));
+        const subFoldersSnap = await getDocs(subFoldersQ);
+        
+        if (!subFoldersSnap.empty) {
+            showModal('errorModal', "Mappen är inte tom. Den innehåller andra mappar.");
+            return false;
+        }
+
+        // 2. Kolla om mappen innehåller filer
+        const filesQ = query(collection(db, 'adminDocuments'), where('folderId', '==', folderId));
+        const filesSnap = await getDocs(filesQ);
+        
+        if (!filesSnap.empty) {
+            showModal('errorModal', "Mappen är inte tom. Ta bort eller flytta filerna först.");
+            return false;
+        }
+
+        // 3. Om tom -> Radera
+        await deleteDoc(doc(db, 'folders', folderId));
+        showModal('confirmationModal', "Mappen har raderats.");
+        return true;
+
+    } catch (error) {
+        console.error("Kunde inte ta bort mapp:", error);
+        showModal('errorModal', "Ett fel uppstod vid borttagning.");
+        return false;
+    }
+}

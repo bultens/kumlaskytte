@@ -1,10 +1,26 @@
 // admin-documents.js
-import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, getFolderName } from "./data-service.js";
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, deleteAdminFolder } from "./data-service.js";
 import { db } from "./firebase-config.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 let currentFolderId = null;
 let breadcrumbPath = [{ id: null, name: 'Hem' }];
+
+// Hjälpfunktion: Formatera filstorlek
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Hjälpfunktion: Formatera datum
+function formatDate(timestamp) {
+    if (!timestamp) return '-';
+    const date = timestamp.toDate();
+    return date.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
+}
 
 export async function initFileManager() {
     const container = document.getElementById('file-manager-container');
@@ -13,10 +29,11 @@ export async function initFileManager() {
     // Ladda rot-mappen vid start
     await loadFolder(null);
 
-    // --- EVENT LISTENERS (Istället för onclick) ---
+    // --- EVENT LISTENERS ---
 
     // 1. Skapa mapp
-    document.getElementById('create-folder-btn').addEventListener('click', async () => {
+    const createBtn = document.getElementById('create-folder-btn');
+    if(createBtn) createBtn.addEventListener('click', async () => {
         const name = prompt("Ange namn på ny mapp:");
         if (name) {
             await createFolder(name, currentFolderId);
@@ -25,7 +42,8 @@ export async function initFileManager() {
     });
 
     // 2. Ladda upp fil
-    document.getElementById('upload-doc-input').addEventListener('change', async (e) => {
+    const uploadInput = document.getElementById('upload-doc-input');
+    if(uploadInput) uploadInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
             await uploadAdminDocument(file, currentFolderId);
@@ -34,9 +52,9 @@ export async function initFileManager() {
         }
     });
 
-    // 3. Hantera klick i fil-listan (Öppna mapp, meny, ta bort etc)
-    document.getElementById('file-list').addEventListener('click', async (e) => {
-        // Hitta närmaste element med data-action attribut
+    // 3. Hantera klick i fil-listan
+    const fileList = document.getElementById('file-list');
+    if(fileList) fileList.addEventListener('click', async (e) => {
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
@@ -49,7 +67,7 @@ export async function initFileManager() {
         } 
         else if (action === 'toggle-menu') {
             toggleFileMenu(id);
-            e.stopPropagation(); // Förhindra att klicket stänger menyn direkt
+            e.stopPropagation();
         }
         else if (action === 'delete-file') {
             const storagePath = target.dataset.storagePath;
@@ -58,10 +76,18 @@ export async function initFileManager() {
         else if (action === 'move-file') {
             await moveFile(id);
         }
+        else if (action === 'delete-folder') {
+            // NYTT: Radera mapp
+            if(confirm("Vill du ta bort mappen? Den måste vara tom.")) {
+                const success = await deleteAdminFolder(id);
+                if (success) await loadFolder(currentFolderId);
+            }
+        }
     });
 
     // 4. Hantera klick i brödsmulorna
-    document.getElementById('breadcrumbs').addEventListener('click', async (e) => {
+    const breadcrumbs = document.getElementById('breadcrumbs');
+    if(breadcrumbs) breadcrumbs.addEventListener('click', async (e) => {
         const target = e.target.closest('[data-action="open-folder"]');
         if (target) {
             const id = target.dataset.id;
@@ -82,7 +108,6 @@ export async function initFileManager() {
 async function openFolder(id, name) {
     const targetId = id === 'null' ? null : id;
     
-    // Uppdatera path
     const existingIndex = breadcrumbPath.findIndex(b => b.id === targetId);
     if (existingIndex === -1 && targetId !== null) {
         breadcrumbPath.push({ id: targetId, name: name });
@@ -111,21 +136,25 @@ async function loadFolder(folderId) {
         return;
     }
 
-    // Rita mappar (använd data-action istället för onclick)
+    // 1. Rita mappar
     folders.forEach(folder => {
         const div = document.createElement('div');
-        div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b cursor-pointer transition";
-        // Notera data-action="open-folder"
+        div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b transition group";
+        
+        // Vi lägger till en delete-knapp för mappar som syns vid hover (eller alltid på mobil)
         div.innerHTML = `
-            <div class="flex items-center gap-3 flex-grow" data-action="open-folder" data-id="${folder.id}" data-name="${folder.name}">
+            <div class="flex items-center gap-3 flex-grow cursor-pointer" data-action="open-folder" data-id="${folder.id}" data-name="${folder.name}">
                 <span class="text-2xl">📁</span>
                 <span class="font-semibold text-gray-700">${folder.name}</span>
             </div>
+            <button class="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Ta bort mapp" data-action="delete-folder" data-id="${folder.id}">
+                🗑️
+            </button>
         `;
         container.appendChild(div);
     });
 
-    // Rita filer
+    // 2. Rita filer (Nu med mer info)
     files.forEach(file => {
         const div = document.createElement('div');
         div.className = "flex justify-between items-center p-3 hover:bg-gray-50 border-b transition relative";
@@ -134,27 +163,40 @@ async function loadFolder(folderId) {
         if (file.mimeType && file.mimeType.includes('pdf')) icon = '📕';
         if (file.mimeType && file.mimeType.includes('image')) icon = '🖼️';
 
+        // Formatera data
+        const dateStr = formatDate(file.createdAt);
+        const sizeStr = formatBytes(file.size);
+
         div.innerHTML = `
-            <a href="${file.url}" target="_blank" class="flex items-center gap-3 flex-grow hover:text-blue-600">
-                <span class="text-xl">${icon}</span>
-                <span class="text-gray-700">${file.name}</span>
-            </a>
+            <div class="flex items-center gap-3 flex-grow min-w-0">
+                <a href="${file.url}" target="_blank" class="flex items-center gap-3 hover:text-blue-600 truncate">
+                    <span class="text-xl flex-shrink-0">${icon}</span>
+                    <span class="text-gray-700 font-medium truncate">${file.name}</span>
+                </a>
+            </div>
             
-            <div class="relative">
-                <button class="p-2 text-gray-500 hover:text-gray-800 font-bold rounded-full hover:bg-gray-200" 
-                    data-action="toggle-menu" data-id="${file.id}">
-                    ⋮
-                </button>
-                
-                <div id="file-menu-${file.id}" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-xl z-50">
-                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" 
-                        data-action="move-file" data-id="${file.id}">
-                        ↪ Flytta...
+            <div class="flex items-center gap-4 flex-shrink-0">
+                <div class="hidden sm:flex flex-col items-end text-xs text-gray-400">
+                    <span>${dateStr}</span>
+                    <span>${sizeStr}</span>
+                </div>
+
+                <div class="relative">
+                    <button class="p-2 text-gray-500 hover:text-gray-800 font-bold rounded-full hover:bg-gray-200" 
+                        data-action="toggle-menu" data-id="${file.id}">
+                        ⋮
                     </button>
-                    <button class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm font-bold border-t" 
-                        data-action="delete-file" data-id="${file.id}" data-storage-path="${file.storagePath}">
-                        🗑️ Ta bort
-                    </button>
+                    
+                    <div id="file-menu-${file.id}" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-xl z-50">
+                        <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" 
+                            data-action="move-file" data-id="${file.id}">
+                            ↪ Flytta...
+                        </button>
+                        <button class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm font-bold border-t" 
+                            data-action="delete-file" data-id="${file.id}" data-storage-path="${file.storagePath}">
+                            🗑️ Ta bort fil
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -176,7 +218,6 @@ function updateBreadcrumbs() {
 }
 
 function toggleFileMenu(fileId) {
-    // Stäng alla andra menyer
     document.querySelectorAll('[id^="file-menu-"]').forEach(el => {
         if (el.id !== `file-menu-${fileId}`) el.classList.add('hidden');
     });
@@ -195,6 +236,9 @@ async function moveFile(docId) {
     const allFoldersSnap = await getDocs(collection(db, 'folders'));
     let folderListText = "0: Hem (Roten)\n";
     const folders = allFoldersSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    
+    // Sortera mappar för listan
+    folders.sort((a,b) => a.name.localeCompare(b.name));
     
     folders.forEach((f, i) => {
         folderListText += `${i + 1}: ${f.name}\n`;
