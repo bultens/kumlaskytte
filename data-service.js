@@ -326,6 +326,20 @@ export async function linkUserToShooter(shooterId, userId) {
     }
 }
 
+export async function unlinkUserFromShooter(shooterId, userId) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await updateDoc(doc(db, 'shooters', shooterId), { 
+            parentUserIds: arrayRemove(userId) 
+        });
+        showModal('confirmationModal', "Kopplingen har tagits bort!");
+    } catch (error) {
+        console.error("Fel vid bortkoppling:", error);
+        showModal('errorModal', "Kunde inte ta bort kopplingen.");
+    }
+}
+
+
 // UPPATERAD STATISTIKFUNKTION (100 skott + TargetYear support)
 // Parametern 'year' styr vilket år som räknas som "Årsbästa". Default är innevarande år.
 export function calculateShooterStats(results, targetYear = new Date().getFullYear()) {

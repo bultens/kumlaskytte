@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://w
 import { auth, db } from "./firebase-config.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, competitionClasses } from "./data-service.js";
+import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, linkUserToShooter, unlinkUserFromShooter, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
@@ -1432,21 +1432,76 @@ export function setupEventListeners() {
     const linkParentSelect = document.getElementById('link-parent-select');
     const confirmLinkParentBtn = document.getElementById('confirm-link-parent-btn');
     const closeLinkParentBtn = document.getElementById('close-link-parent-modal');
+    const currentParentsList = document.getElementById('current-parents-list'); // Ny referens
 
+    // Funktion för att rendera innehållet i modalen (används både vid öppning och efter ändring)
+    function renderManageParentsModal(shooterId, shooterName) {
+        const shooter = allShootersData.find(s => s.id === shooterId);
+        if (!shooter) return;
+
+        document.getElementById('link-shooter-id').value = shooterId;
+        document.getElementById('manage-parents-shooter-name').textContent = shooterName;
+
+        // 1. Rendera BEFINTLIGA föräldrar
+        currentParentsList.innerHTML = '';
+        const parentIds = shooter.parentUserIds || [];
+        
+        if (parentIds.length === 0) {
+            currentParentsList.innerHTML = '<p class="text-xs text-gray-500 italic p-1">Inga föräldrar kopplade än.</p>';
+        } else {
+            parentIds.forEach(pid => {
+                const parentUser = usersData.find(u => u.id === pid);
+                const parentLabel = parentUser ? `${parentUser.email} (${parentUser.name || '-'})` : 'Okänd användare (borttagen?)';
+                
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center bg-white border p-2 rounded text-sm";
+                row.innerHTML = `
+                    <span class="truncate mr-2">${parentLabel}</span>
+                    <button class="unlink-parent-btn text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50" title="Ta bort koppling">
+                        ❌
+                    </button>
+                `;
+                
+                // Klick-event för att ta bort just denna förälder
+                row.querySelector('.unlink-parent-btn').addEventListener('click', async () => {
+                    if(confirm(`Vill du ta bort kopplingen till ${parentUser ? parentUser.email : 'denna användare'}?`)) {
+                        await unlinkUserFromShooter(shooterId, pid);
+                        // Vi behöver inte ladda om modalen manuellt här eftersom onSnapshot i data-service 
+                        // kommer uppdatera allShootersData, men för bäst UX kan vi uppdatera UI direkt eller vänta på snap.
+                        // Eftersom onSnapshot uppdaterar hela listan i bakgrunden kan modalen stängas om vi ritar om hela admin-vyn.
+                        // Enklast: Vi litar på att modalen är öppen, men vi uppdaterar listan "live" manuellt för snabb respons:
+                        renderManageParentsModal(shooterId, shooterName);
+                    }
+                });
+                
+                currentParentsList.appendChild(row);
+            });
+        }
+
+        // 2. Rendera DROPDOWN för att lägga till (visa inte de som redan är kopplade)
+        linkParentSelect.innerHTML = '<option value="">Välj användare...</option>';
+        const sortedUsers = [...usersData].sort((a, b) => a.email.localeCompare(b.email));
+        
+        sortedUsers.forEach(u => {
+            // Lägg bara till i listan om de INTE redan är förälder
+            if (!parentIds.includes(u.id)) {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.text = `${u.email} (${u.name || '-'})`;
+                linkParentSelect.appendChild(opt);
+            }
+        });
+    }
+
+    // Lyssnare för att öppna modalen
     if (adminShootersList) {
         adminShootersList.addEventListener('click', (e) => {
             const linkBtn = e.target.closest('.link-parent-btn');
             if (linkBtn) {
                 const shooterId = linkBtn.dataset.id;
-                document.getElementById('link-shooter-id').value = shooterId;
-                linkParentSelect.innerHTML = '';
-                const sortedUsers = [...usersData].sort((a, b) => a.email.localeCompare(b.email));
-                sortedUsers.forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u.id;
-                    opt.text = `${u.email} (${u.name || '-'})`;
-                    linkParentSelect.appendChild(opt);
-                });
+                const shooterName = linkBtn.dataset.name;
+                
+                renderManageParentsModal(shooterId, shooterName);
                 linkParentModal.classList.add('active');
             }
         });
@@ -1454,13 +1509,23 @@ export function setupEventListeners() {
 
     if (closeLinkParentBtn) closeLinkParentBtn.onclick = () => linkParentModal.classList.remove('active');
 
+    // Lyssnare för "Lägg till"-knappen
     if (confirmLinkParentBtn) {
-        confirmLinkParentBtn.onclick = async () => {
+        // Ta bort gamla listeners genom att klona knappen (clean slate)
+        const newBtn = confirmLinkParentBtn.cloneNode(true);
+        confirmLinkParentBtn.parentNode.replaceChild(newBtn, confirmLinkParentBtn);
+
+        newBtn.onclick = async () => {
             const shooterId = document.getElementById('link-shooter-id').value;
-            const userId = linkParentSelect.value;
+            const userId = document.getElementById('link-parent-select').value;
+            const shooterName = document.getElementById('manage-parents-shooter-name').textContent;
+
             if (shooterId && userId) {
                 await linkUserToShooter(shooterId, userId);
-                linkParentModal.classList.remove('active');
+                // Uppdatera modalens innehåll direkt så man ser resultatet
+                // (Vi hämtar den uppdaterade datan från usersData/allShootersData som uppdateras via snapshot strax)
+                // En liten fördröjning kan behövas om snapshot är långsam, men oftast går det fort.
+                setTimeout(() => renderManageParentsModal(shooterId, shooterName), 500);
             }
         };
     }

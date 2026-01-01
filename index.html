@@ -896,18 +896,35 @@
 </div>
 
 <div id="linkParentModal" class="modal">
-    <div class="modal-content">
-        <span id="close-link-parent-modal" class="modal-close-btn">×</span>
-        <h3 class="text-xl font-bold mb-2">Koppla användare till skytt</h3>
-        <p class="text-sm text-gray-600 mb-4">Välj vilken inloggning (förälder) som ska få administrera denna skytt.</p>
+    <div class="modal-content text-left max-w-lg">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-xl font-bold">Hantera Föräldrar/Kopplingar</h3>
+            <span id="close-link-parent-modal" class="modal-close-btn cursor-pointer text-2xl">×</span>
+        </div>
+        
+        <p class="text-sm text-gray-600 mb-4">Här ser du vilka användarkonton som får administrera skytten <strong id="manage-parents-shooter-name"></strong>.</p>
         
         <input type="hidden" id="link-shooter-id">
-        <label class="block text-left mb-1 font-semibold">Välj användare:</label>
-        <select id="link-parent-select" class="w-full p-3 border rounded mb-6"></select>
-        
-        <button id="confirm-link-parent-btn" class="w-full bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700">Koppla ihop</button>
+
+        <h4 class="font-bold text-sm text-gray-700 mb-2">Nuvarande kopplingar:</h4>
+        <div id="current-parents-list" class="bg-gray-50 border rounded p-2 mb-6 space-y-2 min-h-[50px]">
+            <p class="text-xs text-gray-400 italic">Inga föräldrar kopplade.</p>
+        </div>
+
+        <div class="border-t pt-4">
+            <label class="block text-sm font-bold mb-2">Lägg till ny förälder:</label>
+            <div class="flex gap-2">
+                <select id="link-parent-select" class="flex-grow p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </select>
+                <button id="confirm-link-parent-btn" class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 text-sm">
+                    Lägg till
+                </button>
+            </div>
+        </div>
     </div>
 </div>
+
+
         <div id="editUserModal" class="modal">
             <div class="modal-content">
                 <span id="close-edit-user-modal" class="modal-close-btn">&times;</span>

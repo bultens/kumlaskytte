@@ -724,9 +724,9 @@ export function renderShootersAdmin(shootersData) {
                     ${statusHtml}
                 </div>
                 <div class="flex space-x-2">
-                    <button class="link-parent-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" 
+                    <button class="link-parent-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition flex items-center gap-1" 
                             data-id="${shooter.id}" data-name="${shooter.name}">
-                        Koppla
+                        <span>👥</span> Hantera föräldrar
                     </button>
                     <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition" 
                             data-id="${shooter.id}" 
