@@ -8,15 +8,19 @@ import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./re
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
-import { loadAndRenderChart } from "./statistics-chart.js"; //
+import { loadAndRenderChart } from "./statistics-chart.js";
 
-// Ver. 1.7
+// Ver. 1.9 (Fullständig fil med 100-skott, Paginering och Serie-PB)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
 let editingEventId = null;
 let editingSponsorId = null;
 let editingCompId = null;
+
+// Paginering inställningar
+let currentHistoryPage = 1;
+const RESULTS_PER_PAGE = 20;
 
 export function setupEventListeners() {
     const newsAddBtn = document.getElementById('add-news-btn');
@@ -93,7 +97,7 @@ export function setupEventListeners() {
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     const achievementsSection = document.getElementById('achievements-section');
     
-    // --- NYTT: Hantera klick på "Senaste Prestationer" (CSP Fix) ---
+    // --- Hantera klick på "Senaste Prestationer" ---
     if (achievementsSection) {
         achievementsSection.addEventListener('click', () => {
             window.location.hash = '#topplistor';
@@ -128,7 +132,6 @@ export function setupEventListeners() {
         });
     }
 
-    // Admin: Klick på "Ändra" i klass-listan
     const adminClassesList = document.getElementById('admin-classes-list');
     if (adminClassesList) {
         adminClassesList.addEventListener('click', (e) => {
@@ -232,8 +235,8 @@ export function setupEventListeners() {
                 option.dataset.settings = JSON.stringify(shooter.settings || {});
                 option.dataset.birthyear = shooter.birthyear;
                 select.appendChild(option);
-                select.dispatchEvent(new Event('change'));
             });
+            // Trigga change så att grafen och historiken laddas för första valet
             select.dispatchEvent(new Event('change'));
         }
     }
@@ -253,12 +256,13 @@ export function setupEventListeners() {
         }
     });
     
+    // Hantera val av skytt (Laddar om lista och graf)
     const shooterSelect = document.getElementById('shooter-selector');
     if (shooterSelect) {
         shooterSelect.addEventListener('change', (e) => {
             const selectedOption = e.target.selectedOptions[0];
             const shooterId = e.target.value;
-
+            
             if (selectedOption && selectedOption.dataset.settings) {
                 const settings = JSON.parse(selectedOption.dataset.settings);
                 const shareCheckbox = document.getElementById('result-share-checkbox');
@@ -266,11 +270,14 @@ export function setupEventListeners() {
                     shareCheckbox.checked = settings.defaultShareResults || false;
                 }
                 
-                // Ladda lista och statistik
+                // NOLLSTÄLL PAGINERING VID NYTT VAL
+                currentHistoryPage = 1;
+
+                // Ladda historiklistan
                 loadResultsHistory(shooterId);
                 
-                // NYTT: Ladda grafen!
-                loadAndRenderChart(shooterId); 
+                // Ladda och rita grafen
+                loadAndRenderChart(shooterId);
             }
         });
     }
@@ -290,7 +297,12 @@ export function setupEventListeners() {
                     await deleteDocument(docId, 'results');
                     hideModal('deleteConfirmationModal');
                     const shooterId = document.getElementById('shooter-selector').value;
-                    if (shooterId) loadResultsHistory(shooterId);
+                    
+                    // Ladda om lista och graf vid borttagning
+                    if (shooterId) {
+                        loadResultsHistory(shooterId, currentHistoryPage); // Behåll sidnummer
+                        loadAndRenderChart(shooterId);
+                    }
                 });
             }
 
@@ -305,6 +317,22 @@ export function setupEventListeners() {
                 document.getElementById('edit-result-share').checked = data.shared;
                 
                 editResultModal.classList.add('active');
+            }
+
+            // PAGINERING: Hantera klick på Nästa / Föregående
+            const prevBtn = e.target.closest('.prev-page-btn');
+            const nextBtn = e.target.closest('.next-page-btn');
+            const shooterId = document.getElementById('shooter-selector').value;
+
+            if (prevBtn && shooterId) {
+                if (currentHistoryPage > 1) {
+                    currentHistoryPage--;
+                    loadResultsHistory(shooterId, currentHistoryPage);
+                }
+            }
+            if (nextBtn && shooterId) {
+                currentHistoryPage++;
+                loadResultsHistory(shooterId, currentHistoryPage);
             }
         });
     }
@@ -329,10 +357,14 @@ export function setupEventListeners() {
             editResultModal.classList.remove('active');
             
             const shooterId = document.getElementById('shooter-selector').value;
-            if (shooterId) loadResultsHistory(shooterId);
+            if (shooterId) {
+                loadResultsHistory(shooterId, currentHistoryPage);
+                loadAndRenderChart(shooterId);
+            }
         });
     }
 
+    // SPARA NYTT RESULTAT (Med stöd för 100 skott och Serie-PB)
     if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -354,6 +386,7 @@ export function setupEventListeners() {
             let totalMedal = null;
             let earnedBadges = []; 
             
+            // Hämta ALL historik för att räkna statistik korrekt
             const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
             const stats = calculateShooterStats(shooterHistory);
             
@@ -380,8 +413,12 @@ export function setupEventListeners() {
                 return m ? m.name : null;
             });
 
+            // PB / SB LOGIK
             let isPB = false;
             let isSB = false;
+            
+            let isSeriesPB = false;
+            let isSeriesSB = false;
             
             let currentPB = 0;
             let currentSB = 0;
@@ -395,13 +432,17 @@ export function setupEventListeners() {
             } else if (shotCount === 60) {
                 currentPB = stats.allTime.s60;
                 currentSB = stats.year.s60;
-            } else if (shotCount === 100) { 
+            } else if (shotCount === 100) {
                 currentPB = stats.allTime.s100;
                 currentSB = stats.year.s100;
             }
 
             if (total > currentPB) isPB = true;
-            if (total > currentSB) isSB = true;
+            else if (total > currentSB) isSB = true; // Sätts bara om inte PB
+
+            // Serie Rekord Logik
+            if (best > stats.allTime.series) isSeriesPB = true;
+            else if (best > stats.year.series) isSeriesSB = true;
 
             const resultData = {
                 shooterId: shooterId,
@@ -417,7 +458,9 @@ export function setupEventListeners() {
                 bestSeries: best,
                 sharedWithClub: document.getElementById('result-share-checkbox').checked,
                 isPB: isPB,
-                isSB: isSB
+                isSB: isSB,
+                isSeriesPB: isSeriesPB,
+                isSeriesSB: isSeriesSB
             };
 
             await saveResult(resultData);
@@ -425,7 +468,7 @@ export function setupEventListeners() {
             let messageHtml = `<h3 class="text-xl font-bold text-gray-800 mb-2">Resultat sparat!</h3>`;
             let hasAchievements = false;
 
-            if (isPB || isSB || earnedBadges.length > 0) {
+            if (isPB || isSB || isSeriesPB || isSeriesSB || earnedBadges.length > 0) {
                 let achievementsHtml = '<div class="space-y-2 text-left bg-gray-50 p-4 rounded-lg border border-gray-200">';
                 
                 if (isPB) {
@@ -433,6 +476,14 @@ export function setupEventListeners() {
                     hasAchievements = true;
                 } else if (isSB) {
                     achievementsHtml += `<div class="flex items-center text-blue-700 font-bold"><span class="text-2xl mr-2">📅</span> Nytt Årsbästa! (${total}p)</div>`;
+                    hasAchievements = true;
+                }
+
+                if (isSeriesPB) {
+                    achievementsHtml += `<div class="flex items-center text-purple-700 font-bold"><span class="text-2xl mr-2">🔥</span> Nytt Serie-PB! (${best}p)</div>`;
+                    hasAchievements = true;
+                } else if (isSeriesSB) {
+                    achievementsHtml += `<div class="flex items-center text-indigo-700 font-bold"><span class="text-2xl mr-2">📈</span> Nytt Serie-Årsbästa! (${best}p)</div>`;
                     hasAchievements = true;
                 }
 
@@ -467,10 +518,12 @@ export function setupEventListeners() {
 
             addResultForm.reset();
             setupResultFormListeners(); 
+            // Nollställ till sida 1
+            currentHistoryPage = 1;
             loadResultsHistory(shooterId);
+            loadAndRenderChart(shooterId);
         });
     }
-
 
     if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
@@ -499,8 +552,12 @@ export function setupEventListeners() {
             const profilePhoneInput = document.getElementById('profile-phone-input');
             const profileBirthyearInput = document.getElementById('profile-birthyear-input');
             const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
-            const trackMedals = document.getElementById('track-medals-toggle').checked;
-            const defaultShare = document.getElementById('profile-default-share').checked;
+            
+            const trackMedalsEl = document.getElementById('track-medals-toggle');
+            const defaultShareEl = document.getElementById('profile-default-share');
+            
+            const trackMedals = trackMedalsEl ? trackMedalsEl.checked : true;
+            const defaultShare = defaultShareEl ? defaultShareEl.checked : false;
 
             const profileData = {
                 name: profileNameInput.value,
@@ -1067,7 +1124,6 @@ export function setupEventListeners() {
                 const insertTheImage = (url) => {
                     modal.classList.remove('active'); // Stäng modalen
                     
-                    // Samma storleks-logik som vi gjorde nyss
                     const sizeInput = prompt("Välj storlek:\nS = Liten (text flyter runt)\nM = Mellan (centrerad)\nL = Stor (full bredd)", "M");
                     let sizeClass = "img-medium";
                     
@@ -1083,7 +1139,6 @@ export function setupEventListeners() {
 
                 // 1. Fyll rutnätet med bilder från imageData
                 grid.innerHTML = '';
-                // Sortera nyast först
                 const sortedImages = [...imageData].sort((a, b) => {
                     if (b.year !== a.year) return b.year - a.year;
                     return b.month - a.month;
@@ -1096,13 +1151,10 @@ export function setupEventListeners() {
                         <img src="${img.url}" loading="lazy">
                         <p>${img.title}</p>
                     `;
-                    // När man klickar på en bild i galleriet
                     div.onclick = () => insertTheImage(img.url);
                     grid.appendChild(div);
                 });
 
-                // 2. Hantera "Använd länk"-knappen
-                // Ta bort gamla lyssnare genom att klona knappen (enkelt trick)
                 const newManualBtn = manualBtn.cloneNode(true);
                 manualBtn.parentNode.replaceChild(newManualBtn, manualBtn);
                 
@@ -1111,14 +1163,11 @@ export function setupEventListeners() {
                     if (url) insertTheImage(url);
                 };
 
-                // 3. Öppna modalen
-                manualInput.value = ''; // Töm input
+                manualInput.value = ''; 
                 modal.classList.add('active');
 
-                // Stäng-knapp
                 closeBtn.onclick = () => modal.classList.remove('active');
                 
-                // Stäng om man klickar utanför
                 modal.onclick = (e) => {
                     if (e.target === modal) modal.classList.remove('active');
                 };
@@ -1177,7 +1226,7 @@ export function setupEventListeners() {
         });
     }
 
-    async function loadResultsHistory(shooterId) {
+    async function loadResultsHistory(shooterId, page = 1) {
         const container = document.getElementById('results-history-container');
         if (!container) return;
         
@@ -1185,16 +1234,12 @@ export function setupEventListeners() {
         
         const results = await getShooterResults(shooterId);
         
-        // HÄMTA STATISTIK
         const stats = calculateShooterStats(results);
         
-        // --- SÄKER UPPDATERING AV STATISTIK-KORT ---
-        // Denna hjälpfunktion kollar om elementet finns innan den skriver, för att undvika krasch
         const safeSetText = (id, text) => {
             const el = document.getElementById(id);
             if (el) el.textContent = text;
         };
-
         const show = (val) => val > 0 ? val : '-';
 
         safeSetText('stats-current-year', new Date().getFullYear());
@@ -1202,14 +1247,13 @@ export function setupEventListeners() {
         safeSetText('stats-year-20', show(stats.year.s20));
         safeSetText('stats-year-40', show(stats.year.s40));
         safeSetText('stats-year-60', show(stats.year.s60));
-        safeSetText('stats-year-100', show(stats.year.s100));
+        safeSetText('stats-year-100', show(stats.year.s100)); 
 
         safeSetText('stats-all-series', show(stats.allTime.series));
         safeSetText('stats-all-20', show(stats.allTime.s20));
         safeSetText('stats-all-40', show(stats.allTime.s40));
         safeSetText('stats-all-60', show(stats.allTime.s60));
-        safeSetText('stats-all-100', show(stats.allTime.s100));
-        // -------------------------------------------
+        safeSetText('stats-all-100', show(stats.allTime.s100)); 
 
         const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];
         const currentSettings = selectedShooterOption ? JSON.parse(selectedShooterOption.dataset.settings || '{}') : {};
@@ -1223,33 +1267,24 @@ export function setupEventListeners() {
                 
                 const updateBadgeUI = (type, elementId, icon) => {
                     const count = stats.medals[type] || 0;
-                    // Säkra dessa också
                     safeSetText(`count-${elementId}`, count);
-
                     const statusEl = document.getElementById(`badge-status-${elementId}`);
                     if(!statusEl) return;
-
                     const earnedBadges = Math.floor(count / 10);
                     const progress = count % 10;
-
                     if (earnedBadges > 0) {
                         statusEl.innerHTML = `
                             <div class="bg-green-100 text-green-600 rounded-full p-1 mb-1 border-2 border-green-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                             </div>
                             <div class="text-xs font-bold text-gray-700">${earnedBadges} st klara</div>
-                            <div class="text-[10px] text-gray-500">${progress} / 10 mot nästa</div>
-                        `;
+                            <div class="text-[10px] text-gray-500">${progress} / 10 mot nästa</div>`;
                     } else {
                         statusEl.innerHTML = `
                             <div class="text-2xl mb-1 opacity-50 grayscale">${icon}</div>
-                            <div class="font-bold text-lg leading-none">${progress} / 10</div>
-                        `;
+                            <div class="font-bold text-lg leading-none">${progress} / 10</div>`;
                     }
                 };
-
                 updateBadgeUI('Guld 3', 'gold3', '🏆');
                 updateBadgeUI('Guld 2', 'gold2', '🥇');
                 updateBadgeUI('Guld 1', 'gold1', '🥇');
@@ -1265,8 +1300,11 @@ export function setupEventListeners() {
             return;
         }
 
-        // Rendera historiklistan (senaste 10)
-        results.slice(0, 10).forEach(res => { 
+        const startIndex = (page - 1) * RESULTS_PER_PAGE;
+        const endIndex = startIndex + RESULTS_PER_PAGE;
+        const paginatedResults = results.slice(startIndex, endIndex);
+
+        paginatedResults.forEach(res => { 
             const date = new Date(res.date).toLocaleDateString();
             const shareIcon = res.sharedWithClub ? '🌐' : '🔒';
             const shareTitle = res.sharedWithClub ? 'Delad med klubben' : 'Privat';
@@ -1274,18 +1312,29 @@ export function setupEventListeners() {
                 id: res.id, date: res.date, type: res.type, discipline: res.discipline, shared: res.sharedWithClub
             }));
 
+            let pbBadge = '';
+            if (res.isPB) pbBadge = '<span class="ml-2 text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-bold border border-green-200">PB</span>';
+            else if (res.isSB) pbBadge = '<span class="ml-2 text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold border border-blue-200">ÅB</span>';
+            
+            let seriesBadge = '';
+            if (res.isSeriesPB) seriesBadge = '<span class="ml-1 text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold border border-purple-200" title="Bästa serie någonsin!">S-PB</span>';
+
             container.innerHTML += `
                 <div class="card p-3 flex justify-between items-center bg-white border-l-4 ${res.sharedWithClub ? 'border-blue-500' : 'border-gray-300'}">
                     <div class="flex-grow">
-                        <div class="flex items-center space-x-2">
-                            <p class="font-bold text-gray-800 text-lg">${res.total} p</p>
-                            <span class="text-xs" title="${shareTitle}">${shareIcon}</span>
+                        <div class="flex items-center flex-wrap">
+                            <p class="font-bold text-gray-800 text-lg mr-2">${res.total} p</p>
+                            <span class="text-xs mr-2" title="${shareTitle}">${shareIcon}</span>
+                            ${pbBadge}
                         </div>
                         <p class="text-xs text-gray-500">${date} | ${res.discipline} | ${res.type}</p>
                         <p class="text-xs text-gray-400">Serier: ${res.series.join(', ')}</p>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded mr-2 hidden sm:inline">Bästa: ${res.bestSeries}</span>
+                        <div class="text-right mr-2 hidden sm:block">
+                            <span class="text-xs font-bold bg-gray-100 px-2 py-1 rounded block">Bästa: ${res.bestSeries}</span>
+                            ${seriesBadge}
+                        </div>
                         <button class="edit-result-btn p-2 text-gray-500 hover:text-blue-600 transition" data-obj="${dataString}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         </button>
@@ -1296,6 +1345,24 @@ export function setupEventListeners() {
                 </div>
             `;
         });
+
+        if (results.length > RESULTS_PER_PAGE) {
+            const totalPages = Math.ceil(results.length / RESULTS_PER_PAGE);
+            let paginationHtml = `<div class="flex justify-between items-center mt-4 pt-2 border-t border-gray-200">`;
+            if (page > 1) {
+                paginationHtml += `<button class="prev-page-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded">← Föregående</button>`;
+            } else {
+                paginationHtml += `<div></div>`;
+            }
+            paginationHtml += `<span class="text-sm text-gray-500">Sida ${page} av ${totalPages}</span>`;
+            if (page < totalPages) {
+                paginationHtml += `<button class="next-page-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded">Nästa →</button>`;
+            } else {
+                paginationHtml += `<div></div>`;
+            }
+            paginationHtml += `</div>`;
+            container.innerHTML += paginationHtml;
+        }
     }
 
     const editShooterBtn = document.getElementById('edit-shooter-btn');
@@ -1308,23 +1375,18 @@ export function setupEventListeners() {
             e.preventDefault(); 
             const select = document.getElementById('shooter-selector');
             const selectedOption = select.selectedOptions[0];
-            
             if (!selectedOption || !select.value) {
                 showModal('errorModal', "Välj en skytt först.");
                 return;
             }
-            
             const shooterId = select.value;
             const name = selectedOption.text;
             const settings = JSON.parse(selectedOption.dataset.settings || '{}');
-            
             document.getElementById('edit-shooter-id').value = shooterId;
             document.getElementById('edit-shooter-name').value = name;
             document.getElementById('edit-shooter-birthyear').value = selectedOption.dataset.birthyear || ''; 
-            
             document.getElementById('edit-shooter-gamification').checked = settings.trackMedals !== false;
             document.getElementById('edit-shooter-share').checked = settings.defaultShareResults || false;
-
             editShooterModal.classList.add('active');
         });
     }
@@ -1339,7 +1401,6 @@ export function setupEventListeners() {
             const id = document.getElementById('edit-shooter-id').value;
             const name = document.getElementById('edit-shooter-name').value;
             const birthyear = document.getElementById('edit-shooter-birthyear').value;
-            
             const updatedData = {
                 name: name,
                 birthyear: parseInt(birthyear),
@@ -1348,7 +1409,6 @@ export function setupEventListeners() {
                     defaultShareResults: document.getElementById('edit-shooter-share').checked
                 }
             };
-
             await updateShooterProfile(id, updatedData);
             editShooterModal.classList.remove('active');
             loadShootersIntoDropdown(); 
@@ -1367,7 +1427,6 @@ export function setupEventListeners() {
             if (linkBtn) {
                 const shooterId = linkBtn.dataset.id;
                 document.getElementById('link-shooter-id').value = shooterId;
-                
                 linkParentSelect.innerHTML = '';
                 const sortedUsers = [...usersData].sort((a, b) => a.email.localeCompare(b.email));
                 sortedUsers.forEach(u => {
@@ -1376,7 +1435,6 @@ export function setupEventListeners() {
                     opt.text = `${u.email} (${u.name || '-'})`;
                     linkParentSelect.appendChild(opt);
                 });
-
                 linkParentModal.classList.add('active');
             }
         });
@@ -1394,5 +1452,4 @@ export function setupEventListeners() {
             }
         };
     }
-
 }
