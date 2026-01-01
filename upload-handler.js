@@ -1,12 +1,12 @@
+
 // upload-handler.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { addOrUpdateDocument } from "./data-service.js";
-// ÄNDRING: Hämta auth från config istället för main.js för att bryta cirkeln
-import { auth } from "./firebase-config.js"; 
+import { auth } from "./main.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.07 (Fixad cirkulär dependency)
+// Ver. 1.06
 export let editingImageId = null;
 export let editingSponsorId = null;
 
@@ -99,9 +99,11 @@ export async function handleImageUpload(e) {
         }
     }
     
+    // Använd rätt meddelande beroende på om det är en uppdatering eller ny bild
     const successMessage = editingImageId ? "Bilden har uppdaterats!" : "Bilden har lagts till!";
     await addOrUpdateDocument('images', editingImageId, imageObject, successMessage, "Ett fel uppstod när bilden skulle hanteras.");
     
+    // Reset form after successful upload
     const addImageForm = document.getElementById('add-image-form');
     if (addImageForm) {
         addImageForm.reset();
@@ -204,6 +206,7 @@ export async function handleSponsorUpload(e) {
     
     await addOrUpdateDocument('sponsors', editingSponsorId, sponsorObject, "Sponsorn har lagts till!", "Ett fel uppstod när sponsorn skulle hanteras.");
 
+    // Reset form after successful upload
     const addSponsorForm = document.getElementById('add-sponsor-form');
     if (addSponsorForm) {
         addSponsorForm.reset();

@@ -102,25 +102,6 @@ export function setupEventListeners() {
         });
     }
     
-    // --- MOBILMENY HANTERING ---
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
-    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
-
-    if (mobileMenuBtn && mobileMenu) {
-        // Toggle menyn
-        mobileMenuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-
-        // Stäng menyn när man klickar på en länk
-        mobileLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-            });
-        });
-    }
-    
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
             e.preventDefault();

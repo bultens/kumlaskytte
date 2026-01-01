@@ -24,33 +24,24 @@ const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
 function toggleProfileUI(user) {
-    // Referenser till Desktop-menyn
-    const resultsNavLink = document.getElementById('results-nav-link');
-    
-    // Referenser till Mobil-menyn (NYTT)
-    const mobileResultsNavLink = document.getElementById('mobile-results-nav-link');
-
+    // Om user finns (inloggad)
     if (user) {
-        // INLOGGAD
         if (profilePanel) profilePanel.classList.remove('hidden');
         if (userLoginPanel) userLoginPanel.classList.add('hidden');
         if (registerPanel) registerPanel.classList.add('hidden');
-        if (showLoginLink) showLoginLink.classList.add('hidden'); 
-        
-        // Visa menyval
+        if (profileNavLink) profileNavLink.classList.remove('hidden');
         if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (mobileResultsNavLink) mobileResultsNavLink.classList.remove('hidden'); // Mobil
-        
+        if (userNavLink) userNavLink.classList.add('hidden');
+        if (showLoginLink) showLoginLink.classList.add('hidden'); // Göm "Logga in"-knappen i menyn
     } else {
-        // UTLOGGAD
+        // Utloggad
         if (profilePanel) profilePanel.classList.add('hidden');
-        if (userLoginPanel) userLoginPanel.classList.add('hidden'); 
+        if (userLoginPanel) userLoginPanel.classList.add('hidden'); // Göm panelen, visa bara knappen
         if (registerPanel) registerPanel.classList.add('hidden');
-        if (showLoginLink) showLoginLink.classList.remove('hidden');
-        
-        // Dölj menyval
+        if (profileNavLink) profileNavLink.classList.add('hidden');
         if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (mobileResultsNavLink) mobileResultsNavLink.classList.add('hidden'); // Mobil
+        if (userNavLink) userNavLink.classList.remove('hidden');
+        if (showLoginLink) showLoginLink.classList.remove('hidden'); // Visa "Logga in"-knappen
     }
 }
 
