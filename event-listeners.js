@@ -10,7 +10,7 @@ import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upl
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 import { loadAndRenderChart } from "./statistics-chart.js";
 
-// Ver. 1.9 (Fullständig fil med 100-skott, Paginering och Serie-PB)
+// Ver. 2.0 (Fix för datumstyrd statistik)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -18,7 +18,6 @@ let editingEventId = null;
 let editingSponsorId = null;
 let editingCompId = null;
 
-// Paginering inställningar
 let currentHistoryPage = 1;
 const RESULTS_PER_PAGE = 20;
 
@@ -97,19 +96,16 @@ export function setupEventListeners() {
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     const achievementsSection = document.getElementById('achievements-section');
     
-    // --- Hantera klick på "Senaste Prestationer" ---
     if (achievementsSection) {
         achievementsSection.addEventListener('click', () => {
             window.location.hash = '#topplistor';
         });
     }
     
-    // --- Hantera Klasser (Admin) ---
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('class-id').value;
-            
             const classData = {
                 name: document.getElementById('class-name').value,
                 description: document.getElementById('class-desc').value,
@@ -117,14 +113,11 @@ export function setupEventListeners() {
                 maxAge: parseInt(document.getElementById('class-max').value),
                 discipline: document.getElementById('class-discipline').value
             };
-
             await addOrUpdateDocument('competitionClasses', id || null, classData, "Klass sparad!", "Fel vid sparande.");
-            
             addClassForm.reset();
             document.getElementById('class-id').value = '';
             cancelClassBtn.classList.add('hidden');
         });
-        
         cancelClassBtn.addEventListener('click', () => {
             addClassForm.reset();
             document.getElementById('class-id').value = '';
@@ -149,20 +142,15 @@ export function setupEventListeners() {
         });
     }
 
-    // --- Publika Sidan - Dropdown ---
     const publicShooterSelect = document.getElementById('public-shooter-selector');
-    
     const populatePublicDropdown = () => {
         if (!publicShooterSelect) return;
-        
         const activeShooterIds = new Set();
         latestResultsCache.forEach(r => {
             if (r.sharedWithClub) activeShooterIds.add(r.shooterId);
         });
-
         const publicShooters = allShootersData.filter(s => activeShooterIds.has(s.id));
         publicShooters.sort((a, b) => a.name.localeCompare(b.name));
-
         publicShooterSelect.innerHTML = '<option value="">Välj skytt...</option>';
         publicShooters.forEach(s => {
             const opt = document.createElement('option');
@@ -192,7 +180,6 @@ export function setupEventListeners() {
         });
     }
 
-    // --- Skyttar och Resultat ---
     if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
             if (addShooterModal) addShooterModal.classList.add('active');
@@ -208,7 +195,6 @@ export function setupEventListeners() {
             e.preventDefault();
             const name = document.getElementById('new-shooter-name').value;
             const year = document.getElementById('new-shooter-birthyear').value;
-            
             if (auth.currentUser) {
                 await createShooterProfile(auth.currentUser.uid, name, year);
                 addShooterModal.classList.remove('active');
@@ -236,7 +222,6 @@ export function setupEventListeners() {
                 option.dataset.birthyear = shooter.birthyear;
                 select.appendChild(option);
             });
-            // Trigga change så att grafen och historiken laddas för första valet
             select.dispatchEvent(new Event('change'));
         }
     }
@@ -256,7 +241,6 @@ export function setupEventListeners() {
         }
     });
     
-    // Hantera val av skytt (Laddar om lista och graf)
     const shooterSelect = document.getElementById('shooter-selector');
     if (shooterSelect) {
         shooterSelect.addEventListener('change', (e) => {
@@ -269,14 +253,8 @@ export function setupEventListeners() {
                 if (shareCheckbox) {
                     shareCheckbox.checked = settings.defaultShareResults || false;
                 }
-                
-                // NOLLSTÄLL PAGINERING VID NYTT VAL
                 currentHistoryPage = 1;
-
-                // Ladda historiklistan
                 loadResultsHistory(shooterId);
-                
-                // Ladda och rita grafen
                 loadAndRenderChart(shooterId);
             }
         });
@@ -297,10 +275,8 @@ export function setupEventListeners() {
                     await deleteDocument(docId, 'results');
                     hideModal('deleteConfirmationModal');
                     const shooterId = document.getElementById('shooter-selector').value;
-                    
-                    // Ladda om lista och graf vid borttagning
                     if (shooterId) {
-                        loadResultsHistory(shooterId, currentHistoryPage); // Behåll sidnummer
+                        loadResultsHistory(shooterId, currentHistoryPage); 
                         loadAndRenderChart(shooterId);
                     }
                 });
@@ -309,17 +285,14 @@ export function setupEventListeners() {
             const editBtn = e.target.closest('.edit-result-btn');
             if (editBtn) {
                 const data = JSON.parse(decodeURIComponent(editBtn.dataset.obj));
-                
                 document.getElementById('edit-result-id').value = data.id;
                 document.getElementById('edit-result-date').value = data.date;
                 document.getElementById('edit-result-type').value = data.type;
                 document.getElementById('edit-result-discipline').value = data.discipline;
                 document.getElementById('edit-result-share').checked = data.shared;
-                
                 editResultModal.classList.add('active');
             }
 
-            // PAGINERING: Hantera klick på Nästa / Föregående
             const prevBtn = e.target.closest('.prev-page-btn');
             const nextBtn = e.target.closest('.next-page-btn');
             const shooterId = document.getElementById('shooter-selector').value;
@@ -344,7 +317,6 @@ export function setupEventListeners() {
     if (editResultForm) {
         editResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const resultId = document.getElementById('edit-result-id').value;
             const updatedData = {
                 date: document.getElementById('edit-result-date').value,
@@ -352,10 +324,8 @@ export function setupEventListeners() {
                 discipline: document.getElementById('edit-result-discipline').value,
                 sharedWithClub: document.getElementById('edit-result-share').checked
             };
-
             await updateUserResult(resultId, updatedData);
             editResultModal.classList.remove('active');
-            
             const shooterId = document.getElementById('shooter-selector').value;
             if (shooterId) {
                 loadResultsHistory(shooterId, currentHistoryPage);
@@ -364,7 +334,7 @@ export function setupEventListeners() {
         });
     }
 
-    // SPARA NYTT RESULTAT (Med stöd för 100 skott och Serie-PB)
+    // SPARA NYTT RESULTAT (Med korrigering för datum)
     if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -374,6 +344,9 @@ export function setupEventListeners() {
                 showModal('errorModal', "Du måste välja eller skapa en skytt först!");
                 return;
             }
+
+            const inputDateStr = document.getElementById('result-date').value;
+            const inputYear = new Date(inputDateStr).getFullYear();
 
             const { total, best, seriesScores } = calculateTotal();
             const shotCount = parseInt(document.getElementById('result-shot-count').value);
@@ -386,9 +359,10 @@ export function setupEventListeners() {
             let totalMedal = null;
             let earnedBadges = []; 
             
-            // Hämta ALL historik för att räkna statistik korrekt
+            // Hämta historik och räkna statistik BSERVERAT PÅ DET VALDA ÅRTALET
             const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
-            const stats = calculateShooterStats(shooterHistory);
+            // Här skickar vi med inputYear så att "stats.year" blir statistik för det valda året (t.ex. 2025)
+            const stats = calculateShooterStats(shooterHistory, inputYear); 
             
             let tempMedalCounts = { ...stats.medals };
 
@@ -413,10 +387,8 @@ export function setupEventListeners() {
                 return m ? m.name : null;
             });
 
-            // PB / SB LOGIK
             let isPB = false;
             let isSB = false;
-            
             let isSeriesPB = false;
             let isSeriesSB = false;
             
@@ -438,16 +410,15 @@ export function setupEventListeners() {
             }
 
             if (total > currentPB) isPB = true;
-            else if (total > currentSB) isSB = true; // Sätts bara om inte PB
+            else if (total > currentSB) isSB = true; // Nu jämförs det mot SB för det valda året!
 
-            // Serie Rekord Logik
             if (best > stats.allTime.series) isSeriesPB = true;
             else if (best > stats.year.series) isSeriesSB = true;
 
             const resultData = {
                 shooterId: shooterId,
                 registeredBy: auth.currentUser.uid,
-                date: document.getElementById('result-date').value,
+                date: inputDateStr,
                 type: document.getElementById('result-type').value,
                 discipline: document.getElementById('result-discipline').value,
                 shotCount: shotCount,
@@ -475,7 +446,7 @@ export function setupEventListeners() {
                     achievementsHtml += `<div class="flex items-center text-green-700 font-bold"><span class="text-2xl mr-2">🚀</span> Nytt Personbästa! (${total}p)</div>`;
                     hasAchievements = true;
                 } else if (isSB) {
-                    achievementsHtml += `<div class="flex items-center text-blue-700 font-bold"><span class="text-2xl mr-2">📅</span> Nytt Årsbästa! (${total}p)</div>`;
+                    achievementsHtml += `<div class="flex items-center text-blue-700 font-bold"><span class="text-2xl mr-2">📅</span> Nytt Årsbästa (${inputYear})! (${total}p)</div>`;
                     hasAchievements = true;
                 }
 
@@ -518,7 +489,6 @@ export function setupEventListeners() {
 
             addResultForm.reset();
             setupResultFormListeners(); 
-            // Nollställ till sida 1
             currentHistoryPage = 1;
             loadResultsHistory(shooterId);
             loadAndRenderChart(shooterId);
@@ -1113,16 +1083,14 @@ export function setupEventListeners() {
                     }
                 }
                } else if (command === 'insertImage') {
-                // Hämta referenser till modal-elementen
                 const modal = document.getElementById('imageSelectionModal');
                 const grid = document.getElementById('gallery-selection-grid');
                 const closeBtn = document.getElementById('close-image-selection-modal');
                 const manualInput = document.getElementById('manual-image-url');
                 const manualBtn = document.getElementById('use-manual-url-btn');
 
-                // Funktion för att slutföra (fråga om storlek och infoga)
                 const insertTheImage = (url) => {
-                    modal.classList.remove('active'); // Stäng modalen
+                    modal.classList.remove('active'); 
                     
                     const sizeInput = prompt("Välj storlek:\nS = Liten (text flyter runt)\nM = Mellan (centrerad)\nL = Stor (full bredd)", "M");
                     let sizeClass = "img-medium";
@@ -1137,7 +1105,6 @@ export function setupEventListeners() {
                     applyEditorCommand(editorElement, 'insertHTML', imgHtml);
                 };
 
-                // 1. Fyll rutnätet med bilder från imageData
                 grid.innerHTML = '';
                 const sortedImages = [...imageData].sort((a, b) => {
                     if (b.year !== a.year) return b.year - a.year;

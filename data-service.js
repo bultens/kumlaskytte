@@ -4,7 +4,7 @@ import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBat
 import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin } from "./ui-handler.js";
 import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-// Ver. 1.4 (Uppdaterad med s100-statistik)
+// Ver. 1.5 (Fix för Årsbästa på gamla datum)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -20,7 +20,6 @@ export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
     if (auth.currentUser) {
-        // --- SKYTTAR ---
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
             if (isAdminLoggedIn) renderShootersAdmin(allShootersData); 
@@ -30,7 +29,6 @@ export function initializeDataListeners() {
              }
         });
 
-        // --- KLASSER ---
         onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
             competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             competitionClasses.sort((a, b) => a.minAge - b.minAge);
@@ -38,7 +36,6 @@ export function initializeDataListeners() {
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
 
-        // --- RESULTAT ---
         onSnapshot(collection(db, 'results'), (snapshot) => {
             const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             latestResultsCache = allResults; 
@@ -328,9 +325,9 @@ export async function linkUserToShooter(shooterId, userId) {
     }
 }
 
-// UPPATERAD STATISTIKFUNKTION (100 skott)
-export function calculateShooterStats(results) {
-    const currentYear = new Date().getFullYear();
+// UPPATERAD STATISTIKFUNKTION (100 skott + TargetYear support)
+// Parametern 'year' styr vilket år som räknas som "Årsbästa". Default är innevarande år.
+export function calculateShooterStats(results, targetYear = new Date().getFullYear()) {
     
     const stats = {
         year: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 },
@@ -343,26 +340,28 @@ export function calculateShooterStats(results) {
 
     results.forEach(res => {
         const resYear = new Date(res.date).getFullYear();
-        const isCurrentYear = resYear === currentYear;
+        const isTargetYear = resYear === targetYear;
         const total = parseFloat(res.total) || 0;
         const bestSeries = parseFloat(res.bestSeries) || 0;
         const count = parseInt(res.shotCount);
 
+        // All Time Series
         if (bestSeries > stats.allTime.series) stats.allTime.series = bestSeries;
-        if (isCurrentYear && bestSeries > stats.year.series) stats.year.series = bestSeries;
+        // Target Year Series
+        if (isTargetYear && bestSeries > stats.year.series) stats.year.series = bestSeries;
 
         if (count === 20) {
             if (total > stats.allTime.s20) stats.allTime.s20 = total;
-            if (isCurrentYear && total > stats.year.s20) stats.year.s20 = total;
+            if (isTargetYear && total > stats.year.s20) stats.year.s20 = total;
         } else if (count === 40) {
             if (total > stats.allTime.s40) stats.allTime.s40 = total;
-            if (isCurrentYear && total > stats.year.s40) stats.year.s40 = total;
+            if (isTargetYear && total > stats.year.s40) stats.year.s40 = total;
         } else if (count === 60) {
             if (total > stats.allTime.s60) stats.allTime.s60 = total;
-            if (isCurrentYear && total > stats.year.s60) stats.year.s60 = total;
+            if (isTargetYear && total > stats.year.s60) stats.year.s60 = total;
         } else if (count === 100) {
             if (total > stats.allTime.s100) stats.allTime.s100 = total;
-            if (isCurrentYear && total > stats.year.s100) stats.year.s100 = total;
+            if (isTargetYear && total > stats.year.s100) stats.year.s100 = total;
         }
 
         if (res.seriesMedals && Array.isArray(res.seriesMedals)) {
