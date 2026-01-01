@@ -78,7 +78,7 @@ export async function initFileManager() {
         }
         else if (action === 'delete-folder') {
             // NYTT: Radera mapp
-            if(confirm("Vill du ta bort mappen? Den måste vara tom.")) {
+            if(confirm("Vill du ta bort mappen?")) {
                 const success = await deleteAdminFolder(id);
                 if (success) await loadFolder(currentFolderId);
             }
