@@ -495,14 +495,35 @@ export function setupEventListeners() {
         });
     }
 
-    if (isRecurringCheckbox) {
+if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
+            const eventDateInput = document.getElementById('event-date');
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+
             if (isRecurringCheckbox.checked) {
+                // Visa återkommande, dölj enskild
                 singleEventFields.classList.add('hidden');
                 recurringEventFields.classList.remove('hidden');
+                
+                // VIKTIGT: Ta bort kravet på enskilt datum så webbläsaren inte klagar
+                if (eventDateInput) eventDateInput.required = false;
+                
+                // (Valfritt) Lägg till krav på start/slut om du vill använda webbläsarens validation
+                if (startDateInput) startDateInput.required = true;
+                if (endDateInput) endDateInput.required = true;
+
             } else {
+                // Visa enskild, dölj återkommande
                 singleEventFields.classList.remove('hidden');
                 recurringEventFields.classList.add('hidden');
+                
+                // VIKTIGT: Lägg tillbaka kravet på enskilt datum
+                if (eventDateInput) eventDateInput.required = true;
+
+                // Ta bort krav på start/slut
+                if (startDateInput) startDateInput.required = false;
+                if (endDateInput) endDateInput.required = false;
             }
             checkEventForm();
         });
