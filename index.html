@@ -13,31 +13,52 @@
 <body>
 
 <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-50" id="site-header">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-        <a href="#hem" class="flex items-center space-x-3 hover:opacity-90 transition">
-        <img id="site-logo" src="logo.png" alt="Logotyp" class="h-20 w-auto object-contain">
-            <span class="text-xl font-bold tracking-wide">Kumla Skytteförening</span>
-            <span id="admin-indicator" class="hidden bg-red-500 text-white text-xs px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm">Admin</span>
-        </a>
+    <div class="container mx-auto px-4 py-3">
+        <div class="flex justify-between items-center">
+            <a href="#hem" class="flex items-center space-x-3 hover:opacity-90 transition">
+                <img id="site-logo" src="logo.png" alt="Logotyp" class="h-12 w-auto object-contain border-2 border-white/20 rounded-full bg-white">
+                <div class="flex flex-col">
+                    <span class="text-lg font-bold tracking-wide leading-tight">Kumla Skytteförening</span>
+                    <span id="admin-indicator" class="hidden bg-red-600 text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider w-max shadow-sm mt-0.5">Admin</span>
+                </div>
+            </a>
 
-        <nav class="hidden md:flex space-x-6 items-center">
-            <a href="#hem" class="hover:text-blue-300 transition nav-link">Start</a>
-            <a href="#nyheter" class="hover:text-blue-300 transition nav-link">Nyheter</a>
-            <a href="#kalender" class="hover:text-blue-300 transition nav-link">Kalender</a>
-            <a href="#topplistor" class="hover:text-blue-300 transition nav-link">Topplistor</a>
-            <a href="#resultat" id="results-nav-link" class="hidden hover:text-blue-300 transition nav-link font-bold text-yellow-400">Mina Resultat</a>
-            <a href="#admin" id="admin-nav-link" class="hidden hover:text-red-300 transition nav-link">Admin</a>
-        </nav>
+            <nav class="hidden md:flex space-x-6 items-center">
+                <a href="#hem" class="hover:text-blue-300 transition nav-link">Start</a>
+                <a href="#nyheter" class="hover:text-blue-300 transition nav-link">Nyheter</a>
+                <a href="#kalender" class="hover:text-blue-300 transition nav-link">Kalender</a>
+                <a href="#topplistor" class="hover:text-blue-300 transition nav-link">Topplistor</a>
+                
+                <a href="#resultat" id="results-nav-link" class="hidden hover:text-blue-300 transition nav-link font-bold text-yellow-400">Mina Resultat</a>
+                <a href="#admin" id="admin-nav-link" class="hidden hover:text-red-300 transition nav-link font-bold">Admin</a>
+            </nav>
 
-        <div class="flex items-center space-x-4">
-            <button id="show-login-link" class="bg-white text-blue-900 px-4 py-2 rounded-lg font-bold hover:bg-gray-100 transition text-sm">
-                Logga in
-            </button>
+            <div class="flex items-center space-x-4">
+                <button id="show-login-link" class="bg-white text-blue-900 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-100 transition text-sm">
+                    Logga in
+                </button>
 
-            <div id="profile-panel" class="hidden flex items-center space-x-3">
-                <span id="profile-welcome-message" class="text-sm font-light hidden sm:block">Välkommen</span>
-                <button id="logout-btn" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition">Logga ut</button>
+                <div id="profile-panel" class="hidden flex items-center space-x-3">
+                    <span id="profile-welcome-message" class="text-sm font-light hidden lg:block">Välkommen</span>
+                    <button id="logout-btn" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition">Logga ut</button>
+                </div>
+
+                <button id="mobile-menu-btn" class="md:hidden text-white focus:outline-none p-2 rounded hover:bg-blue-800">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
             </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4 border-t border-blue-800 flex flex-col space-y-2 pt-4">
+            <a href="#hem" class="mobile-nav-link block py-2 px-4 hover:bg-blue-800 rounded">Start</a>
+            <a href="#nyheter" class="mobile-nav-link block py-2 px-4 hover:bg-blue-800 rounded">Nyheter</a>
+            <a href="#kalender" class="mobile-nav-link block py-2 px-4 hover:bg-blue-800 rounded">Kalender</a>
+            <a href="#topplistor" class="mobile-nav-link block py-2 px-4 hover:bg-blue-800 rounded">Topplistor</a>
+            
+            <a href="#resultat" id="mobile-results-nav-link" class="hidden mobile-nav-link block py-2 px-4 bg-blue-800/50 text-yellow-400 font-bold rounded">Mina Resultat</a>
+            <a href="#admin" id="mobile-admin-nav-link" class="hidden mobile-nav-link block py-2 px-4 bg-red-900/50 text-red-200 font-bold rounded">Admin</a>
         </div>
     </div>
 </header>

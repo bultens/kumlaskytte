@@ -24,24 +24,33 @@ const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
 function toggleProfileUI(user) {
-    // Om user finns (inloggad)
+    // Referenser till Desktop-menyn
+    const resultsNavLink = document.getElementById('results-nav-link');
+    
+    // Referenser till Mobil-menyn (NYTT)
+    const mobileResultsNavLink = document.getElementById('mobile-results-nav-link');
+
     if (user) {
+        // INLOGGAD
         if (profilePanel) profilePanel.classList.remove('hidden');
         if (userLoginPanel) userLoginPanel.classList.add('hidden');
         if (registerPanel) registerPanel.classList.add('hidden');
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
+        if (showLoginLink) showLoginLink.classList.add('hidden'); 
+        
+        // Visa menyval
         if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (userNavLink) userNavLink.classList.add('hidden');
-        if (showLoginLink) showLoginLink.classList.add('hidden'); // Göm "Logga in"-knappen i menyn
+        if (mobileResultsNavLink) mobileResultsNavLink.classList.remove('hidden'); // Mobil
+        
     } else {
-        // Utloggad
+        // UTLOGGAD
         if (profilePanel) profilePanel.classList.add('hidden');
-        if (userLoginPanel) userLoginPanel.classList.add('hidden'); // Göm panelen, visa bara knappen
+        if (userLoginPanel) userLoginPanel.classList.add('hidden'); 
         if (registerPanel) registerPanel.classList.add('hidden');
-        if (profileNavLink) profileNavLink.classList.add('hidden');
+        if (showLoginLink) showLoginLink.classList.remove('hidden');
+        
+        // Dölj menyval
         if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (userNavLink) userNavLink.classList.remove('hidden');
-        if (showLoginLink) showLoginLink.classList.remove('hidden'); // Visa "Logga in"-knappen
+        if (mobileResultsNavLink) mobileResultsNavLink.classList.add('hidden'); // Mobil
     }
 }
 
