@@ -10,7 +10,7 @@ import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upl
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 import { loadAndRenderChart } from "./statistics-chart.js";
 
-// Ver. 2.0 (Fix för datumstyrd statistik)
+// Ver. 2.1 (Fix för required-attribut vid redigering av kalender)
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -334,7 +334,6 @@ export function setupEventListeners() {
         });
     }
 
-    // SPARA NYTT RESULTAT (Med korrigering för datum)
     if (addResultForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -359,9 +358,7 @@ export function setupEventListeners() {
             let totalMedal = null;
             let earnedBadges = []; 
             
-            // Hämta historik och räkna statistik BSERVERAT PÅ DET VALDA ÅRTALET
             const shooterHistory = latestResultsCache.filter(r => r.shooterId === shooterId);
-            // Här skickar vi med inputYear så att "stats.year" blir statistik för det valda året (t.ex. 2025)
             const stats = calculateShooterStats(shooterHistory, inputYear); 
             
             let tempMedalCounts = { ...stats.medals };
@@ -410,7 +407,7 @@ export function setupEventListeners() {
             }
 
             if (total > currentPB) isPB = true;
-            else if (total > currentSB) isSB = true; // Nu jämförs det mot SB för det valda året!
+            else if (total > currentSB) isSB = true; 
 
             if (best > stats.allTime.series) isSeriesPB = true;
             else if (best > stats.year.series) isSeriesSB = true;
@@ -495,33 +492,25 @@ export function setupEventListeners() {
         });
     }
 
-if (isRecurringCheckbox) {
+    if (isRecurringCheckbox) {
         isRecurringCheckbox.addEventListener('change', () => {
             const eventDateInput = document.getElementById('event-date');
             const startDateInput = document.getElementById('start-date');
             const endDateInput = document.getElementById('end-date');
 
             if (isRecurringCheckbox.checked) {
-                // Visa återkommande, dölj enskild
                 singleEventFields.classList.add('hidden');
                 recurringEventFields.classList.remove('hidden');
                 
-                // VIKTIGT: Ta bort kravet på enskilt datum så webbläsaren inte klagar
                 if (eventDateInput) eventDateInput.required = false;
-                
-                // (Valfritt) Lägg till krav på start/slut om du vill använda webbläsarens validation
                 if (startDateInput) startDateInput.required = true;
                 if (endDateInput) endDateInput.required = true;
 
             } else {
-                // Visa enskild, dölj återkommande
                 singleEventFields.classList.remove('hidden');
                 recurringEventFields.classList.add('hidden');
                 
-                // VIKTIGT: Lägg tillbaka kravet på enskilt datum
                 if (eventDateInput) eventDateInput.required = true;
-
-                // Ta bort krav på start/slut
                 if (startDateInput) startDateInput.required = false;
                 if (endDateInput) endDateInput.required = false;
             }
@@ -789,6 +778,12 @@ if (isRecurringCheckbox) {
             document.getElementById('is-recurring').checked = false;
             singleEventFields.classList.remove('hidden');
             recurringEventFields.classList.add('hidden');
+            
+            // ÅTERSTÄLL VALIDERING EFTER SPARNING
+            document.getElementById('event-date').required = true;
+            document.getElementById('start-date').required = false;
+            document.getElementById('end-date').required = false;
+
             eventAddBtn.textContent = 'Lägg till';
             eventAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             eventAddBtn.classList.add('bg-gray-400');
@@ -978,6 +973,12 @@ if (isRecurringCheckbox) {
                 document.getElementById('is-recurring').checked = false;
                 document.getElementById('single-event-fields').classList.remove('hidden');
                 document.getElementById('recurring-event-fields').classList.add('hidden');
+                
+                // NOLLSTÄLL VALIDERING (VIKTIGT FÖR ATT INTE KRASCHA)
+                document.getElementById('event-date').required = true;
+                document.getElementById('start-date').required = false;
+                document.getElementById('end-date').required = false;
+
                 document.getElementById('add-event-btn').textContent = 'Spara ändring';
                 document.getElementById('add-event-btn').disabled = false;
                 document.getElementById('add-event-btn').classList.remove('bg-gray-400');
@@ -1015,6 +1016,15 @@ if (isRecurringCheckbox) {
             }
         }
     });
+
+    // ... (Kvarvarande listeners från tidigare är oförändrade, säkerställ att hela filen klistras in korrekt)
+    // För att spara plats har jag inte inkluderat alla listeners igen om de inte ändrats,
+    // men eftersom du bad om hela filen för enkelhetens skull, klistra in ALLT ovan.
+    // Det viktigaste är att addEventForm och editEventBtn logiken är fixad.
+    // Följande listeners är samma som tidigare (likeBtn, shareBtn, imageUpload etc.)
+    
+    // ... [Samma kod som förut för resten av filen] ...
+    // För säkerhets skull, här är resten av filen igen:
 
     const inputElements = [
         newsTitleInput, newsContentEditor,
@@ -1112,16 +1122,13 @@ if (isRecurringCheckbox) {
 
                 const insertTheImage = (url) => {
                     modal.classList.remove('active'); 
-                    
                     const sizeInput = prompt("Välj storlek:\nS = Liten (text flyter runt)\nM = Mellan (centrerad)\nL = Stor (full bredd)", "M");
                     let sizeClass = "img-medium";
-                    
                     if (sizeInput) {
                         const s = sizeInput.toLowerCase().trim();
                         if (s === 's' || s === 'liten') sizeClass = "img-small";
                         else if (s === 'l' || s === 'stor') sizeClass = "img-large";
                     }
-
                     const imgHtml = `<img src="${url}" class="${sizeClass}" alt="Bild">`;
                     applyEditorCommand(editorElement, 'insertHTML', imgHtml);
                 };
@@ -1221,9 +1228,7 @@ if (isRecurringCheckbox) {
         container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
         
         const results = await getShooterResults(shooterId);
-        
         const stats = calculateShooterStats(results);
-        
         const safeSetText = (id, text) => {
             const el = document.getElementById(id);
             if (el) el.textContent = text;
@@ -1252,7 +1257,6 @@ if (isRecurringCheckbox) {
         } else {
             if (medalSection) {
                 medalSection.classList.remove('hidden');
-                
                 const updateBadgeUI = (type, elementId, icon) => {
                     const count = stats.medals[type] || 0;
                     safeSetText(`count-${elementId}`, count);
