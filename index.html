@@ -521,6 +521,28 @@
                 </div>
 
             </div>
+            <div class="card mt-6" id="file-manager-container">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Dokumentarkiv</h2>
+        <div class="flex space-x-2">
+            <button id="create-folder-btn" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 font-bold text-sm">
+                + Ny Mapp
+            </button>
+            <label class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm cursor-pointer">
+                + Ladda upp fil
+                <input type="file" id="upload-doc-input" class="hidden">
+            </label>
+        </div>
+    </div>
+    
+    <div id="breadcrumbs" class="text-sm mb-4 p-2 bg-gray-50 rounded border text-gray-600">
+        <span class="font-bold">Hem</span>
+    </div>
+
+    <div id="file-list" class="border rounded-lg bg-white min-h-[200px]">
+        <p class="text-gray-500 p-4">Initierar arkiv...</p>
+    </div>
+</div>
         </section>
 
         <section id="profil" class="page">

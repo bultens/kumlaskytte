@@ -5,6 +5,7 @@ import { initializeDataListeners } from "./data-service.js";
 import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { initFileManager } from "./admin-documents.js";
 
 // Ver. 3.11
 export let currentUserId = null;
@@ -52,6 +53,7 @@ function initializeAuthListener() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeAuthListener();
     setupEventListeners();
+    initFileManager();
     navigate(window.location.hash || '#hem');
     window.addEventListener('hashchange', () => {
         navigate(window.location.hash || '#hem');

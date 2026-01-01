@@ -376,3 +376,137 @@ export function calculateShooterStats(results, targetYear = new Date().getFullYe
 
     return stats;
 }
+// --- DOKUMENTHANTERING (VIRTUELLT FILSYSTEM) ---
+
+// Hämta innehåll (mappar och filer) för en specifik mapp
+export async function getFolderContents(folderId = null) {
+    try {
+        // Hämta mappar
+        const folderQ = query(
+            collection(db, 'folders'), 
+            where('parentId', '==', folderId)
+        );
+        const folderSnap = await getDocs(folderQ);
+        const folders = folderSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'folder' }));
+        
+        // Sortera mappar A-Ö
+        folders.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Hämta filer
+        const fileQ = query(
+            collection(db, 'adminDocuments'), 
+            where('folderId', '==', folderId)
+        );
+        const fileSnap = await getDocs(fileQ);
+        const files = fileSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'file' }));
+        
+        // Sortera filer A-Ö
+        files.sort((a, b) => a.name.localeCompare(b.name));
+
+        return { folders, files };
+    } catch (error) {
+        console.error("Fel vid hämtning av mappinnehåll:", error);
+        return { folders: [], files: [] };
+    }
+}
+
+// Skapa en ny mapp
+export async function createFolder(name, parentId = null) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await addDoc(collection(db, 'folders'), {
+            name: name,
+            parentId: parentId,
+            createdAt: serverTimestamp()
+        });
+        showModal('confirmationModal', `Mappen "${name}" har skapats.`);
+    } catch (error) {
+        console.error("Kunde inte skapa mapp:", error);
+        showModal('errorModal', "Kunde inte skapa mapp.");
+    }
+}
+
+// Ladda upp fil till "virtuell" mapp
+export async function uploadAdminDocument(file, folderId = null) {
+    if (!isAdminLoggedIn) return;
+    
+    // 1. Ladda upp till Storage
+    const storage = getStorage();
+    const storagePath = `admin_docs/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, storagePath);
+    
+    try {
+        const uploadTask = uploadBytesResumable(storageRef, file);
+        
+        // Vi väntar på att uppladdningen ska bli klar
+        await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    // Här kan man lägga till progress bar logik om man vill
+                }, 
+                (error) => reject(error), 
+                () => resolve()
+            );
+        });
+
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+        // 2. Skapa referens i Firestore (adminDocuments)
+        await addDoc(collection(db, 'adminDocuments'), {
+            name: file.name,
+            folderId: folderId, // Kopplingen till den virtuella mappen
+            storagePath: storagePath,
+            url: downloadURL,
+            size: file.size,
+            mimeType: file.type,
+            uploadedBy: auth.currentUser.uid,
+            createdAt: serverTimestamp()
+        });
+
+        showModal('confirmationModal', "Filen uppladdad!");
+    } catch (error) {
+        console.error("Fel vid uppladdning:", error);
+        showModal('errorModal', "Uppladdning misslyckades.");
+    }
+}
+
+// Ta bort en fil (Både från listan och från Storage)
+export async function deleteAdminDocument(docId, storagePath) {
+    if (!isAdminLoggedIn) return;
+    try {
+        // 1. Ta bort från Storage
+        if (storagePath) {
+            const storage = getStorage();
+            const fileRef = ref(storage, storagePath);
+            await deleteObject(fileRef).catch(err => console.warn("Filen fanns inte i storage:", err));
+        }
+
+        // 2. Ta bort från Firestore
+        await deleteDoc(doc(db, 'adminDocuments', docId));
+        showModal('confirmationModal', "Filen har raderats.");
+    } catch (error) {
+        console.error("Kunde inte ta bort fil:", error);
+        showModal('errorModal', "Fel vid borttagning av fil.");
+    }
+}
+
+// Flytta fil till ny mapp
+export async function moveAdminDocument(docId, newFolderId) {
+    if (!isAdminLoggedIn) return;
+    try {
+        await updateDoc(doc(db, 'adminDocuments', docId), {
+            folderId: newFolderId
+        });
+        showModal('confirmationModal', "Filen har flyttats.");
+    } catch (error) {
+        console.error("Kunde inte flytta fil:", error);
+        showModal('errorModal', "Kunde inte flytta filen.");
+    }
+}
+
+// Hämta namnet på en mapp (för brödsmulor)
+export async function getFolderName(folderId) {
+    if (!folderId) return "Hem";
+    const docSnap = await getFirestoreDoc(doc(db, 'folders', folderId));
+    return docSnap.exists() ? docSnap.data().name : "Okänd mapp";
+}
