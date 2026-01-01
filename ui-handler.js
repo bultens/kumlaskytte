@@ -1,7 +1,6 @@
 // ui-handler.js
 import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getMedalForScore } from "./result-handler.js";
 
 // Ver. 2.2 (Fixad handleAdminUI med mobilmeny och global status)
 export let isAdminLoggedIn = false;
