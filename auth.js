@@ -24,6 +24,7 @@ const userLoginForm = document.getElementById('user-login-form');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 
 function toggleProfileUI(user) {
+    const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     // Om user finns (inloggad)
     if (user) {
         if (profilePanel) profilePanel.classList.remove('hidden');
@@ -33,6 +34,7 @@ function toggleProfileUI(user) {
         if (resultsNavLink) resultsNavLink.classList.remove('hidden');
         if (userNavLink) userNavLink.classList.add('hidden');
         if (showLoginLink) showLoginLink.classList.add('hidden'); // Göm "Logga in"-knappen i menyn
+        if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
     } else {
         // Utloggad
         if (profilePanel) profilePanel.classList.add('hidden');
@@ -42,6 +44,7 @@ function toggleProfileUI(user) {
         if (resultsNavLink) resultsNavLink.classList.add('hidden');
         if (userNavLink) userNavLink.classList.remove('hidden');
         if (showLoginLink) showLoginLink.classList.remove('hidden'); // Visa "Logga in"-knappen
+        if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
     }
 }
 

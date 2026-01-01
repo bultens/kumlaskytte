@@ -254,8 +254,9 @@ export function renderCompetitions(data, isAdminLoggedIn) {
 
 export function handleAdminUI(isAdmin) {
     // Referenser till element
-    const adminNavLink = document.getElementById('admin-nav-link'); // <-- DETTA SAKNADES
+    const adminNavLink = document.getElementById('admin-nav-link'); 
     const adminIndicator = document.getElementById('admin-indicator');
+    const mobileAdminLink = document.getElementById('mobile-admin-nav-link'); 
     
     // Sektioner som ska visas/döljas
     const newsEditSection = document.getElementById('news-edit-section');
@@ -282,6 +283,7 @@ export function handleAdminUI(isAdmin) {
         if (historyEditSection) historyEditSection.classList.remove('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
         if (adminPanel) adminPanel.classList.remove('hidden');
+        if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
         
         // Göm inloggningsrutan på adminsidan (eftersom vi redan är inloggade)
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
@@ -305,6 +307,7 @@ export function handleAdminUI(isAdmin) {
         if (historyEditSection) historyEditSection.classList.add('hidden');
         if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
         if (adminPanel) adminPanel.classList.add('hidden');
+        if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
         
         // Visa inloggningsrutan om man går till #admin men inte är admin
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');

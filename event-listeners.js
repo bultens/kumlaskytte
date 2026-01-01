@@ -96,6 +96,26 @@ export function setupEventListeners() {
     const cancelClassBtn = document.getElementById('cancel-class-btn');
     const achievementsSection = document.getElementById('achievements-section');
     
+
+// Mobilmeny-hantering
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+
+    if (mobileMenuBtn && mobileMenu) {
+        // Toggle menyn när man klickar på hamburgaren
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Stäng menyn när man klickar på en länk
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    }
+
     if (achievementsSection) {
         achievementsSection.addEventListener('click', () => {
             window.location.hash = '#topplistor';
