@@ -1,19 +1,21 @@
 // admin-documents.js
-import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, getFolderName, allShootersData } from "./data-service.js";
-import { showModal, isAdminLoggedIn } from "./ui-handler.js";
-import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, getFolderName } from "./data-service.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
 let currentFolderId = null;
 let breadcrumbPath = [{ id: null, name: 'Hem' }];
 
 export async function initFileManager() {
-    if (!document.getElementById('file-manager-container')) return;
+    const container = document.getElementById('file-manager-container');
+    if (!container) return;
     
     // Ladda rot-mappen vid start
     await loadFolder(null);
 
-    // Event listeners för knappar
+    // --- EVENT LISTENERS (Istället för onclick) ---
+
+    // 1. Skapa mapp
     document.getElementById('create-folder-btn').addEventListener('click', async () => {
         const name = prompt("Ange namn på ny mapp:");
         if (name) {
@@ -22,24 +24,84 @@ export async function initFileManager() {
         }
     });
 
+    // 2. Ladda upp fil
     document.getElementById('upload-doc-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
             await uploadAdminDocument(file, currentFolderId);
-            await loadFolder(currentFolderId); // Ladda om vyn
-            e.target.value = ''; // Återställ input
+            await loadFolder(currentFolderId);
+            e.target.value = ''; 
+        }
+    });
+
+    // 3. Hantera klick i fil-listan (Öppna mapp, meny, ta bort etc)
+    document.getElementById('file-list').addEventListener('click', async (e) => {
+        // Hitta närmaste element med data-action attribut
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        
+        if (action === 'open-folder') {
+            const name = target.dataset.name;
+            await openFolder(id === 'null' ? null : id, name);
+        } 
+        else if (action === 'toggle-menu') {
+            toggleFileMenu(id);
+            e.stopPropagation(); // Förhindra att klicket stänger menyn direkt
+        }
+        else if (action === 'delete-file') {
+            const storagePath = target.dataset.storagePath;
+            await deleteFile(id, storagePath);
+        }
+        else if (action === 'move-file') {
+            await moveFile(id);
+        }
+    });
+
+    // 4. Hantera klick i brödsmulorna
+    document.getElementById('breadcrumbs').addEventListener('click', async (e) => {
+        const target = e.target.closest('[data-action="open-folder"]');
+        if (target) {
+            const id = target.dataset.id;
+            const name = target.dataset.name;
+            await openFolder(id === 'null' ? null : id, name);
+        }
+    });
+
+    // 5. Stäng menyer om man klickar utanför
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-action="toggle-menu"]')) {
+            document.querySelectorAll('[id^="file-menu-"]').forEach(el => el.classList.add('hidden'));
         }
     });
 }
 
-// Huvudfunktion för att ladda och rita en mapp
+// Logik för att öppna mapp och uppdatera brödsmulor
+async function openFolder(id, name) {
+    const targetId = id === 'null' ? null : id;
+    
+    // Uppdatera path
+    const existingIndex = breadcrumbPath.findIndex(b => b.id === targetId);
+    if (existingIndex === -1 && targetId !== null) {
+        breadcrumbPath.push({ id: targetId, name: name });
+    } else if (targetId === null) {
+        breadcrumbPath = [{ id: null, name: 'Hem' }];
+    } else {
+         breadcrumbPath = breadcrumbPath.slice(0, existingIndex + 1);
+    }
+
+    await loadFolder(targetId);
+}
+
+// Huvudfunktion för att rita UI
 async function loadFolder(folderId) {
     currentFolderId = folderId;
     const container = document.getElementById('file-list');
-    container.innerHTML = '<p class="text-gray-500">Laddar...</p>';
+    container.innerHTML = '<p class="text-gray-500 p-4">Laddar...</p>';
 
-    // Uppdatera brödsmulor
-    updateBreadcrumbs(folderId);
+    updateBreadcrumbs();
 
     const { folders, files } = await getFolderContents(folderId);
     container.innerHTML = '';
@@ -49,25 +111,25 @@ async function loadFolder(folderId) {
         return;
     }
 
-    // 1. Rita ut mappar
+    // Rita mappar (använd data-action istället för onclick)
     folders.forEach(folder => {
         const div = document.createElement('div');
         div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b cursor-pointer transition";
+        // Notera data-action="open-folder"
         div.innerHTML = `
-            <div class="flex items-center gap-3 flex-grow" onclick="window.openFolder('${folder.id}', '${folder.name}')">
+            <div class="flex items-center gap-3 flex-grow" data-action="open-folder" data-id="${folder.id}" data-name="${folder.name}">
                 <span class="text-2xl">📁</span>
                 <span class="font-semibold text-gray-700">${folder.name}</span>
             </div>
-            `;
+        `;
         container.appendChild(div);
     });
 
-    // 2. Rita ut filer
+    // Rita filer
     files.forEach(file => {
         const div = document.createElement('div');
-        div.className = "flex justify-between items-center p-3 hover:bg-gray-50 border-b transition relative group";
+        div.className = "flex justify-between items-center p-3 hover:bg-gray-50 border-b transition relative";
         
-        // Ikon baserat på filtyp (enkelt)
         let icon = '📄';
         if (file.mimeType && file.mimeType.includes('pdf')) icon = '📕';
         if (file.mimeType && file.mimeType.includes('image')) icon = '🖼️';
@@ -79,15 +141,18 @@ async function loadFolder(folderId) {
             </a>
             
             <div class="relative">
-                <button class="p-2 text-gray-500 hover:text-gray-800 font-bold rounded-full hover:bg-gray-200" onclick="window.toggleFileMenu('${file.id}')">
+                <button class="p-2 text-gray-500 hover:text-gray-800 font-bold rounded-full hover:bg-gray-200" 
+                    data-action="toggle-menu" data-id="${file.id}">
                     ⋮
                 </button>
                 
                 <div id="file-menu-${file.id}" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-xl z-50">
-                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" onclick="window.moveFile('${file.id}')">
+                    <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" 
+                        data-action="move-file" data-id="${file.id}">
                         ↪ Flytta...
                     </button>
-                    <button class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm font-bold border-t" onclick="window.deleteFile('${file.id}', '${file.storagePath}')">
+                    <button class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm font-bold border-t" 
+                        data-action="delete-file" data-id="${file.id}" data-storage-path="${file.storagePath}">
                         🗑️ Ta bort
                     </button>
                 </div>
@@ -97,87 +162,36 @@ async function loadFolder(folderId) {
     });
 }
 
-// Hantera brödsmulor (Breadcrumbs)
-async function updateBreadcrumbs(folderId) {
+function updateBreadcrumbs() {
     const el = document.getElementById('breadcrumbs');
-    
-    // Om vi går till roten
-    if (folderId === null) {
-        breadcrumbPath = [{ id: null, name: 'Hem' }];
-    } else {
-        // Om vi går djupare, lägg till i listan (förenklat: vi bygger inte hela trädet bakåt varje gång, 
-        // utan förutsätter att användaren navigerar linjärt. För 100% robusthet behövs en rekursiv hämtning).
-        const name = await getFolderName(folderId);
-        
-        // Kolla om vi klickade på en brödsmula som redan finns (backade)
-        const existingIndex = breadcrumbPath.findIndex(b => b.id === folderId);
-        if (existingIndex !== -1) {
-            breadcrumbPath = breadcrumbPath.slice(0, existingIndex + 1);
-        } else {
-            breadcrumbPath.push({ id: folderId, name: name });
-        }
-    }
-
     el.innerHTML = breadcrumbPath.map((crumb, index) => {
         const isLast = index === breadcrumbPath.length - 1;
         if (isLast) return `<span class="font-bold text-gray-800">${crumb.name}</span>`;
-        return `<span class="text-blue-600 cursor-pointer hover:underline" onclick="window.openFolder('${crumb.id}', '${crumb.name}')">${crumb.name}</span> <span class="text-gray-400 mx-2">/</span>`;
+        
+        return `<span class="text-blue-600 cursor-pointer hover:underline" 
+            data-action="open-folder" data-id="${crumb.id !== null ? crumb.id : 'null'}" data-name="${crumb.name}">
+            ${crumb.name}
+        </span> <span class="text-gray-400 mx-2">/</span>`;
     }).join('');
 }
 
-// --- GLOBALA HJÄLPFUNKTIONER FÖR HTML-ONCLICK ---
-// Eftersom modulerna är isolerade måste vi exponera dessa till window-objektet för att onclick="..." ska hitta dem.
-
-window.openFolder = async (id, name) => {
-    // Om id är strängen 'null', gör det till riktig null
-    const targetId = id === 'null' ? null : id;
-    
-    // Hantera brödsmula-uppdatering
-    // Om vi går in i en ny mapp (inte navigerar via brödsmulor)
-    const existingIndex = breadcrumbPath.findIndex(b => b.id === targetId);
-    if (existingIndex === -1 && targetId !== null) {
-        breadcrumbPath.push({ id: targetId, name: name });
-    } else if (targetId === null) {
-        breadcrumbPath = [{ id: null, name: 'Hem' }];
-    } else {
-         breadcrumbPath = breadcrumbPath.slice(0, existingIndex + 1);
-    }
-
-    await loadFolder(targetId);
-};
-
-window.toggleFileMenu = (fileId) => {
-    // Stäng alla andra menyer först
+function toggleFileMenu(fileId) {
+    // Stäng alla andra menyer
     document.querySelectorAll('[id^="file-menu-"]').forEach(el => {
         if (el.id !== `file-menu-${fileId}`) el.classList.add('hidden');
     });
-    
     const menu = document.getElementById(`file-menu-${fileId}`);
-    menu.classList.toggle('hidden');
-    
-    // Klicka utanför för att stänga
-    setTimeout(() => {
-        window.addEventListener('click', function close(e) {
-            if (!e.target.closest(`#file-menu-${fileId}`) && !e.target.closest('button')) {
-                menu.classList.add('hidden');
-                window.removeEventListener('click', close);
-            }
-        }, { once: true });
-    }, 0);
-};
+    if(menu) menu.classList.toggle('hidden');
+}
 
-window.deleteFile = async (id, storagePath) => {
+async function deleteFile(id, storagePath) {
     if (confirm("Är du säker på att du vill ta bort filen?")) {
         await deleteAdminDocument(id, storagePath);
         await loadFolder(currentFolderId);
     }
-};
+}
 
-window.moveFile = async (docId) => {
-    // För att göra det enkelt visar vi en prompt eller en enkel modal.
-    // Här hämtar vi alla mappar för att bygga en enkel "väljare" via prompt (MVP-lösning).
-    // En snyggare lösning vore en egen modal.
-    
+async function moveFile(docId) {
     const allFoldersSnap = await getDocs(collection(db, 'folders'));
     let folderListText = "0: Hem (Roten)\n";
     const folders = allFoldersSnap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -190,7 +204,7 @@ window.moveFile = async (docId) => {
     
     if (selection !== null) {
         const index = parseInt(selection);
-        let targetFolderId = null; // Default Hem
+        let targetFolderId = null;
         
         if (index > 0 && index <= folders.length) {
             targetFolderId = folders[index - 1].id;
@@ -202,4 +216,4 @@ window.moveFile = async (docId) => {
         await moveAdminDocument(docId, targetFolderId);
         await loadFolder(currentFolderId);
     }
-};
+}
