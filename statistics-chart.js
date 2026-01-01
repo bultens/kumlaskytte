@@ -4,19 +4,13 @@ import { collection, query, where, getDocs, orderBy } from "https://www.gstatic.
 
 let resultsChart = null;
 
-// Lyssnare för dropdowns (Nu inkluderas även chart-shot-count)
+// Lyssnare för dropdowns (Tog bort chart-type)
 document.addEventListener('DOMContentLoaded', () => {
-    ['chart-data-source', 'chart-grouping', 'chart-type', 'chart-shot-count'].forEach(id => {
+    ['chart-data-source', 'chart-grouping', 'chart-shot-count'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('change', () => {
                 const shooterId = document.getElementById('shooter-selector')?.value;
-                // Om vi redan har data i minnet (i en riktig app) kunde vi rita om direkt,
-                // men här anropar vi loadAndRender för enkelhetens skull (eller en render-funktion om vi sparat datan).
-                // Eftersom vi inte sparar datan globalt i denna fil, hämtar vi den igen eller (bättre) vi sparar den.
-                
-                // För att göra det snabbt: Vi anropar loadAndRenderChart igen. 
-                // Firestore cachen gör att det går fort ändå.
                 if(shooterId) loadAndRenderChart(shooterId);
             });
         }
@@ -33,13 +27,23 @@ export async function loadAndRenderChart(shooterId) {
     if (!ctx) return; 
 
     try {
+        // Hämta data sorterat på datum (äldst först)
         const q = query(collection(db, 'results'), where('shooterId', '==', shooterId), orderBy('date', 'asc'));
         const querySnapshot = await getDocs(q);
         
         currentShooterData = [];
         querySnapshot.forEach((doc) => {
-            currentShooterData.push(doc.data());
+            // Vi behöver hantera datumobjekt/timestamps korrekt
+            const data = doc.data();
+            currentShooterData.push({
+                ...data,
+                // Skapa en sorteringsbar timestamp om den saknas
+                sortTime: new Date(data.date).getTime() + (data.createdAt ? data.createdAt.toMillis() : 0)
+            });
         });
+
+        // Sortera en extra gång för säkerhets skull (createdAt skiljer omgångar samma dag)
+        currentShooterData.sort((a, b) => a.sortTime - b.sortTime);
 
         if (currentShooterData.length === 0) {
             if (resultsChart) resultsChart.destroy();
@@ -56,41 +60,62 @@ function renderChart(data) {
     const ctx = document.getElementById('resultsChart');
     const dataSource = document.getElementById('chart-data-source').value;
     const grouping = document.getElementById('chart-grouping').value;
-    const chartType = document.getElementById('chart-type').value;
-    const shotCountFilter = document.getElementById('chart-shot-count').value; // Hämta filter
+    const shotCountFilter = document.getElementById('chart-shot-count').value;
 
-    // 1. FILTRERA DATA
+    // 1. FILTRERA DATA (Antal skott)
     let filteredData = data;
     if (shotCountFilter !== 'all') {
         const targetCount = parseInt(shotCountFilter);
-        // Filtrera så vi bara behåller resultat med rätt antal skott
         filteredData = data.filter(item => item.shotCount === targetCount);
     }
 
-    // Om filtret gjorde att det blev tomt
     if (filteredData.length === 0) {
         if (resultsChart) resultsChart.destroy();
         return;
     }
 
-    // 2. BEARBETNING
+    // 2. BEARBETNING (Gruppering & Matematik)
     const processed = processData(filteredData, dataSource, grouping);
 
     if (resultsChart) {
         resultsChart.destroy();
     }
 
+    // Konfiguration för Linjediagram
     const config = {
-        type: chartType === 'boxplot' && grouping !== 'none' ? 'boxplot' : 'line',
+        type: 'line',
         data: {
             labels: processed.labels,
-            datasets: []
+            datasets: [{
+                label: getLabelText(dataSource),
+                data: processed.values,
+                borderColor: 'rgb(37, 99, 235)', // Tailwind Blue-600
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: 'rgb(37, 99, 235)',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                tension: 0.3, // Mjuk kurva
+                fill: true
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
             scales: {
-                y: { beginAtZero: false, title: { display: true, text: 'Poäng' } }
+                y: { 
+                    beginAtZero: false, 
+                    title: { display: true, text: 'Poäng' },
+                    grid: { color: '#f3f4f6' }
+                },
+                x: {
+                    grid: { display: false }
+                }
             },
             plugins: {
                 tooltip: {
@@ -98,7 +123,6 @@ function renderChart(data) {
                         label: function(context) {
                             let label = context.dataset.label || '';
                             if (label) label += ': ';
-                            
                             if (context.parsed.y !== null) {
                                 label += Math.round(context.parsed.y * 10) / 10;
                             }
@@ -110,95 +134,82 @@ function renderChart(data) {
         }
     };
 
-    if (chartType === 'boxplot' && grouping !== 'none') {
-        config.data.datasets.push({
-            label: 'Spridning',
-            data: processed.values,
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            outlierColor: '#999999',
-            padding: 10,
-            itemRadius: 2
-        });
-        config.data.datasets.push({
-            label: 'Snitt',
-            type: 'line',
-            data: processed.averages,
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: false
-        });
-    } else {
-        config.data.datasets.push({
-            label: getLabelText(dataSource),
-            data: processed.averages,
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.1)',
-            tension: 0.3,
-            fill: true
-        });
-        
-        if (grouping !== 'none') {
-            config.data.datasets.push({
-                label: 'Max',
-                data: processed.maxes,
-                borderColor: 'rgba(54, 162, 235, 0.4)',
-                borderDash: [5, 5],
-                fill: false,
-                tension: 0.3,
-                pointRadius: 0
-            });
-            config.data.datasets.push({
-                label: 'Min',
-                data: processed.mins,
-                borderColor: 'rgba(255, 99, 132, 0.4)',
-                borderDash: [5, 5],
-                fill: false,
-                tension: 0.3,
-                pointRadius: 0
-            });
-        }
-    }
-
     resultsChart = new Chart(ctx, config);
 }
 
 function processData(rawData, source, grouping) {
-    const groups = {};
-    
-    rawData.forEach(item => {
-        let key = item.date;
-        if (grouping === 'month') key = item.date.substring(0, 7); 
-        if (grouping === 'none') key = `${item.date} (${item.type === 'competition' ? 'Tävling' : 'Träning'})`;
+    const labels = [];
+    const values = [];
 
-        if (!groups[key]) groups[key] = [];
+    // Helper för att hämta värdet baserat på datakälla
+    const getValue = (item) => {
+        if (source === 'total') return parseFloat(item.total);
+        if (source === 'average_series') return item.total / (item.series ? item.series.length : 1);
+        if (source === 'best_series') return parseFloat(item.bestSeries) || 0;
+        return 0;
+    };
 
-        let val = 0;
-        if (source === 'total') val = item.total;
-        if (source === 'average_series') val = item.total / (item.series ? item.series.length : 1);
-        if (source === 'best_series') val = item.bestSeries || 0;
+    if (grouping === 'none') {
+        // --- VARJE TILLFÄLLE (Ingen gruppering) ---
+        // Visa varje punkt i kronologisk ordning
+        rawData.forEach(item => {
+            const typeLabel = item.type === 'competition' ? ' (Tävling)' : '';
+            labels.push(`${item.date}${typeLabel}`);
+            values.push(getValue(item));
+        });
 
-        groups[key].push(val);
-    });
+    } else if (grouping === 'day') {
+        // --- PER DAG (Visa BÄSTA resultatet för dagen) ---
+        const groups = {};
+        
+        rawData.forEach(item => {
+            const key = item.date; // YYYY-MM-DD
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(getValue(item));
+        });
 
-    const labels = Object.keys(groups).sort();
-    let displayLabels = labels;
-    if (grouping === 'none' && labels.length > 30) displayLabels = labels.slice(labels.length - 30);
+        // Sortera datum
+        const sortedKeys = Object.keys(groups).sort();
+        
+        sortedKeys.forEach(date => {
+            const dayValues = groups[date];
+            // Hitta MAX-värdet för dagen
+            const bestValue = Math.max(...dayValues);
+            labels.push(date);
+            values.push(bestValue);
+        });
 
-    const averages = [], mins = [], maxes = [], values = [];
+    } else if (grouping === 'month') {
+        // --- PER MÅNAD (Visa SNITTET för månaden) ---
+        const groups = {};
 
-    displayLabels.forEach(key => {
-        const vals = groups[key];
-        const sum = vals.reduce((a, b) => a + b, 0);
-        averages.push(sum / vals.length);
-        mins.push(Math.min(...vals));
-        maxes.push(Math.max(...vals));
-        values.push(vals);
-    });
+        rawData.forEach(item => {
+            const key = item.date.substring(0, 7); // YYYY-MM
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(getValue(item));
+        });
 
-    return { labels: displayLabels, averages, mins, maxes, values };
+        const sortedKeys = Object.keys(groups).sort();
+
+        sortedKeys.forEach(month => {
+            const monthValues = groups[month];
+            // Beräkna MEDELVÄRDE
+            const sum = monthValues.reduce((a, b) => a + b, 0);
+            const avg = sum / monthValues.length;
+            labels.push(month);
+            values.push(avg);
+        });
+    }
+
+    // Om vi visar "Varje tillfälle" och har väldigt många punkter, visa bara de 50 senaste för läsbarhet
+    if (grouping === 'none' && labels.length > 50) {
+        return {
+            labels: labels.slice(labels.length - 50),
+            values: values.slice(values.length - 50)
+        };
+    }
+
+    return { labels, values };
 }
 
 function getLabelText(source) {

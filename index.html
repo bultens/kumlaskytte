@@ -567,26 +567,25 @@
         <div class="card mb-8">
             <h2 class="text-2xl font-bold mb-4 text-gray-800">Utvecklingskurva</h2>
             
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                <select id="chart-data-source" class="p-2 border rounded text-sm bg-gray-50">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <select id="chart-data-source" class="p-3 border rounded-lg bg-gray-50 text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="total">Totalpoäng</option>
                     <option value="best_series">Bästa Serie</option>
                     <option value="average_series">Snitt per serie</option>
                 </select>
-                <select id="chart-shot-count" class="p-2 border rounded text-sm bg-gray-50">
+                
+                <select id="chart-shot-count" class="p-3 border rounded-lg bg-gray-50 text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="all">Alla skottantal</option>
                     <option value="20" selected>20 skott</option>
                     <option value="40">40 skott</option>
                     <option value="60">60 skott</option>
                     <option value="100">100 skott</option>
                 </select>
-                <select id="chart-grouping" class="p-2 border rounded text-sm bg-gray-50">
-                    <option value="none">Varje tillfälle</option>
-                    <option value="month">Per Månad (Snitt)</option>
-                </select>
-                <select id="chart-type" class="p-2 border rounded text-sm bg-gray-50">
-                    <option value="line">Linjediagram</option>
-                    <option value="bar">Stapeldiagram</option>
+                
+                <select id="chart-grouping" class="p-3 border rounded-lg bg-gray-50 text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="none">Varje tillfälle (Alla)</option>
+                    <option value="day">Dagsbästa (Max per dag)</option>
+                    <option value="month">Månadssnitt</option>
                 </select>
             </div>
 
