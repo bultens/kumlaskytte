@@ -578,6 +578,7 @@
                     <option value="20" selected>20 skott</option>
                     <option value="40">40 skott</option>
                     <option value="60">60 skott</option>
+                    <option value="100">100 skott</option>
                 </select>
                 <select id="chart-grouping" class="p-2 border rounded text-sm bg-gray-50">
                     <option value="none">Varje tillfälle</option>
@@ -605,8 +606,10 @@
                     <div>
                         <label class="block font-semibold text-gray-700 mb-2">Antal skott</label>
                         <div class="flex bg-gray-200 rounded-lg p-1">
-                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md bg-white shadow text-blue-800 font-bold transition-all" data-count="20">20</button>
-                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all" data-count="40">40</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md bg-white shadow text-blue-800 font-bold transition-all text-xs sm:text-base" data-count="20">20</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all text-xs sm:text-base" data-count="40">40</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all text-xs sm:text-base" data-count="60">60</button>
+                            <button type="button" class="shot-count-btn flex-1 py-2 rounded-md text-gray-600 hover:bg-white/50 transition-all text-xs sm:text-base" data-count="100">100</button>
                         </div>
                         <input type="hidden" id="result-shot-count" value="20">
                     </div>

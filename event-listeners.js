@@ -395,6 +395,9 @@ export function setupEventListeners() {
             } else if (shotCount === 60) {
                 currentPB = stats.allTime.s60;
                 currentSB = stats.year.s60;
+            } else if (shotCount === 100) { 
+                currentPB = stats.allTime.s100;
+                currentSB = stats.year.s100;
             }
 
             if (total > currentPB) isPB = true;
@@ -1199,11 +1202,13 @@ export function setupEventListeners() {
         safeSetText('stats-year-20', show(stats.year.s20));
         safeSetText('stats-year-40', show(stats.year.s40));
         safeSetText('stats-year-60', show(stats.year.s60));
+        safeSetText('stats-year-100', show(stats.year.s100));
 
         safeSetText('stats-all-series', show(stats.allTime.series));
         safeSetText('stats-all-20', show(stats.allTime.s20));
         safeSetText('stats-all-40', show(stats.allTime.s40));
         safeSetText('stats-all-60', show(stats.allTime.s60));
+        safeSetText('stats-all-100', show(stats.allTime.s100));
         // -------------------------------------------
 
         const selectedShooterOption = document.getElementById('shooter-selector').selectedOptions[0];

@@ -394,16 +394,11 @@ export function calculateShooterStats(results) {
     const currentYear = new Date().getFullYear();
     
     const stats = {
-        year: { series: 0, s20: 0, s40: 0, s60: 0 },
-        allTime: { series: 0, s20: 0, s40: 0, s60: 0 },
-        // NYTT: Räknare för medaljer
+        year: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 }, // Lade till s100
+        allTime: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 }, // Lade till s100
         medals: {
-            'Guld 3': 0,
-            'Guld 2': 0,
-            'Guld 1': 0,
-            'Guld': 0,
-            'Silver': 0,
-            'Brons': 0
+            'Guld 3': 0, 'Guld 2': 0, 'Guld 1': 0,
+            'Guld': 0, 'Silver': 0, 'Brons': 0
         }
     };
 
@@ -414,10 +409,11 @@ export function calculateShooterStats(results) {
         const bestSeries = parseFloat(res.bestSeries) || 0;
         const count = parseInt(res.shotCount);
 
-        // Rekord-logik
+        // Serie-rekord
         if (bestSeries > stats.allTime.series) stats.allTime.series = bestSeries;
         if (isCurrentYear && bestSeries > stats.year.series) stats.year.series = bestSeries;
 
+        // Total-rekord per skottantal
         if (count === 20) {
             if (total > stats.allTime.s20) stats.allTime.s20 = total;
             if (isCurrentYear && total > stats.year.s20) stats.year.s20 = total;
@@ -427,12 +423,14 @@ export function calculateShooterStats(results) {
         } else if (count === 60) {
             if (total > stats.allTime.s60) stats.allTime.s60 = total;
             if (isCurrentYear && total > stats.year.s60) stats.year.s60 = total;
+        } else if (count === 100) { // NYTT BLOCK FÖR 100 SKOTT
+            if (total > stats.allTime.s100) stats.allTime.s100 = total;
+            if (isCurrentYear && total > stats.year.s100) stats.year.s100 = total;
         }
 
-        // NYTT: Räkna medaljer från seriesMedals-arrayen
+        // Medaljräkning
         if (res.seriesMedals && Array.isArray(res.seriesMedals)) {
             res.seriesMedals.forEach(medalName => {
-                // Om det finns ett medaljnamn och vi har en räknare för det
                 if (medalName && stats.medals[medalName] !== undefined) {
                     stats.medals[medalName]++;
                 }
