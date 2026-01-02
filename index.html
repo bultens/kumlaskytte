@@ -543,6 +543,91 @@
         <p class="text-gray-500 p-4">Initierar arkiv...</p>
     </div>
 </div>
+    <div class="card mt-6 border-t-4 border-indigo-600">
+        <h2 class="text-2xl font-bold mb-4 text-indigo-900">🏆 Onlinetävlingar (Admin)</h2>
+        
+        <div id="admin-competitions-list" class="space-y-4 mb-6">
+            <p class="text-gray-500 italic">Laddar tävlingar...</p>
+        </div>
+
+        <button id="show-create-competition-btn" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold hover:bg-indigo-700 w-full md:w-auto">
+            + Skapa ny tävling
+        </button>
+
+        <div id="create-competition-container" class="hidden mt-6 bg-gray-50 p-4 rounded border">
+            <h3 class="text-xl font-bold mb-4">Konfigurera Tävling</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-bold">Tävlingens Namn</label>
+                    <input type="text" id="comp-name" class="w-full p-2 border rounded" placeholder="t.ex. Vårcupen 2026">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold">Status</label>
+                    <select id="comp-status" class="w-full p-2 border rounded">
+                        <option value="draft">Utkast (Dold)</option>
+                        <option value="open">Öppen för anmälan</option>
+                        <option value="active">Pågående (Tävling startad)</option>
+                        <option value="closed">Avslutad</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-bold">Startdatum</label>
+                    <input type="date" id="comp-start-date" class="w-full p-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold">Slutdatum</label>
+                    <input type="date" id="comp-end-date" class="w-full p-2 border rounded">
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold">Pris (SEK)</label>
+                <div class="flex gap-4">
+                    <input type="number" id="comp-base-price" placeholder="Grundavgift" class="w-1/2 p-2 border rounded">
+                    <input type="number" id="comp-extra-price" placeholder="Pris per extra klass" class="w-1/2 p-2 border rounded">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold">Inställningar</label>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="comp-count-best" class="h-5 w-5">
+                    <span>Räkna endast de X bästa omgångarna?</span>
+                </div>
+                <input type="number" id="comp-best-rounds-count" class="w-20 p-1 border rounded mt-1 hidden" placeholder="Antal">
+            </div>
+
+            <div class="mb-6 border-t pt-4">
+                <h4 class="font-bold text-lg mb-2">Omgångar</h4>
+                <div id="comp-rounds-container" class="space-y-2 mb-2">
+                    </div>
+                <button id="add-round-btn" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">
+                    + Lägg till omgång
+                </button>
+            </div>
+
+            <div class="mb-6 border-t pt-4">
+                <h4 class="font-bold text-lg mb-2">Klasser</h4>
+                <p class="text-xs text-gray-500 mb-2">Definiera klasser som skyttar kan anmäla sig till.</p>
+                <div id="comp-classes-container" class="space-y-2 mb-2">
+                    </div>
+                <button id="add-class-btn" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">
+                    + Lägg till klass
+                </button>
+            </div>
+
+            <div class="flex justify-end space-x-2 border-t pt-4">
+                <button id="cancel-comp-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800">Avbryt</button>
+                <button id="save-comp-btn" class="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700">
+                    Spara Tävling
+                </button>
+            </div>
+        </div>
+    </div>
         </section>
 
         <section id="profil" class="page">

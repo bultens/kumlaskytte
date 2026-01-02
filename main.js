@@ -6,6 +6,8 @@ import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdm
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
+import { initCompetitionAdmin } from "./admin-competition.js";
+
 
 // Ver. 3.11
 export let currentUserId = null;
@@ -54,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAuthListener();
     setupEventListeners();
     initFileManager();
+    initCompetitionAdmin();
     navigate(window.location.hash || '#hem');
     window.addEventListener('hashchange', () => {
         navigate(window.location.hash || '#hem');

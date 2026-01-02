@@ -559,3 +559,49 @@ export async function deleteAdminFolder(folderId) {
         return false;
     }
 }
+
+// data-service.js -> Online Competitions
+
+// Hämta alla tävlingar (för admin-listan)
+export async function getCompetitions() {
+    const q = query(collection(db, 'competitions'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+// Skapa eller Uppdatera tävling
+export async function saveCompetition(compData, compId = null) {
+    if (!isAdminLoggedIn) return;
+    
+    try {
+        if (compId) {
+            // Uppdatera befintlig
+            await updateDoc(doc(db, 'competitions', compId), {
+                ...compData,
+                updatedAt: serverTimestamp()
+            });
+            showModal('confirmationModal', "Tävlingen uppdaterad!");
+        } else {
+            // Skapa ny
+            await addDoc(collection(db, 'competitions'), {
+                ...compData,
+                createdAt: serverTimestamp(),
+                createdBy: auth.currentUser.uid
+            });
+            showModal('confirmationModal', "Tävlingen skapad!");
+        }
+    } catch (error) {
+        console.error("Fel vid sparande av tävling:", error);
+        showModal('errorModal', "Kunde inte spara tävlingen.");
+    }
+}
+
+// Ta bort tävling (Försiktigt! Bara om inga resultat finns än, men vi gör en enkel delete nu)
+export async function deleteCompetition(compId) {
+    if (!isAdminLoggedIn) return;
+    if(confirm("Är du säker? Detta tar bort tävlingen och alla inställningar.")) {
+        await deleteDoc(doc(db, 'competitions', compId));
+        // TODO: I framtiden, radera även kopplade anmälningar/resultat
+        showModal('confirmationModal', "Tävlingen raderad.");
+    }
+}
