@@ -564,7 +564,7 @@ export async function deleteAdminFolder(folderId) {
 
 // Hämta alla tävlingar (för admin-listan)
 export async function getCompetitions() {
-    const q = query(collection(db, 'competitions'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'online_competitions'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
@@ -576,14 +576,14 @@ export async function saveCompetition(compData, compId = null) {
     try {
         if (compId) {
             // Uppdatera befintlig
-            await updateDoc(doc(db, 'competitions', compId), {
+            await updateDoc(doc(db, 'online_competitions', compId), {
                 ...compData,
                 updatedAt: serverTimestamp()
             });
             showModal('confirmationModal', "Tävlingen uppdaterad!");
         } else {
             // Skapa ny
-            await addDoc(collection(db, 'competitions'), {
+            await addDoc(collection(db, 'online_competitions'), {
                 ...compData,
                 createdAt: serverTimestamp(),
                 createdBy: auth.currentUser.uid
@@ -600,8 +600,8 @@ export async function saveCompetition(compData, compId = null) {
 export async function deleteCompetition(compId) {
     if (!isAdminLoggedIn) return;
     if(confirm("Är du säker? Detta tar bort tävlingen och alla inställningar.")) {
-        await deleteDoc(doc(db, 'competitions', compId));
-        // TODO: I framtiden, radera även kopplade anmälningar/resultat
+        // ÄNDRAT HÄR: 'online_competitions'
+        await deleteDoc(doc(db, 'online_competitions', compId));
         showModal('confirmationModal', "Tävlingen raderad.");
     }
 }
