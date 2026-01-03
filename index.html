@@ -585,6 +585,22 @@
             </div>
             
             <div class="mb-4">
+                <label class="block text-sm font-bold mb-1">Beskrivning / Regler</label>
+                <textarea id="comp-description" class="w-full p-2 border rounded h-24 text-sm" placeholder="Skriv en kort introduktion och regler här..."></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold mb-1">Ladda upp Inbjudan (PDF/Bild)</label>
+                <div class="flex items-center gap-4">
+                    <input type="file" id="comp-invite-file" class="text-sm">
+                    <div id="current-invite-display" class="hidden text-sm">
+                        <a href="#" target="_blank" id="current-invite-link" class="text-blue-600 hover:underline font-bold">Visa nuvarande fil</a>
+                        <span class="text-gray-400 text-xs ml-2">(Välj ny fil för att byta)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
                 <label class="block text-sm font-bold">Pris (SEK)</label>
                 <div class="flex gap-4">
                     <input type="number" id="comp-base-price" placeholder="Grundavgift" class="w-1/2 p-2 border rounded">

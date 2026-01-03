@@ -596,6 +596,25 @@ export async function saveCompetition(compData, compId = null) {
     }
 }
 
+// Ladda upp inbjudan till tävling
+export async function uploadCompetitionInvite(file) {
+    if (!isAdminLoggedIn) return null;
+    
+    const storage = getStorage();
+    // Vi lägger dem i en snygg mappstruktur
+    const storagePath = `competitions/invites/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, storagePath);
+    
+    try {
+        const uploadTask = await uploadBytesResumable(storageRef, file);
+        const downloadURL = await getDownloadURL(uploadTask.ref);
+        return { url: downloadURL, path: storagePath };
+    } catch (error) {
+        console.error("Fel vid uppladdning av inbjudan:", error);
+        throw error;
+    }
+}
+
 // Ta bort tävling (Försiktigt! Bara om inga resultat finns än, men vi gör en enkel delete nu)
 export async function deleteCompetition(compId) {
     if (!isAdminLoggedIn) return;

@@ -1,5 +1,5 @@
 // admin-competition.js
-import { saveCompetition, getCompetitions, deleteCompetition } from "./data-service.js";
+import { saveCompetition, getCompetitions, deleteCompetition, uploadCompetitionInvite } from "./data-service.js"; 
 import { showModal } from "./ui-handler.js";
 
 let editingCompId = null;
@@ -116,7 +116,28 @@ function addClassRow(data = null) {
 
 async function handleSave() {
     const name = document.getElementById('comp-name').value;
+    const description = document.getElementById('comp-description').value; // NYTT
+    const fileInput = document.getElementById('comp-invite-file'); // NYTT
+    
     if (!name) return alert("Ange ett namn!");
+
+    let inviteData = null;
+
+    // 1. Hantera filuppladdning om en ny fil är vald
+    if (fileInput.files.length > 0) {
+        try {
+            const file = fileInput.files[0];
+            // Visa någon form av "Laddar..." här om filen är stor, men vi kör enkelt nu
+            const uploaded = await uploadCompetitionInvite(file);
+            inviteData = {
+                url: uploaded.url,
+                path: uploaded.path
+            };
+        } catch (error) {
+            alert("Kunde inte ladda upp filen.");
+            return;
+        }
+    }
 
     // Samla in Omgångar
     const rounds = [];
@@ -141,6 +162,7 @@ async function handleSave() {
 
     const competitionData = {
         name: name,
+        description: description, // NYTT
         status: document.getElementById('comp-status').value,
         startDate: document.getElementById('comp-start-date').value,
         endDate: document.getElementById('comp-end-date').value,
@@ -151,6 +173,12 @@ async function handleSave() {
         rounds: rounds,
         classes: classes
     };
+
+    // Om vi laddade upp en ny fil, spara den. Annars låt bli (så skriver vi inte över gammal om den fanns)
+    if (inviteData) {
+        competitionData.inviteUrl = inviteData.url;
+        competitionData.invitePath = inviteData.path;
+    }
 
     await saveCompetition(competitionData, editingCompId);
     
@@ -163,36 +191,52 @@ async function handleSave() {
 function loadCompetitionForEdit(comp) {
     editingCompId = comp.id;
     document.getElementById('comp-name').value = comp.name;
+    document.getElementById('comp-description').value = comp.description || ''; // NYTT
     document.getElementById('comp-status').value = comp.status;
     document.getElementById('comp-start-date').value = comp.startDate;
     document.getElementById('comp-end-date').value = comp.endDate;
     document.getElementById('comp-base-price').value = comp.basePrice;
     document.getElementById('comp-extra-price').value = comp.extraPrice;
     
+    // Hantera befintlig inbjudan-fil
+    const currentInviteDiv = document.getElementById('current-invite-display');
+    const currentInviteLink = document.getElementById('current-invite-link');
+    const fileInput = document.getElementById('comp-invite-file');
+    
+    fileInput.value = ''; // Rensa input
+
+    if (comp.inviteUrl) {
+        currentInviteDiv.classList.remove('hidden');
+        currentInviteLink.href = comp.inviteUrl;
+    } else {
+        currentInviteDiv.classList.add('hidden');
+    }
+
     document.getElementById('comp-count-best').checked = comp.countBestRounds || false;
     const countInput = document.getElementById('comp-best-rounds-count');
     countInput.value = comp.bestRoundsCount || '';
     if (comp.countBestRounds) countInput.classList.remove('hidden');
     else countInput.classList.add('hidden');
 
-    // Rensa och fyll på rounds
     document.getElementById('comp-rounds-container').innerHTML = '';
     if (comp.rounds) comp.rounds.forEach(r => addRoundRow(r));
 
-    // Rensa och fyll på classes
     document.getElementById('comp-classes-container').innerHTML = '';
     if (comp.classes) comp.classes.forEach(c => addClassRow(c));
 
     document.getElementById('create-competition-container').classList.remove('hidden');
     document.getElementById('show-create-competition-btn').classList.add('hidden');
     
-    // Scrolla till formuläret
     document.getElementById('create-competition-container').scrollIntoView({ behavior: 'smooth' });
 }
 
 function resetForm() {
     editingCompId = null;
     document.getElementById('comp-name').value = '';
+    document.getElementById('comp-description').value = ''; // NYTT
+    document.getElementById('comp-invite-file').value = ''; // NYTT
+    document.getElementById('current-invite-display').classList.add('hidden'); // NYTT
+    
     document.getElementById('comp-status').value = 'draft';
     document.getElementById('comp-start-date').value = '';
     document.getElementById('comp-end-date').value = '';
@@ -201,7 +245,6 @@ function resetForm() {
     document.getElementById('comp-rounds-container').innerHTML = '';
     document.getElementById('comp-classes-container').innerHTML = '';
     
-    // Lägg till en tom rad av varje som standard för att hjälpa användaren
     addRoundRow();
     addClassRow();
 }
