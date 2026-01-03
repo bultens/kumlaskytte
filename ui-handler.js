@@ -922,11 +922,18 @@ export function navigate(hash) {
         correspondingNavLink.classList.add('active');
     }
 
-    if (targetElementId) {
+if (targetElementId) {
         setTimeout(() => {
             const targetElement = document.getElementById(targetElementId);
             if (targetElement) {
-                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const headerOffset = 180; // Justera denna siffra om du vill ha mer/mindre luft
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: "smooth"
+                });
             }
         }, 500);
     } else {
