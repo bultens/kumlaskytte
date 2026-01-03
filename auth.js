@@ -67,28 +67,34 @@ onAuthStateChanged(auth, async (user) => {
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value; // Ändrat från reg-password till register-email/password matchning i HTML? 
-        // OBS: I din HTML heter inputen "reg-email" och "reg-password". Vi måste matcha det.
-        // Hämta input baserat på vad de faktiskt heter i din HTML (globala modalerna)
-        const emailVal = document.getElementById('reg-email').value;
-        const passVal = document.getElementById('reg-password').value;
+        
+        // HÄR VAR FELET: Vi tar bort raderna som letade efter 'reg-email'
+        // och använder 'register-email' som vi vet fungerar.
+        const emailVal = document.getElementById('register-email').value;
+        const passVal = document.getElementById('register-password').value;
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
+            
+            // Spara användaren i databasen
             await setDoc(doc(db, "users", user.uid), {
                 email: emailVal,
-                isAdmin: false
+                isAdmin: false,
+                createdAt: serverTimestamp() // Bra att ha
             });
+            
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
-            // Göm modalen efter lyckad reg
+            
+            // Göm modalen efter lyckad registrering
             if (registerPanel) registerPanel.classList.add('hidden');
+            
         } catch (error) {
+            console.error("Registreringsfel:", error); // Bra för felsökning
             if (error.code === 'auth/email-already-in-use') {
                 showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
             } else {
-                showModal('errorModal', error.message);
+                showModal('errorModal', "Kunde inte skapa konto: " + error.message);
             }
         }
     });
