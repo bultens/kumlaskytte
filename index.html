@@ -27,6 +27,7 @@
                 <a href="#bilder" class="hover:text-blue-300 transition nav-link">Bilder</a>
                 <a href="#omoss" class="hover:text-blue-300 transition nav-link">Om Oss</a>
                 <a href="#topplistor" class="hover:text-blue-300 transition nav-link">Topplistor</a>
+                <a href="#onlinetavlingar" class="hover:text-blue-300 transition nav-link text-yellow-300 font-bold">Onlinetävlingar</a>
                 <a href="#resultat" id="results-nav-link" class="hidden hover:text-blue-300 transition nav-link font-bold text-yellow-400">Mina Resultat</a>
                 <a href="#admin" id="admin-nav-link" class="hidden hover:text-red-300 transition nav-link">Admin</a>
             </nav>
@@ -57,6 +58,7 @@
                 <a href="#bilder" class="mobile-nav-link block hover:text-blue-300 transition py-2">Bilder</a>
                 <a href="#omoss" class="mobile-nav-link block hover:text-blue-300 transition py-2">Om Oss</a>
                 <a href="#topplistor" class="mobile-nav-link block hover:text-blue-300 transition py-2">Topplistor</a>
+                <a href="#onlinetavlingar" class="mobile-nav-link block hover:text-blue-300 transition py-2 text-yellow-300 font-bold">Onlinetävlingar</a>
                 <a href="#resultat" id="mobile-results-nav-link" class="hidden mobile-nav-link block hover:text-blue-300 transition py-2 font-bold text-yellow-400">Mina Resultat</a>
                 <a href="#admin" id="mobile-admin-nav-link" class="hidden mobile-nav-link block hover:text-red-300 transition py-2 text-red-300">Admin</a>
             </nav>
@@ -817,6 +819,68 @@
 
     </div>
 </section>
+    <section id="onlinetavlingar" class="page hidden pt-6 pb-12">
+        <div class="container mx-auto px-4">
+            
+            <div class="text-center mb-10">
+                <h1 class="text-4xl font-bold text-blue-900 mb-4">Onlinetävlingar</h1>
+                <p class="text-gray-600 max-w-2xl mx-auto">Här hittar du våra öppna tävlingar. Tävla mot skyttar från hela landet på din hemmabana.</p>
+            </div>
+
+            <div id="public-online-competitions-list" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                <p class="text-center col-span-full text-gray-500 italic">Laddar tävlingar...</p>
+            </div>
+
+            <div id="my-external-shooters-section" class="hidden mt-12 pt-8 border-t-2 border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Min Skyttetrupp</h2>
+                        <p class="text-sm text-gray-600">Hantera skyttar som du vill anmäla till tävlingar.</p>
+                    </div>
+                    <button id="add-external-shooter-btn" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 font-bold transition">
+                        + Lägg till skytt
+                    </button>
+                </div>
+
+                <div id="my-external-shooters-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    </div>
+            </div>
+
+            <div id="online-login-prompt" class="text-center mt-12 bg-blue-50 p-8 rounded-xl border border-blue-100">
+                <h3 class="text-2xl font-bold text-blue-900 mb-2">Vill du vara med och tävla?</h3>
+                <p class="mb-4 text-gray-600">För att anmäla skyttar och registrera resultat måste du skapa ett konto eller logga in.</p>
+                <button id="online-login-btn" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                    Logga in / Skapa konto
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <div id="addExternalShooterModal" class="modal">
+        <div class="modal-content text-left max-w-md">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold">Lägg till Skytt</h3>
+                <span id="close-ext-shooter-modal" class="modal-close-btn cursor-pointer text-2xl">×</span>
+            </div>
+            <form id="add-external-shooter-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold mb-1">Namn</label>
+                    <input type="text" id="ext-shooter-name" class="w-full p-2 border rounded" required placeholder="För- och efternamn">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold mb-1">Födelseår</label>
+                    <input type="number" id="ext-shooter-year" class="w-full p-2 border rounded" required placeholder="t.ex. 2012">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-bold mb-1">Klubb/Förening</label>
+                    <input type="text" id="ext-shooter-club" class="w-full p-2 border rounded" required placeholder="t.ex. Kumla Skytteförening">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700">Spara Skytt</button>
+            </form>
+        </div>
+    </div>
+
 </section>
 <section id="topplistor" class="page">
     <h1 class="text-4xl font-bold mb-6">Topplistor & Statistik</h1>
