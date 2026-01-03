@@ -68,8 +68,6 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // HÄR VAR FELET: Vi tar bort raderna som letade efter 'reg-email'
-        // och använder 'register-email' som vi vet fungerar.
         const emailVal = document.getElementById('register-email').value;
         const passVal = document.getElementById('register-password').value;
 
@@ -77,20 +75,17 @@ if (registerForm) {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
             
-            // Spara användaren i databasen
             await setDoc(doc(db, "users", user.uid), {
                 email: emailVal,
                 isAdmin: false,
-                createdAt: serverTimestamp() // Bra att ha
+                createdAt: serverTimestamp()
             });
             
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
-            
-            // Göm modalen efter lyckad registrering
             if (registerPanel) registerPanel.classList.add('hidden');
             
         } catch (error) {
-            console.error("Registreringsfel:", error); // Bra för felsökning
+            console.error("Registreringsfel:", error);
             if (error.code === 'auth/email-already-in-use') {
                 showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
             } else {
