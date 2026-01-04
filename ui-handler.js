@@ -654,40 +654,73 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
 }
 
-export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
-    const adminListEl = document.getElementById('admin-list');
-    const allUsersContainer = document.getElementById('all-users-container');
-    if (!adminListEl || !allUsersContainer) return;
+// ui-handler.js
 
-    adminListEl.innerHTML = '';
-    allUsersContainer.innerHTML = '';
-    
-    usersData.forEach(user => {
-        const isUserAdmin = user.isAdmin || false;
-        const userEl = document.createElement('div');
-        userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
+export function renderAdminsAndUsers(users, isAdmin, currentUserId) {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Sortera: Admins först, sen Medlemmar, sen övriga. Bokstavsordning inom grupperna.
+    users.sort((a, b) => {
+        if (a.isAdmin !== b.isAdmin) return a.isAdmin ? -1 : 1;
+        if (a.isClubMember !== b.isClubMember) return a.isClubMember ? -1 : 1; // Medlemmar före icke-medlemmar
+        return (a.name || '').localeCompare(b.name || '');
+    });
+
+    users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200";
         
-        if (isUserAdmin) {
-            userEl.innerHTML = `
-                <span class="font-semibold">${user.email} (Admin)</span>
-                <div class="flex space-x-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
-                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
-                </div>
-            `;
-            adminListEl.appendChild(userEl);
-        } else {
-            userEl.innerHTML = `
-                <span class="font-semibold">${user.email}</span>
-                <div class="flex space-x-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
-                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
-                </div>
-            `;
-            allUsersContainer.appendChild(userEl);
+        // Skapa Badges (Admin / Medlem)
+        let badges = '';
+        
+        if (user.isAdmin) {
+            badges += `<span class="bg-red-100 text-red-800 text-xs font-bold mr-2 px-2.5 py-0.5 rounded border border-red-200">Admin</span>`;
         }
+        
+        if (user.isClubMember) {
+            // Här är den nya gröna flaggan för medlemmar
+            badges += `<span class="bg-green-100 text-green-800 text-xs font-bold mr-2 px-2.5 py-0.5 rounded border border-green-200">✅ Medlem</span>`;
+        } else {
+            // (Valfritt) Visa om de är gäst/ej godkänd än
+            badges += `<span class="bg-gray-100 text-gray-600 text-xs font-medium mr-2 px-2.5 py-0.5 rounded border border-gray-200">Gäst</span>`;
+        }
+
+        div.innerHTML = `
+            <div>
+                <p class="font-bold text-gray-800 flex items-center gap-2">
+                    ${user.name || 'Namnlös'} 
+                    <span class="flex gap-1">${badges}</span>
+                </p>
+                <p class="text-sm text-gray-600">${user.email}</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="edit-user-btn text-blue-600 hover:bg-blue-100 p-2 rounded" data-id="${user.id}" title="Redigera">
+                    ✎
+                </button>
+                ${user.id !== currentUserId ? `<button class="delete-user-btn text-red-600 hover:bg-red-100 p-2 rounded" data-id="${user.id}" title="Ta bort">🗑️</button>` : ''}
+            </div>
+        `;
+
+        // Event Listeners för knapparna
+        div.querySelector('.edit-user-btn').addEventListener('click', () => {
+            // Importera dynamiskt för att undvika cirkulära beroenden om showEditUserModal ligger i denna fil
+            // Men eftersom vi är i ui-handler kör vi direkt anrop:
+            showEditUserModal(user); 
+        });
+
+        if (user.id !== currentUserId) {
+            div.querySelector('.delete-user-btn').addEventListener('click', () => {
+                // Importera logiken för delete dynamiskt
+                import('./auth.js').then(module => {
+                     module.handleDeleteUser(user.id);
+                });
+            });
+        }
+
+        container.appendChild(div);
     });
 }
 
