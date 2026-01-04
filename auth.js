@@ -67,22 +67,29 @@ onAuthStateChanged(auth, async (user) => {
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('register-email').value;
+        const email = document.getElementById('register-email').value; 
         const password = document.getElementById('register-password').value; 
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            
+            // SKAPA ANVÄNDARDOKUMENT
+            // Notera: isClubMember sätts till false. Admin måste ändra detta manuellt senare.
             await setDoc(doc(db, "users", user.uid), {
-                email: emailVal,
-                isAdmin: false
+                email: email, // Rättat variabelnamn
+                name: email.split('@')[0], // Sätter ett default-namn
+                isAdmin: false,
+                isClubMember: false, // NYTT: Styr tillgång till interna topplistor/resultat
+                createdAt: serverTimestamp()
             });
+
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
-            // Göm modalen efter lyckad reg
             if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
+            console.error(error); // Bra för felsökning
             if (error.code === 'auth/email-already-in-use') {
-                showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
+                showModal('errorModal', 'Denna e-postadress är redan registrerad.');
             } else {
                 showModal('errorModal', error.message);
             }
