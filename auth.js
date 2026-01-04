@@ -68,14 +68,10 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value; // Ändrat från reg-password till register-email/password matchning i HTML? 
-        // OBS: I din HTML heter inputen "reg-email" och "reg-password". Vi måste matcha det.
-        // Hämta input baserat på vad de faktiskt heter i din HTML (globala modalerna)
-        const emailVal = document.getElementById('reg-email').value;
-        const passVal = document.getElementById('reg-password').value;
+        const password = document.getElementById('register-password').value; 
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             await setDoc(doc(db, "users", user.uid), {
                 email: emailVal,
