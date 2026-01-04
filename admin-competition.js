@@ -1,5 +1,5 @@
 // admin-competition.js
-import { saveCompetition, getCompetitions, deleteCompetition, uploadCompetitionInvite } from "./data-service.js";
+import { saveCompetition, getCompetitions, deleteCompetition, uploadCompetitionInvite } from "./data-service.js"; 
 import { showModal } from "./ui-handler.js";
 
 let editingCompId = null;
@@ -34,18 +34,6 @@ export async function initCompetitionAdmin() {
 
     document.getElementById('save-comp-btn').addEventListener('click', async () => {
         await handleSave();
-    });
-
-    // --- NYTT: Hantera klick för att ta bort rader (Event Delegation) ---
-    // Vi lyssnar på hela formuläret istället för att ha onclick på varje knapp
-    document.getElementById('create-competition-container').addEventListener('click', (e) => {
-        // Om man klickar på krysset (eller inuti det)
-        const removeBtn = e.target.closest('.remove-row-btn');
-        if (removeBtn) {
-            // Ta bort närmaste förälder som är en rad
-            const row = removeBtn.closest('.round-row') || removeBtn.closest('.class-row');
-            if (row) row.remove();
-        }
     });
 }
 
@@ -84,6 +72,7 @@ async function renderCompetitionList() {
             </div>
         `;
         
+        // Event listeners för knapparna direkt på elementet (för att slippa global delegation om vi vill)
         div.querySelector('.edit-comp-btn').addEventListener('click', () => loadCompetitionForEdit(comp));
         div.querySelector('.delete-comp-btn').addEventListener('click', async () => {
             await deleteCompetition(comp.id);
@@ -94,47 +83,51 @@ async function renderCompetitionList() {
     });
 }
 
-// Lägg till en rad för Omgång (Uppdaterad utan onclick)
+// Lägg till en rad för Omgång
 function addRoundRow(data = null) {
     const container = document.getElementById('comp-rounds-container');
     const div = document.createElement('div');
-    div.className = "flex gap-2 items-center round-row mb-2";
+    div.className = "flex gap-2 items-center round-row";
     div.innerHTML = `
         <input type="text" placeholder="Namn (t.ex. Omg 1)" class="round-name flex-grow p-2 border rounded text-sm" value="${data ? data.name : ''}">
         <input type="date" class="round-end p-2 border rounded text-sm" value="${data ? data.endDate : ''}" title="Sista datum">
-        <button class="remove-row-btn text-red-500 hover:text-red-700 font-bold px-2 text-xl" type="button">×</button>
+        <button class="text-red-500 hover:text-red-700 font-bold px-2" onclick="this.parentElement.remove()">×</button>
     `;
     container.appendChild(div);
 }
 
-// Lägg till en rad för Klass (Uppdaterad utan onclick)
+// Lägg till en rad för Klass
 function addClassRow(data = null) {
     const container = document.getElementById('comp-classes-container');
     const div = document.createElement('div');
-    div.className = "flex gap-2 items-center class-row bg-gray-100 p-2 rounded mb-2";
+    div.className = "flex gap-2 items-center class-row bg-gray-100 p-2 rounded";
+    
+    // Vi lägger till fält för Min/Max ålder för att kunna göra highlight-funktionen senare
     div.innerHTML = `
         <div class="flex-grow grid grid-cols-3 gap-2">
             <input type="text" placeholder="Klassnamn (t.ex. Lsi 11)" class="class-name col-span-3 md:col-span-1 p-2 border rounded text-sm" value="${data ? data.name : ''}">
             <input type="number" placeholder="Min Ålder" class="class-min-age p-2 border rounded text-sm" value="${data ? data.minAge || '' : ''}">
             <input type="number" placeholder="Max Ålder" class="class-max-age p-2 border rounded text-sm" value="${data ? data.maxAge || '' : ''}">
         </div>
-        <button class="remove-row-btn text-red-500 hover:text-red-700 font-bold px-2 text-xl" type="button">×</button>
+        <button class="text-red-500 hover:text-red-700 font-bold px-2" onclick="this.parentElement.remove()">×</button>
     `;
     container.appendChild(div);
 }
 
 async function handleSave() {
     const name = document.getElementById('comp-name').value;
-    const description = document.getElementById('comp-description').value;
-    const fileInput = document.getElementById('comp-invite-file');
+    const description = document.getElementById('comp-description').value; // NYTT
+    const fileInput = document.getElementById('comp-invite-file'); // NYTT
     
     if (!name) return alert("Ange ett namn!");
 
     let inviteData = null;
 
+    // 1. Hantera filuppladdning om en ny fil är vald
     if (fileInput.files.length > 0) {
         try {
             const file = fileInput.files[0];
+            // Visa någon form av "Laddar..." här om filen är stor, men vi kör enkelt nu
             const uploaded = await uploadCompetitionInvite(file);
             inviteData = {
                 url: uploaded.url,
@@ -146,6 +139,7 @@ async function handleSave() {
         }
     }
 
+    // Samla in Omgångar
     const rounds = [];
     document.querySelectorAll('.round-row').forEach(row => {
         const rName = row.querySelector('.round-name').value;
@@ -153,6 +147,7 @@ async function handleSave() {
         if (rName && rDate) rounds.push({ name: rName, endDate: rDate });
     });
 
+    // Samla in Klasser
     const classes = [];
     document.querySelectorAll('.class-row').forEach(row => {
         const cName = row.querySelector('.class-name').value;
@@ -167,7 +162,7 @@ async function handleSave() {
 
     const competitionData = {
         name: name,
-        description: description,
+        description: description, // NYTT
         status: document.getElementById('comp-status').value,
         startDate: document.getElementById('comp-start-date').value,
         endDate: document.getElementById('comp-end-date').value,
@@ -179,6 +174,7 @@ async function handleSave() {
         classes: classes
     };
 
+    // Om vi laddade upp en ny fil, spara den. Annars låt bli (så skriver vi inte över gammal om den fanns)
     if (inviteData) {
         competitionData.inviteUrl = inviteData.url;
         competitionData.invitePath = inviteData.path;
@@ -186,6 +182,7 @@ async function handleSave() {
 
     await saveCompetition(competitionData, editingCompId);
     
+    // Reset UI
     document.getElementById('create-competition-container').classList.add('hidden');
     document.getElementById('show-create-competition-btn').classList.remove('hidden');
     await renderCompetitionList();
@@ -194,18 +191,19 @@ async function handleSave() {
 function loadCompetitionForEdit(comp) {
     editingCompId = comp.id;
     document.getElementById('comp-name').value = comp.name;
-    document.getElementById('comp-description').value = comp.description || '';
+    document.getElementById('comp-description').value = comp.description || ''; // NYTT
     document.getElementById('comp-status').value = comp.status;
     document.getElementById('comp-start-date').value = comp.startDate;
     document.getElementById('comp-end-date').value = comp.endDate;
     document.getElementById('comp-base-price').value = comp.basePrice;
     document.getElementById('comp-extra-price').value = comp.extraPrice;
     
+    // Hantera befintlig inbjudan-fil
     const currentInviteDiv = document.getElementById('current-invite-display');
     const currentInviteLink = document.getElementById('current-invite-link');
     const fileInput = document.getElementById('comp-invite-file');
     
-    fileInput.value = '';
+    fileInput.value = ''; // Rensa input
 
     if (comp.inviteUrl) {
         currentInviteDiv.classList.remove('hidden');
@@ -235,9 +233,9 @@ function loadCompetitionForEdit(comp) {
 function resetForm() {
     editingCompId = null;
     document.getElementById('comp-name').value = '';
-    document.getElementById('comp-description').value = '';
-    document.getElementById('comp-invite-file').value = '';
-    document.getElementById('current-invite-display').classList.add('hidden');
+    document.getElementById('comp-description').value = ''; // NYTT
+    document.getElementById('comp-invite-file').value = ''; // NYTT
+    document.getElementById('current-invite-display').classList.add('hidden'); // NYTT
     
     document.getElementById('comp-status').value = 'draft';
     document.getElementById('comp-start-date').value = '';

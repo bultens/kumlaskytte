@@ -922,18 +922,11 @@ export function navigate(hash) {
         correspondingNavLink.classList.add('active');
     }
 
-if (targetElementId) {
+    if (targetElementId) {
         setTimeout(() => {
             const targetElement = document.getElementById(targetElementId);
             if (targetElement) {
-                const headerOffset = 180; // Justera denna siffra om du vill ha mer/mindre luft
-                const elementPosition = targetElement.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-            
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: "smooth"
-                });
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }, 500);
     } else {
@@ -1310,98 +1303,6 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
                     <span class="text-xs text-gray-500 ml-2">${res.date} (${res.discipline})</span>
                 </div>
                 ${res.isPB ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">PB</span>' : ''}
-            </div>
-        `;
-    });
-}
-
-export function renderPublicOnlineCompetitions(competitions) {
-    const container = document.getElementById('public-online-competitions-list');
-    if (!container) return;
-
-    container.innerHTML = '';
-    
-    // Filtrera bort utkast om man inte är admin (fast vi kanske vill visa 'kommande'?)
-    const publicComps = competitions.filter(c => c.status !== 'draft');
-
-    if (publicComps.length === 0) {
-        container.innerHTML = '<p class="col-span-full text-center text-gray-500 italic p-8">Inga aktiva tävlingar just nu.</p>';
-        return;
-    }
-
-    publicComps.forEach(comp => {
-        let statusBadge = '';
-        let btnText = 'Läs mer / Anmäl';
-        let btnClass = 'bg-blue-600 hover:bg-blue-700';
-        
-        const now = new Date();
-        const start = new Date(comp.startDate);
-        const end = new Date(comp.endDate);
-
-        if (comp.status === 'active' && now >= start && now <= end) {
-            statusBadge = '<span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded uppercase">Pågående</span>';
-        } else if (comp.status === 'open') {
-             statusBadge = '<span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded uppercase">Öppen för anmälan</span>';
-        } else if (comp.status === 'closed' || now > end) {
-            statusBadge = '<span class="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-1 rounded uppercase">Avslutad</span>';
-            btnText = 'Se resultat';
-            btnClass = 'bg-gray-500 hover:bg-gray-600';
-        }
-
-        const inviteBtn = comp.inviteUrl ? `<a href="${comp.inviteUrl}" target="_blank" class="text-sm text-blue-600 hover:underline font-bold ml-4">📄 Inbjudan (PDF)</a>` : '';
-
-        container.innerHTML += `
-            <div class="card border-l-4 border-blue-600 hover:shadow-lg transition">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-2xl font-bold text-gray-800">${comp.name}</h3>
-                    ${statusBadge}
-                </div>
-                <p class="text-sm text-gray-500 mb-4">📅 ${comp.startDate} till ${comp.endDate}</p>
-                
-                <div class="text-gray-600 mb-6 line-clamp-3">${comp.description || ''}</div>
-
-                <div class="flex items-center justify-between mt-auto">
-                    <div>
-                        <span class="font-bold text-lg">${comp.basePrice} kr</span>
-                        <span class="text-xs text-gray-500 block">per skytt</span>
-                    </div>
-                    <div class="flex items-center">
-                        ${inviteBtn}
-                        <button class="ml-4 text-white px-4 py-2 rounded font-bold shadow transition ${btnClass} register-comp-btn" data-id="${comp.id}">
-                            ${btnText}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-}
-
-export function renderMyExternalShooters(shooters) {
-    const container = document.getElementById('my-external-shooters-list');
-    if (!container) return;
-
-    container.innerHTML = '';
-    
-    if (shooters.length === 0) {
-        container.innerHTML = `
-            <div class="col-span-full text-center border-2 border-dashed border-gray-300 rounded p-6">
-                <p class="text-gray-500 mb-2">Du har inga skyttar inlagda än.</p>
-                <p class="text-sm text-gray-400">Lägg till skyttar här för att kunna anmäla dem till tävlingar.</p>
-            </div>`;
-        return;
-    }
-
-    shooters.forEach(s => {
-        container.innerHTML += `
-            <div class="bg-white p-3 rounded border shadow-sm flex justify-between items-center">
-                <div>
-                    <p class="font-bold text-gray-800">${s.name}</p>
-                    <p class="text-xs text-gray-500">Född ${s.birthyear} | ${s.club}</p>
-                </div>
-                <button class="delete-ext-shooter-btn text-red-400 hover:text-red-600 p-2" data-id="${s.id}">
-                    🗑️
-                </button>
             </div>
         `;
     });

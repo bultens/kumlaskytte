@@ -1,11 +1,11 @@
 // auth.js
 import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, getFirestore, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, updateDoc, arrayRemove, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, getFirestore, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, updateDoc, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.12 (Fixad registrering)
+// Ver. 2.11 (Fixad dubblett av toggleProfileUI och listeners)
 let currentUserId = null;
 let isAdminLoggedIn = false;
 let loggedInAdminUsername = '';
@@ -21,38 +21,74 @@ const registerPanel = document.getElementById('register-panel');
 const userLoginPanel = document.getElementById('user-login-panel');
 const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
-const logoutBtn = document.getElementById('logout-btn');
-const closeRegisterBtn = document.getElementById('close-register-btn');
-const closeLoginBtn = document.getElementById('close-login-btn');
-const deleteProfileBtn = document.getElementById('delete-profile-btn');
+const deleteAccountBtn = document.getElementById('delete-account-btn');
 
-// --- HÄR VAR FELET FIXAT (register-email istället för reg-email) ---
+function toggleProfileUI(user) {
+    const mobileResultsLink = document.getElementById('mobile-results-nav-link');
+    // Om user finns (inloggad)
+    if (user) {
+        if (profilePanel) profilePanel.classList.remove('hidden');
+        if (userLoginPanel) userLoginPanel.classList.add('hidden');
+        if (registerPanel) registerPanel.classList.add('hidden');
+        if (profileNavLink) profileNavLink.classList.remove('hidden');
+        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
+        if (userNavLink) userNavLink.classList.add('hidden');
+        if (showLoginLink) showLoginLink.classList.add('hidden'); // Göm "Logga in"-knappen i menyn
+        if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
+    } else {
+        // Utloggad
+        if (profilePanel) profilePanel.classList.add('hidden');
+        if (userLoginPanel) userLoginPanel.classList.add('hidden'); // Göm panelen, visa bara knappen
+        if (registerPanel) registerPanel.classList.add('hidden');
+        if (profileNavLink) profileNavLink.classList.add('hidden');
+        if (resultsNavLink) resultsNavLink.classList.add('hidden');
+        if (userNavLink) userNavLink.classList.remove('hidden');
+        if (showLoginLink) showLoginLink.classList.remove('hidden'); // Visa "Logga in"-knappen
+        if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
+    }
+}
+
+onAuthStateChanged(auth, async (user) => {
+    currentUserId = user ? user.uid : null;
+    if (user) {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const userData = docSnap.data();
+            const name = userData.name || userData.email;
+            if (profileWelcomeMessage) {
+                profileWelcomeMessage.textContent = `Välkommen, ${name}`;
+            }
+        }
+    }
+    toggleProfileUI(user);
+});
+
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const emailVal = document.getElementById('register-email').value;
-        const passVal = document.getElementById('register-password').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value; // Ändrat från reg-password till register-email/password matchning i HTML? 
+        // OBS: I din HTML heter inputen "reg-email" och "reg-password". Vi måste matcha det.
+        // Hämta input baserat på vad de faktiskt heter i din HTML (globala modalerna)
+        const emailVal = document.getElementById('reg-email').value;
+        const passVal = document.getElementById('reg-password').value;
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
-            
             await setDoc(doc(db, "users", user.uid), {
                 email: emailVal,
-                isAdmin: false,
-                createdAt: serverTimestamp()
+                isAdmin: false
             });
-            
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
+            // Göm modalen efter lyckad reg
             if (registerPanel) registerPanel.classList.add('hidden');
-            
         } catch (error) {
-            console.error("Registreringsfel:", error);
             if (error.code === 'auth/email-already-in-use') {
                 showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
             } else {
-                showModal('errorModal', "Kunde inte skapa konto: " + error.message);
+                showModal('errorModal', error.message);
             }
         }
     });
@@ -61,71 +97,102 @@ if (registerForm) {
 if (userLoginForm) {
     userLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const emailVal = document.getElementById('login-email').value;
-        const passVal = document.getElementById('login-password').value;
+        // Matcha IDn mot din index.html modal (user-email, user-password)
+        const emailVal = document.getElementById('user-email').value;
+        const passVal = document.getElementById('user-password').value;
 
         try {
             await signInWithEmailAndPassword(auth, emailVal, passVal);
-            if (userLoginPanel) userLoginPanel.classList.add('hidden');
-            // showModal('confirmationModal', 'Inloggning lyckades!'); // Valfritt
+            showModal('confirmationModal', 'Inloggning lyckades!');
+             // Göm modalen efter lyckad login
+             if (userLoginPanel) userLoginPanel.classList.add('hidden');
         } catch (error) {
-            console.error("Inloggningsfel:", error);
-            showModal('errorModal', "Fel e-post eller lösenord.");
+            let userMessage = 'Ett fel uppstod vid inloggning. Vänligen försök igen.';
+            if (error.code === 'auth/invalid-credential') {
+                userMessage = 'E-post eller lösenord är felaktigt.';
+            }
+            showModal('errorModal', userMessage);
         }
     });
 }
 
-if (showLoginLink) {
-    showLoginLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (registerPanel) registerPanel.classList.add('hidden');
-        if (userLoginPanel) userLoginPanel.classList.remove('hidden');
+const logoutProfileBtn = document.getElementById('logout-btn'); // Ändrat till logout-btn (finns i header)
+if (logoutProfileBtn) {
+    logoutProfileBtn.addEventListener('click', async () => {
+        try {
+            await signOut(auth);
+            window.location.hash = '#hem';
+        } catch (error) {
+            console.error("Fel vid utloggning:", error);
+            showModal('errorModal', "Ett fel uppstod vid utloggning.");
+        }
     });
 }
 
-if (showRegisterLink) {
-    showRegisterLink.addEventListener('click', (e) => {
+// Hantera länkarna mellan Login och Register inuti modalerna
+const linkToReg = document.getElementById('show-register-link');
+const linkToLogin = document.getElementById('show-login-link-from-reg');
+
+if (linkToReg) {
+    linkToReg.addEventListener('click', (e) => {
         e.preventDefault();
         if (userLoginPanel) userLoginPanel.classList.add('hidden');
         if (registerPanel) registerPanel.classList.remove('hidden');
     });
 }
 
-if (closeRegisterBtn) {
-    closeRegisterBtn.addEventListener('click', () => {
+if (linkToLogin) {
+    linkToLogin.addEventListener('click', (e) => {
+        e.preventDefault();
         if (registerPanel) registerPanel.classList.add('hidden');
+        if (userLoginPanel) userLoginPanel.classList.remove('hidden');
     });
 }
 
-if (closeLoginBtn) {
-    closeLoginBtn.addEventListener('click', () => {
-        if (userLoginPanel) userLoginPanel.classList.add('hidden');
+// Logik för att öppna login-modalen från headern
+if (showLoginLink) {
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (userLoginPanel) {
+            userLoginPanel.classList.remove('hidden');
+            registerPanel.classList.add('hidden');
+        }
     });
 }
 
-if (deleteProfileBtn) {
-    deleteProfileBtn.addEventListener('click', () => {
+
+// Lade till knappen för att ta bort konto
+const deleteAccountBtnEl = document.getElementById('delete-account-btn');
+if (deleteAccountBtnEl) {
+    deleteAccountBtnEl.addEventListener('click', () => {
         showDeleteProfileModal();
     });
 }
 
-// Logik för att bekräfta borttagning av profil
 const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
 if (confirmDeleteProfileBtn) {
     confirmDeleteProfileBtn.addEventListener('click', async () => {
+        // Stäng modalen direkt
+        hideModal('deleteProfileModal');
+        
         const user = auth.currentUser;
         if (!user) return;
-        
+        const userId = user.uid;
+
         try {
-            const userId = user.uid;
+            // 1. Hitta alla skyttar som denna användare är "förälder" till
+            const shootersRef = collection(db, "shooters");
+            const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
+            const querySnapshot = await getDocs(q);
+
             const batch = writeBatch(db);
 
-            // 1. Ta bort kopplingen till skyttar (förälder)
-            const shootersQuery = query(collection(db, "shooters"), where("parentUserIds", "array-contains", userId));
-            const shootersSnap = await getDocs(shootersQuery);
-            
-            shootersSnap.forEach((docSnap) => {
-                const parents = docSnap.data().parentUserIds || [];
+            // 2. Loopa igenom skyttarna och ta bort kopplingen
+            querySnapshot.forEach((docSnap) => {
+                const shooterData = docSnap.data();
+                const parents = shooterData.parentUserIds || [];
+                
+                // Om användaren är den ENDA föräldern -> Flagga för admin
                 if (parents.length === 1 && parents.includes(userId)) {
                     batch.update(docSnap.ref, {
                         parentUserIds: arrayRemove(userId),
@@ -133,22 +200,23 @@ if (confirmDeleteProfileBtn) {
                         adminNote: "Föräldern raderade sitt konto. Profilen är nu föräldralös."
                     });
                 } else {
+                    // Om det finns fler föräldrar -> Bara ta bort denna användare
                     batch.update(docSnap.ref, {
                         parentUserIds: arrayRemove(userId)
                     });
                 }
             });
 
-            // 2. Ta bort användardatan i 'users'
+            // 3. Ta bort användardatan i 'users'
             const userDocRef = doc(db, "users", userId);
             batch.delete(userDocRef);
 
+            // Kör alla databasändringar
             await batch.commit();
 
-            // 3. Ta bort kontot i Auth
+            // 4. Ta bort inloggningen (Auth) - Detta loggar ut användaren automatiskt
             await deleteUser(user);
 
-            hideModal('deleteProfileModal');
             showModal('confirmationModal', "Ditt konto har tagits bort.");
             
         } catch (error) {
@@ -158,28 +226,6 @@ if (confirmDeleteProfileBtn) {
             } else {
                 showModal('errorModal', "Ett fel uppstod: " + error.message);
             }
-            hideModal('deleteProfileModal');
         }
     });
-}
-
-// Hantera UI baserat på inloggningsstatus (körs av main.js via auth-lyssnare)
-export function toggleProfileUI(user) {
-    const mobileResultsLink = document.getElementById('mobile-results-nav-link');
-    
-    if (user) {
-        if (profilePanel) profilePanel.classList.remove('hidden');
-        if (showLoginLink) showLoginLink.classList.add('hidden');
-        if (userNavLink) userNavLink.classList.remove('hidden'); 
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
-        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
-    } else {
-        if (profilePanel) profilePanel.classList.add('hidden');
-        if (showLoginLink) showLoginLink.classList.remove('hidden');
-        if (userNavLink) userNavLink.classList.add('hidden');
-        if (profileNavLink) profileNavLink.classList.add('hidden');
-        if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
-    }
 }
