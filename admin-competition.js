@@ -87,12 +87,23 @@ async function renderCompetitionList() {
 function addRoundRow(data = null) {
     const container = document.getElementById('comp-rounds-container');
     const div = document.createElement('div');
-    div.className = "flex gap-2 items-center round-row";
+    div.className = "flex gap-2 items-center round-row mb-2";
+// Skapa HTML UTAN onclick
     div.innerHTML = `
         <input type="text" placeholder="Namn (t.ex. Omg 1)" class="round-name flex-grow p-2 border rounded text-sm" value="${data ? data.name : ''}">
         <input type="date" class="round-end p-2 border rounded text-sm" value="${data ? data.endDate : ''}" title="Sista datum">
-        <button class="text-red-500 hover:text-red-700 font-bold px-2" onclick="this.parentElement.remove()">×</button>
     `;
+
+    // Skapa knappen separat
+    const btn = document.createElement('button');
+    btn.className = "text-red-500 hover:text-red-700 font-bold px-2";
+    btn.innerHTML = "×";
+    // Lägg till lyssnare med JavaScript istället för HTML-attribut
+    btn.addEventListener('click', () => {
+        div.remove();
+    });
+
+    div.appendChild(btn);
     container.appendChild(div);
 }
 

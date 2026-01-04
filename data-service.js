@@ -17,7 +17,7 @@ export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
 
-export function initializeDataListeners() {
+export function initializeDataListeners(isAdmin = false) { 
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
     if (auth.currentUser) {
@@ -45,6 +45,37 @@ export function initializeDataListeners() {
                  renderTopLists(competitionClasses, latestResultsCache, allShootersData);
             }
         });
+        
+        if (isAdmin) {
+            onSnapshot(collection(db, 'users'), async (snapshot) => { 
+                usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                renderAdminsAndUsers(usersData, isAdmin, uid); 
+                renderUserReport(usersData);
+                
+                // Om admin också vill se sin egen profil-info i headern:
+                if (uid) {
+                    const myProfile = usersData.find(u => u.id === uid);
+                    const myShooters = await getMyShooters(uid);
+                    const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
+                    renderProfileInfo(fakeDocSnap, myShooters); 
+                }
+            }, (error) => {
+                console.warn("Kunde inte hämta användarlista (kräver admin):", error.message);
+            });
+        } else if (uid) {
+            // Om man INTE är admin, men inloggad, lyssna bara på SIN EGEN användare
+            // Detta behövs för att se sin egen profilinfo
+            onSnapshot(doc(db, 'users', uid), async (docSnap) => {
+                if (docSnap.exists()) {
+                    const myData = { id: docSnap.id, ...docSnap.data() };
+                    // Uppdatera bara "usersData" med mig själv så profilsidan funkar
+                    usersData = [myData]; 
+                    
+                    const myShooters = await getMyShooters(uid);
+                    renderProfileInfo(docSnap, myShooters);
+                }
+            });
+        }
     }
 
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });

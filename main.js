@@ -36,6 +36,7 @@ function initializeAuthListener() {
     onAuthStateChanged(auth, async (user) => {
         const isAdmin = await checkAdminStatus(user);
         handleAdminUI(isAdmin);
+        initializeDataListeners(isAdmin);
         initializeDataListeners();
         if (user) {
             const docRef = doc(db, 'users', user.uid);
