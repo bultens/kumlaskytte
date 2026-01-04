@@ -117,10 +117,15 @@ export function showEditUserModal(user) {
     document.getElementById('edit-user-phone').value = user.phone || '';
     document.getElementById('edit-user-birthyear').value = user.birthyear || '';
     document.getElementById('edit-user-mailing-list').checked = user.mailingList || false;
-
+    // Sätt checkboxen baserat på user.isClubMember
+    const memberCheckbox = document.getElementById('edit-user-is-member');
+    if (memberCheckbox) {
+        memberCheckbox.checked = user.isClubMember === true;
+    }
+    
+    document.getElementById('edit-user-mailing-list').checked = user.mailingList || false;
     modal.classList.add('active');
 }
-
 export function showShareModal(title, url) {
     const modal = document.getElementById('shareModal');
     if (!modal) return;

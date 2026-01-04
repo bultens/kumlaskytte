@@ -1,261 +1,261 @@
 // admin-competition.js
-import { saveCompetition, getCompetitions, deleteCompetition, uploadCompetitionInvite } from "./data-service.js"; 
-import { showModal } from "./ui-handler.js";
+import { db } from "./firebase-config.js";
+import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { uploadCompetitionInvite, getCompetitions, deleteCompetition, saveCompetition } from "./data-service.js";
 
-let editingCompId = null;
+let competitions = [];
+let currentInviteUrl = null; // För att hålla koll på uppladdad fil URL
+let currentInvitePath = null; // För att hålla koll på storage path
 
 export async function initCompetitionAdmin() {
-    const container = document.getElementById('admin-competitions-list');
-    if (!container) return;
-
-    // Ladda lista
+    const addBtn = document.getElementById('btn-add-online-comp'); // Knappen "Skapa ny"
+    
+    // Ladda lista vid start
     await renderCompetitionList();
 
-    // Knappar
-    document.getElementById('show-create-competition-btn').addEventListener('click', () => {
-        resetForm();
-        document.getElementById('create-competition-container').classList.remove('hidden');
-        document.getElementById('show-create-competition-btn').classList.add('hidden');
-    });
+    // Lyssnare för "Skapa ny tävling"-knappen
+    if (addBtn) {
+        // Klona för att rensa gamla listeners
+        const newBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newBtn, addBtn);
+        
+        newBtn.addEventListener('click', () => {
+            openCompetitionModal(); 
+        });
+    }
 
-    document.getElementById('cancel-comp-btn').addEventListener('click', () => {
-        document.getElementById('create-competition-container').classList.add('hidden');
-        document.getElementById('show-create-competition-btn').classList.remove('hidden');
-    });
+    // Lyssnare för Modalens "Spara"-knapp
+    const saveBtn = document.getElementById('save-online-comp-btn');
+    if (saveBtn) {
+        const newSaveBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
-    document.getElementById('add-round-btn').addEventListener('click', () => addRoundRow());
-    document.getElementById('add-class-btn').addEventListener('click', () => addClassRow());
-    
-    document.getElementById('comp-count-best').addEventListener('change', (e) => {
-        const input = document.getElementById('comp-best-rounds-count');
-        if (e.target.checked) input.classList.remove('hidden');
-        else input.classList.add('hidden');
-    });
+        newSaveBtn.addEventListener('click', saveCompetitionFromModal);
+    }
 
-    document.getElementById('save-comp-btn').addEventListener('click', async () => {
-        await handleSave();
-    });
+    // Lyssnare för knappar inuti modalen (Lägg till omg/klass)
+    document.getElementById('add-round-btn')?.addEventListener('click', () => addRoundRow());
+    document.getElementById('add-class-btn')?.addEventListener('click', () => addClassRow());
+
+    // --- NYTT: FILUPPLADDNING (INBJUDAN) ---
+    const fileInput = document.getElementById('online-comp-invite-upload');
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Visa att det laddar (enkel UI-feedback)
+            const label = document.getElementById('online-comp-invite-label');
+            if(label) label.textContent = "Laddar upp...";
+
+            try {
+                // Anropa data-service
+                const result = await uploadCompetitionInvite(file);
+                currentInviteUrl = result.url;
+                currentInvitePath = result.path;
+                
+                if(label) label.textContent = `Fil vald: ${file.name}`;
+            } catch (error) {
+                console.error("Uppladdning misslyckades", error);
+                if(label) label.textContent = "Fel vid uppladdning";
+                alert("Kunde inte ladda upp filen.");
+            }
+        });
+    }
 }
 
 async function renderCompetitionList() {
     const container = document.getElementById('admin-competitions-list');
-    container.innerHTML = 'Laddar...';
+    if (!container) return;
+
+    container.innerHTML = '<p class="text-gray-500">Laddar tävlingar...</p>';
     
-    const competitions = await getCompetitions();
+    try {
+        competitions = await getCompetitions();
+    } catch (error) {
+        console.error("Fel vid hämtning av tävlingar:", error);
+        container.innerHTML = '<p class="text-red-500">Kunde inte hämta tävlingar.</p>';
+        return;
+    }
+
     container.innerHTML = '';
 
     if (competitions.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic">Inga tävlingar skapade än.</p>';
+        container.innerHTML = '<p class="text-gray-500 italic">Inga onlinetävlingar skapade än.</p>';
         return;
     }
 
     competitions.forEach(comp => {
         const div = document.createElement('div');
-        div.className = "bg-white p-4 rounded border flex justify-between items-center shadow-sm";
-        
-        let statusColor = 'bg-gray-200 text-gray-700';
-        if (comp.status === 'active') statusColor = 'bg-green-100 text-green-800';
-        if (comp.status === 'open') statusColor = 'bg-blue-100 text-blue-800';
-
+        div.className = "bg-white border rounded p-3 flex justify-between items-center mb-2 shadow-sm";
         div.innerHTML = `
             <div>
-                <h4 class="font-bold text-lg">${comp.name}</h4>
-                <div class="flex gap-2 text-sm mt-1">
-                    <span class="px-2 py-0.5 rounded text-xs font-bold uppercase ${statusColor}">${comp.status}</span>
-                    <span class="text-gray-600">📅 ${comp.startDate} - ${comp.endDate}</span>
-                    <span class="text-gray-600">🎯 ${comp.rounds ? comp.rounds.length : 0} omg</span>
+                <h4 class="font-bold text-blue-900">${comp.name}</h4>
+                <div class="text-xs text-gray-500 flex gap-2">
+                    <span>${comp.status === 'active' ? '🟢 Aktiv' : '🔴 Avslutad'}</span>
+                    <span>• ${comp.rounds ? comp.rounds.length : 0} omgångar</span>
+                    ${comp.inviteUrl ? `<a href="${comp.inviteUrl}" target="_blank" class="text-blue-500 hover:underline">📄 Inbjudan</a>` : ''}
                 </div>
             </div>
             <div class="flex gap-2">
-                <button class="edit-comp-btn px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded font-bold text-sm" data-id="${comp.id}">Redigera</button>
-                <button class="delete-comp-btn px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded font-bold text-sm" data-id="${comp.id}">Ta bort</button>
+                <button class="edit-comp-btn text-blue-600 hover:bg-blue-50 p-2 rounded" title="Redigera">✎</button>
+                <button class="delete-comp-btn text-red-600 hover:bg-red-50 p-2 rounded" title="Ta bort">🗑️</button>
             </div>
         `;
         
-        // Event listeners för knapparna direkt på elementet (för att slippa global delegation om vi vill)
-        div.querySelector('.edit-comp-btn').addEventListener('click', () => loadCompetitionForEdit(comp));
-        div.querySelector('.delete-comp-btn').addEventListener('click', async () => {
-            await deleteCompetition(comp.id);
-            await renderCompetitionList();
-        });
+        // Koppla events säkert med JS
+        const editBtn = div.querySelector('.edit-comp-btn');
+        editBtn.addEventListener('click', () => openCompetitionModal(comp));
 
+        const deleteBtn = div.querySelector('.delete-comp-btn');
+        deleteBtn.addEventListener('click', () => handleDeleteCompetition(comp.id));
+        
         container.appendChild(div);
     });
 }
 
-// Lägg till en rad för Omgång
+// --- MODAL HANTERING ---
+
+function openCompetitionModal(comp = null) {
+    const modal = document.getElementById('onlineCompetitionModal');
+    const title = document.getElementById('online-comp-modal-title');
+    
+    // Nollställ formulärdata
+    document.getElementById('online-comp-id').value = comp ? comp.id : '';
+    document.getElementById('online-comp-name').value = comp ? comp.name : '';
+    document.getElementById('online-comp-desc').value = comp ? comp.description : '';
+    document.getElementById('online-comp-status').value = comp ? comp.status : 'active';
+    
+    // Nollställ inbjudan
+    currentInviteUrl = comp ? comp.inviteUrl : null;
+    currentInvitePath = comp ? comp.invitePath : null;
+    const fileLabel = document.getElementById('online-comp-invite-label');
+    const fileInput = document.getElementById('online-comp-invite-upload');
+    if(fileInput) fileInput.value = ''; // Rensa input
+    
+    if (fileLabel) {
+        if (currentInviteUrl) {
+            fileLabel.innerHTML = `Sparad fil: <a href="${currentInviteUrl}" target="_blank" class="text-blue-600 underline">Visa</a> (Ladda upp ny för att byta)`;
+        } else {
+            fileLabel.textContent = "Ingen fil vald (PDF)";
+        }
+    }
+
+    // Rensa dynamiska listor
+    document.getElementById('comp-rounds-container').innerHTML = '';
+    document.getElementById('comp-classes-container').innerHTML = '';
+
+    if (comp) {
+        title.textContent = 'Redigera Tävling';
+        if (comp.rounds) comp.rounds.forEach(r => addRoundRow(r));
+        if (comp.classes) comp.classes.forEach(c => addClassRow(c));
+    } else {
+        title.textContent = 'Skapa Ny Tävling';
+        // Lägg till tomma rader som starthjälp
+        addRoundRow();
+        addClassRow();
+    }
+
+    modal.classList.add('active');
+    
+    // Hantera stängning
+    const closeBtn = document.getElementById('close-online-comp-modal');
+    // Använd onclick här för enkelhetens skull då elementet inte byts ut, 
+    // eller addEventListener med {once: true} om man vill vara strikt.
+    closeBtn.onclick = () => modal.classList.remove('active');
+}
+
 function addRoundRow(data = null) {
     const container = document.getElementById('comp-rounds-container');
     const div = document.createElement('div');
     div.className = "flex gap-2 items-center round-row mb-2";
-// Skapa HTML UTAN onclick
+    
     div.innerHTML = `
         <input type="text" placeholder="Namn (t.ex. Omg 1)" class="round-name flex-grow p-2 border rounded text-sm" value="${data ? data.name : ''}">
         <input type="date" class="round-end p-2 border rounded text-sm" value="${data ? data.endDate : ''}" title="Sista datum">
     `;
 
-    // Skapa knappen separat
+    // Skapa knapp med JS för att undvika CSP-fel
     const btn = document.createElement('button');
-    btn.className = "text-red-500 hover:text-red-700 font-bold px-2";
-    btn.innerHTML = "×";
-    // Lägg till lyssnare med JavaScript istället för HTML-attribut
-    btn.addEventListener('click', () => {
-        div.remove();
-    });
+    btn.type = "button";
+    btn.className = "text-red-500 hover:text-red-700 font-bold px-2 text-xl";
+    btn.innerHTML = "&times;";
+    btn.title = "Ta bort rad";
+    btn.addEventListener('click', () => div.remove());
 
     div.appendChild(btn);
     container.appendChild(div);
 }
 
-// Lägg till en rad för Klass
 function addClassRow(data = null) {
     const container = document.getElementById('comp-classes-container');
     const div = document.createElement('div');
-    div.className = "flex gap-2 items-center class-row bg-gray-100 p-2 rounded";
+    div.className = "flex gap-2 items-center class-row mb-2";
     
-    // Vi lägger till fält för Min/Max ålder för att kunna göra highlight-funktionen senare
     div.innerHTML = `
-        <div class="flex-grow grid grid-cols-3 gap-2">
-            <input type="text" placeholder="Klassnamn (t.ex. Lsi 11)" class="class-name col-span-3 md:col-span-1 p-2 border rounded text-sm" value="${data ? data.name : ''}">
-            <input type="number" placeholder="Min Ålder" class="class-min-age p-2 border rounded text-sm" value="${data ? data.minAge || '' : ''}">
-            <input type="number" placeholder="Max Ålder" class="class-max-age p-2 border rounded text-sm" value="${data ? data.maxAge || '' : ''}">
-        </div>
-        <button class="text-red-500 hover:text-red-700 font-bold px-2" onclick="this.parentElement.remove()">×</button>
+        <input type="text" placeholder="Klassnamn (t.ex. C3)" class="class-name flex-grow p-2 border rounded text-sm" value="${data ? data.name : ''}">
+        <input type="text" placeholder="Vapengrupp" class="class-group w-24 p-2 border rounded text-sm" value="${data ? data.group : ''}">
     `;
+
+    const btn = document.createElement('button');
+    btn.type = "button";
+    btn.className = "text-red-500 hover:text-red-700 font-bold px-2 text-xl";
+    btn.innerHTML = "&times;";
+    btn.title = "Ta bort rad";
+    btn.addEventListener('click', () => div.remove());
+
+    div.appendChild(btn);
     container.appendChild(div);
 }
 
-async function handleSave() {
-    const name = document.getElementById('comp-name').value;
-    const description = document.getElementById('comp-description').value; // NYTT
-    const fileInput = document.getElementById('comp-invite-file'); // NYTT
-    
-    if (!name) return alert("Ange ett namn!");
+async function saveCompetitionFromModal() {
+    const id = document.getElementById('online-comp-id').value;
+    const name = document.getElementById('online-comp-name').value;
+    const desc = document.getElementById('online-comp-desc').value;
+    const status = document.getElementById('online-comp-status').value;
 
-    let inviteData = null;
-
-    // 1. Hantera filuppladdning om en ny fil är vald
-    if (fileInput.files.length > 0) {
-        try {
-            const file = fileInput.files[0];
-            // Visa någon form av "Laddar..." här om filen är stor, men vi kör enkelt nu
-            const uploaded = await uploadCompetitionInvite(file);
-            inviteData = {
-                url: uploaded.url,
-                path: uploaded.path
-            };
-        } catch (error) {
-            alert("Kunde inte ladda upp filen.");
-            return;
-        }
+    if (!name) {
+        alert("Ange ett namn på tävlingen.");
+        return;
     }
 
     // Samla in Omgångar
     const rounds = [];
     document.querySelectorAll('.round-row').forEach(row => {
         const rName = row.querySelector('.round-name').value;
-        const rDate = row.querySelector('.round-end').value;
-        if (rName && rDate) rounds.push({ name: rName, endDate: rDate });
+        const rEnd = row.querySelector('.round-end').value;
+        if (rName) rounds.push({ name: rName, endDate: rEnd });
     });
 
     // Samla in Klasser
     const classes = [];
     document.querySelectorAll('.class-row').forEach(row => {
         const cName = row.querySelector('.class-name').value;
-        const cMin = row.querySelector('.class-min-age').value;
-        const cMax = row.querySelector('.class-max-age').value;
-        if (cName) classes.push({ 
-            name: cName, 
-            minAge: cMin ? parseInt(cMin) : 0, 
-            maxAge: cMax ? parseInt(cMax) : 99 
-        });
+        const cGroup = row.querySelector('.class-group').value;
+        if (cName) classes.push({ name: cName, group: cGroup });
     });
 
-    const competitionData = {
-        name: name,
-        description: description, // NYTT
-        status: document.getElementById('comp-status').value,
-        startDate: document.getElementById('comp-start-date').value,
-        endDate: document.getElementById('comp-end-date').value,
-        basePrice: parseInt(document.getElementById('comp-base-price').value) || 0,
-        extraPrice: parseInt(document.getElementById('comp-extra-price').value) || 0,
-        countBestRounds: document.getElementById('comp-count-best').checked,
-        bestRoundsCount: parseInt(document.getElementById('comp-best-rounds-count').value) || 0,
-        rounds: rounds,
-        classes: classes
+    const compData = {
+        name,
+        description: desc,
+        status,
+        rounds,
+        classes,
+        // Lägg till inbjudan om den finns
+        inviteUrl: currentInviteUrl || null,
+        invitePath: currentInvitePath || null
     };
 
-    // Om vi laddade upp en ny fil, spara den. Annars låt bli (så skriver vi inte över gammal om den fanns)
-    if (inviteData) {
-        competitionData.inviteUrl = inviteData.url;
-        competitionData.invitePath = inviteData.path;
-    }
-
-    await saveCompetition(competitionData, editingCompId);
+    // Spara
+    await saveCompetition(compData, id || null);
     
-    // Reset UI
-    document.getElementById('create-competition-container').classList.add('hidden');
-    document.getElementById('show-create-competition-btn').classList.remove('hidden');
-    await renderCompetitionList();
+    document.getElementById('onlineCompetitionModal').classList.remove('active');
+    renderCompetitionList();
 }
 
-function loadCompetitionForEdit(comp) {
-    editingCompId = comp.id;
-    document.getElementById('comp-name').value = comp.name;
-    document.getElementById('comp-description').value = comp.description || ''; // NYTT
-    document.getElementById('comp-status').value = comp.status;
-    document.getElementById('comp-start-date').value = comp.startDate;
-    document.getElementById('comp-end-date').value = comp.endDate;
-    document.getElementById('comp-base-price').value = comp.basePrice;
-    document.getElementById('comp-extra-price').value = comp.extraPrice;
-    
-    // Hantera befintlig inbjudan-fil
-    const currentInviteDiv = document.getElementById('current-invite-display');
-    const currentInviteLink = document.getElementById('current-invite-link');
-    const fileInput = document.getElementById('comp-invite-file');
-    
-    fileInput.value = ''; // Rensa input
-
-    if (comp.inviteUrl) {
-        currentInviteDiv.classList.remove('hidden');
-        currentInviteLink.href = comp.inviteUrl;
-    } else {
-        currentInviteDiv.classList.add('hidden');
+async function handleDeleteCompetition(id) {
+    if(confirm("Vill du ta bort tävlingen? Alla resultat kopplade till den försvinner.")) {
+        await deleteCompetition(id);
+        renderCompetitionList();
     }
-
-    document.getElementById('comp-count-best').checked = comp.countBestRounds || false;
-    const countInput = document.getElementById('comp-best-rounds-count');
-    countInput.value = comp.bestRoundsCount || '';
-    if (comp.countBestRounds) countInput.classList.remove('hidden');
-    else countInput.classList.add('hidden');
-
-    document.getElementById('comp-rounds-container').innerHTML = '';
-    if (comp.rounds) comp.rounds.forEach(r => addRoundRow(r));
-
-    document.getElementById('comp-classes-container').innerHTML = '';
-    if (comp.classes) comp.classes.forEach(c => addClassRow(c));
-
-    document.getElementById('create-competition-container').classList.remove('hidden');
-    document.getElementById('show-create-competition-btn').classList.add('hidden');
-    
-    document.getElementById('create-competition-container').scrollIntoView({ behavior: 'smooth' });
-}
-
-function resetForm() {
-    editingCompId = null;
-    document.getElementById('comp-name').value = '';
-    document.getElementById('comp-description').value = ''; // NYTT
-    document.getElementById('comp-invite-file').value = ''; // NYTT
-    document.getElementById('current-invite-display').classList.add('hidden'); // NYTT
-    
-    document.getElementById('comp-status').value = 'draft';
-    document.getElementById('comp-start-date').value = '';
-    document.getElementById('comp-end-date').value = '';
-    document.getElementById('comp-base-price').value = '';
-    document.getElementById('comp-extra-price').value = '';
-    document.getElementById('comp-rounds-container').innerHTML = '';
-    document.getElementById('comp-classes-container').innerHTML = '';
-    
-    addRoundRow();
-    addClassRow();
 }

@@ -1215,13 +1215,15 @@ export function setupEventListeners() {
             const phone = document.getElementById('edit-user-phone').value;
             const birthyear = document.getElementById('edit-user-birthyear').value;
             const mailingList = document.getElementById('edit-user-mailing-list').checked;
+            const isClubMember = document.getElementById('edit-user-is-member').checked;
             
             const updatedData = {
                 name,
                 address,
                 phone,
                 birthyear: birthyear ? Number(birthyear) : null,
-                mailingList
+                mailingList,
+                isClubMember: isClubMember
             };
 
             await updateProfileByAdmin(userId, updatedData);
