@@ -8,7 +8,6 @@ import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writ
 import { initFileManager } from "./admin-documents.js";
 import { initCompetitionAdmin } from "./admin-competition.js";
 
-
 // Ver. 3.11
 export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
@@ -34,20 +33,45 @@ async function checkAdminStatus(user) {
 
 function initializeAuthListener() {
     onAuthStateChanged(auth, async (user) => {
-        const isAdmin = await checkAdminStatus(user);
-        handleAdminUI(isAdmin);
-        initializeDataListeners(isAdmin);
-        initializeDataListeners();
         if (user) {
+            // 1. Spara vem som är inloggad globalt
+            currentUserId = user.uid;
+
+            // 2. Kolla Admin-status
+            const isAdmin = await checkAdminStatus(user);
+            
+            // 3. Uppdatera UI för Admin/User
+            handleAdminUI(isAdmin);
+
+            // 4. Starta datalyssnare (VIKTIGT: Skicka med isAdmin!)
+            initializeDataListeners(isAdmin);
+
+            // 5. Hämta profilinfo för headern
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getFirestoreDoc(docRef);
+            
+            // Uppdatera profil-ikon och välkomsttext
             renderProfileInfo(docSnap);
-            const name = docSnap.data()?.name || user.email;
+
+            const userData = docSnap.exists() ? docSnap.data() : {};
+            const name = userData.name || user.email;
+            
             const profileWelcomeMessage = document.getElementById('profile-welcome-message');
             if (profileWelcomeMessage) {
                 profileWelcomeMessage.textContent = `Välkommen, ${name}`;
             }
+
         } else {
+            // --- UTLOGGAD ---
+            currentUserId = null;
+            
+            // Ta bort admin-gränssnitt
+            handleAdminUI(false);
+            
+            // Stäng av/rensa lyssnare (skicka false)
+            initializeDataListeners(false);
+            
+            // Töm profilinfo
             renderProfileInfo(null);
         }
     });
