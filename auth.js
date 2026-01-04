@@ -67,31 +67,53 @@ onAuthStateChanged(auth, async (user) => {
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('register-email').value; 
-        const password = document.getElementById('register-password').value; 
+    const emailInput = document.getElementById('register-email');
+        const passwordInput = document.getElementById('register-password');
+
+        // Säkerhetskoll så elementen finns
+        if (!emailInput || !passwordInput) {
+            console.error("Hittar inte input-fälten. Kontrollera ID i index.html");
+            return;
+        }
+
+        const email = emailInput.value;     // Här sparar vi värdet i variabeln 'email'
+        const password = passwordInput.value;
 
         try {
+            // 1. Skapa inloggning i Authentication
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            
-            // SKAPA ANVÄNDARDOKUMENT
-            // Notera: isClubMember sätts till false. Admin måste ändra detta manuellt senare.
+
+            // 2. Skapa användardokument i Firestore
+            // VIKTIGT: Vi använder variabeln 'email' här, inte 'emailVal'
             await setDoc(doc(db, "users", user.uid), {
-                email: email, // Rättat variabelnamn
-                name: email.split('@')[0], // Sätter ett default-namn
+                email: email, 
+                name: email.split('@')[0], // Skapar ett tillfälligt namn baserat på mailen
                 isAdmin: false,
-                isClubMember: false, // NYTT: Styr tillgång till interna topplistor/resultat
+                isClubMember: false, // Måste vara false för att passera reglerna
+                mailingList: false,
                 createdAt: serverTimestamp()
             });
 
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
+            
+            // Göm modalen efter lyckad registrering
             if (registerPanel) registerPanel.classList.add('hidden');
+
         } catch (error) {
-            console.error(error); // Bra för felsökning
+            console.error("Registreringsfel:", error);
+            
+            // Om det kraschar i steg 2 (Databasen), ta bort användaren från Auth så den inte fastnar
+            if (auth.currentUser) {
+                await deleteUser(auth.currentUser).catch(err => console.error("Kunde inte städa upp:", err));
+            }
+
             if (error.code === 'auth/email-already-in-use') {
-                showModal('errorModal', 'Denna e-postadress är redan registrerad.');
+                showModal('errorModal', 'Denna e-postadress är redan registrerad. Logga in istället.');
+            } else if (error.code === 'permission-denied') {
+                showModal('errorModal', 'Behörighet saknas. Databasreglerna stoppade skapandet.');
             } else {
-                showModal('errorModal', error.message);
+                showModal('errorModal', `Ett fel uppstod: ${error.message}`);
             }
         }
     });
