@@ -17,40 +17,37 @@ export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
 
-// data-service.js
+// data-service.js - Ersätt funktionen initializeDataListeners med denna:
 
-// 1. VIKTIGT: Lägg till 'isAdmin' i parentesen här
 export function initializeDataListeners(isAdmin = false) {
+    console.log("Startar datalyssnare. Admin-status:", isAdmin); // <-- KOLLA KONSOLEN EFTER DENNA
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
     if (auth.currentUser) {
         
-        // --- 1. Hämta Användare (BARA FÖR ADMIN) ---
-        // Det är detta block som saknades eller låg fel tidigare
+        // --- 1. ANVÄNDARE (Endast för Admin) ---
         if (isAdmin) {
             onSnapshot(collection(db, 'users'), async (snapshot) => {
                 usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Rendera listan i Admin-vyn
+                // Rendera listor
                 renderAdminsAndUsers(usersData, isAdmin, uid);
                 renderUserReport(usersData);
                 
-                // Uppdatera även profilinfo för admin själv
+                // Om jag är admin vill jag ändå se min egen profilinfo i headern
                 if (uid) {
                     const myProfile = usersData.find(u => u.id === uid);
                     const myShooters = await getMyShooters(uid);
-                    // Skapa ett "fake" docSnap objekt för att återanvända renderProfileInfo
-                    const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
-                    renderProfileInfo(fakeDocSnap, myShooters);
+                    // Fake-objekt för att återanvända renderProfileInfo
+                    const docSnap = { exists: () => !!myProfile, data: () => myProfile };
+                    renderProfileInfo(docSnap, myShooters);
                 }
             }, (error) => {
-                console.warn("Kunde inte hämta användarlista:", error.message);
+                console.warn("Kunde inte hämta användare (Behörighet saknas?):", error.message);
             });
         } else if (uid) {
-            // Om man INTE är admin, lyssna bara på sin EGEN användare för profil-infon
+            // Vanliga användare: Lyssna bara på sig själv
             onSnapshot(doc(db, 'users', uid), async (docSnap) => {
                 if (docSnap.exists()) {
-                    // Vi lägger bara in oss själva i usersData så appen inte kraschar
                     usersData = [{ id: docSnap.id, ...docSnap.data() }];
                     const myShooters = await getMyShooters(uid);
                     renderProfileInfo(docSnap, myShooters);
@@ -58,91 +55,65 @@ export function initializeDataListeners(isAdmin = false) {
             });
         }
 
-        // --- 2. Skyttar (Alla inloggade får se skyttar) ---
+        // --- 2. ÖVRIG DATA (Skyttar, Resultat etc) ---
+        
+        // Skyttar
         onSnapshot(collection(db, 'shooters'), (snapshot) => {
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderShootersAdmin(allShootersData);
-            
-            // Uppdatera profil-vyn om vi är inne på "Mitt Konto"
-            if(uid) {
-                 getMyShooters(uid).then(myShooters => {
-                     // Uppdatera UI vid behov
-                 });
-            }
         });
 
-        // --- 3. Tävlingsklasser ---
+        // Klasser
         onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
             competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderClassesAdmin(competitionClasses);
         });
 
-        // --- 4. Resultat ---
+        // Resultat
         onSnapshot(collection(db, 'results'), (snapshot) => {
-            // Spara senaste resultaten i cache
             latestResultsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Uppdatera topplistor
             renderTopLists(latestResultsCache, allShootersData);
-            
-            // Uppdatera offentliga diagram om vi står på en sådan sida
-            const publicStatEl = document.getElementById('public-shooter-stats');
-            if (publicStatEl && !publicStatEl.classList.contains('hidden')) {
-                 // Trigger update om nödvändigt
-            }
         });
     }
 
-    // --- 5. PUBLIK DATA (Hämtas alltid) ---
-
-    // Nyheter
-    const newsQuery = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
-    onSnapshot(newsQuery, (snapshot) => {
-        newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // --- 3. PUBLIK DATA (Nyheter, Kalender etc) ---
+    // Dessa ska alltid laddas oavsett inloggning
+    
+    onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc')), (snap) => {
+        newsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderNews(newsData, isAdmin);
     });
 
-    // Kalender
-    const eventsQuery = query(collection(db, 'events'), orderBy('date', 'asc'));
-    onSnapshot(eventsQuery, (snapshot) => {
-        eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    onSnapshot(query(collection(db, 'events'), orderBy('date', 'asc')), (snap) => {
+        eventsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderEvents(eventsData, isAdmin);
     });
-
-    // Tävlingar
-    const compQuery = query(collection(db, 'competitions'), orderBy('startDate', 'asc'));
-    onSnapshot(compQuery, (snapshot) => {
-        competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    onSnapshot(query(collection(db, 'competitions'), orderBy('startDate', 'asc')), (snap) => {
+        competitionsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderCompetitions(competitionsData, isAdmin);
     });
 
-    // Historia
-    const historyQuery = query(collection(db, 'history'), orderBy('priority', 'asc'));
-    onSnapshot(historyQuery, (snapshot) => {
-        historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    onSnapshot(query(collection(db, 'history'), orderBy('priority', 'asc')), (snap) => {
+        historyData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderHistory(historyData, isAdmin);
     });
 
-    // Bilder
-    const imagesQuery = query(collection(db, 'images'), orderBy('year', 'desc'));
-    onSnapshot(imagesQuery, (snapshot) => {
-        imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    onSnapshot(query(collection(db, 'images'), orderBy('year', 'desc')), (snap) => {
+        imageData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderImages(imageData, isAdmin);
-        renderHomeAchievements(imageData); // Om du har denna funktion
+        if(typeof renderHomeAchievements === 'function') renderHomeAchievements(imageData);
     });
 
-    // Sponsorer
-    onSnapshot(collection(db, 'sponsors'), (snapshot) => {
-        sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    onSnapshot(collection(db, 'sponsors'), (snap) => {
+        sponsorsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderSponsors(sponsorsData, isAdmin);
-        renderContactInfo(sponsorsData); // Om kontaktinfo ligger här
         toggleSponsorsNavLink(sponsorsData);
     });
-
-    // Inställningar
-    onSnapshot(collection(db, 'settings'), (snapshot) => {
-        if (!snapshot.empty) {
-            const settings = snapshot.docs[0].data();
+    
+    onSnapshot(collection(db, 'settings'), (snap) => {
+        if (!snap.empty) {
+            const settings = snap.docs[0].data();
             updateHeaderColor(settings.headerColor);
             renderSiteSettings(settings);
         }
