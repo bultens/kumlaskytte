@@ -1,11 +1,12 @@
 // auth.js
 import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.12 (Fixad ID-matchning för registrering)
+// Ver. 2.14 (Synkad med miljöns krav på sökvägar)
+export const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -42,14 +43,19 @@ function toggleProfileUI(user) {
 onAuthStateChanged(auth, async (user) => {
     currentUserId = user ? user.uid : null;
     if (user) {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const userData = docSnap.data();
-            const name = userData.name || userData.email;
-            if (profileWelcomeMessage) {
-                profileWelcomeMessage.textContent = `Välkommen, ${name}`;
+        // Sökväg som följer miljöns regler
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+        try {
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const name = userData.name || userData.email;
+                if (profileWelcomeMessage) {
+                    profileWelcomeMessage.textContent = `Välkommen, ${name}`;
+                }
             }
+        } catch (err) {
+            console.error("Fel vid hämtning av användardata:", err);
         }
     }
     toggleProfileUI(user);
@@ -59,7 +65,6 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Hämta värden från de korrekta ID:n som finns i index.html
         const emailVal = document.getElementById('reg-email').value;
         const passVal = document.getElementById('reg-password').value;
 
@@ -67,22 +72,22 @@ if (registerForm) {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
             
-            // Spara användaren i Firestore
-            await setDoc(doc(db, "users", user.uid), {
+            // Vi sparar i den publika sökvägen så att administratörer kan se användaren
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+            
+            await setDoc(userDocRef, {
+                uid: user.uid,
                 email: emailVal,
                 isAdmin: false,
-                createdAt: new Date().toISOString()
+                createdAt: serverTimestamp(),
+                name: ''
             });
             
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
             if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
             console.error("Registreringsfel:", error);
-            if (error.code === 'auth/email-already-in-use') {
-                showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
-            } else {
-                showModal('errorModal', 'Kunde inte skapa konto: ' + error.message);
-            }
+            showModal('errorModal', 'Ett fel uppstod: ' + error.message);
         }
     });
 }
@@ -98,8 +103,7 @@ if (userLoginForm) {
             showModal('confirmationModal', 'Inloggning lyckades!');
             if (userLoginPanel) userLoginPanel.classList.add('hidden');
         } catch (error) {
-            let userMessage = 'E-post eller lösenord är felaktigt.';
-            showModal('errorModal', userMessage);
+            showModal('errorModal', 'E-post eller lösenord är felaktigt.');
         }
     });
 }
@@ -116,7 +120,7 @@ if (logoutProfileBtn) {
     });
 }
 
-// Hantera växling mellan Login och Register
+// ... Hjälplänkar för UI ...
 const linkToReg = document.getElementById('show-register-link');
 const linkToLogin = document.getElementById('show-login-link-from-reg');
 
@@ -162,35 +166,21 @@ if (confirmDeleteProfileBtn) {
         const userId = user.uid;
 
         try {
-            const shootersRef = collection(db, "shooters");
+            const shootersRef = collection(db, 'artifacts', appId, 'public', 'data', 'shooters');
             const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
             const querySnapshot = await getDocs(q);
             const batch = writeBatch(db);
 
             querySnapshot.forEach((docSnap) => {
-                const shooterData = docSnap.data();
-                const parents = shooterData.parentUserIds || [];
-                if (parents.length === 1 && parents.includes(userId)) {
-                    batch.update(docSnap.ref, {
-                        parentUserIds: arrayRemove(userId),
-                        requiresAdminAction: true, 
-                        adminNote: "Föräldern raderade sitt konto. Profilen är nu föräldralös."
-                    });
-                } else {
-                    batch.update(docSnap.ref, { parentUserIds: arrayRemove(userId) });
-                }
+                batch.update(docSnap.ref, { parentUserIds: arrayRemove(userId) });
             });
 
-            batch.delete(doc(db, "users", userId));
+            batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId));
             await batch.commit();
             await deleteUser(user);
             showModal('confirmationModal', "Ditt konto har tagits bort.");
         } catch (error) {
-            if (error.code === 'auth/requires-recent-login') {
-                showModal('errorModal', "Av säkerhetsskäl måste du logga ut och logga in igen innan du kan ta bort kontot.");
-            } else {
-                showModal('errorModal', "Ett fel uppstod: " + error.message);
-            }
+            showModal('errorModal', "Ett fel uppstod: " + error.message);
         }
     });
 }

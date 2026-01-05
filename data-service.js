@@ -17,6 +17,8 @@ export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
 
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
+
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
@@ -51,16 +53,9 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
     
-    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), async (snapshot) => { 
-        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
-        renderUserReport(usersData);
-        if (uid) {
-            const myProfile = usersData.find(u => u.id === uid);
-            const myShooters = await getMyShooters(uid);
-            const fakeDocSnap = { exists: () => !!myProfile, data: () => myProfile };
-            renderProfileInfo(fakeDocSnap, myShooters); 
-        }
+    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snapshot) => {
+    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
