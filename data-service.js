@@ -28,6 +28,7 @@ export function initializeDataListeners(isAdmin = false) {
         // --- 1. ANVÄNDARE (Endast för Admin) ---
         if (isAdmin) {
             onSnapshot(collection(db, 'users'), async (snapshot) => {
+                console.log("🔥 Databasen svarade! Antal användare funna:", snapshot.size);
                 usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 // Rendera listor
                 renderAdminsAndUsers(usersData, isAdmin, uid);
