@@ -1,7 +1,7 @@
 // auth.js
 import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, getFirestore, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, updateDoc, arrayRemove, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, getFirestore, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, updateDoc, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
@@ -67,53 +67,28 @@ onAuthStateChanged(auth, async (user) => {
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-    const emailInput = document.getElementById('register-email');
-        const passwordInput = document.getElementById('register-password');
-
-        // Säkerhetskoll så elementen finns
-        if (!emailInput || !passwordInput) {
-            console.error("Hittar inte input-fälten. Kontrollera ID i index.html");
-            return;
-        }
-
-        const email = emailInput.value;     // Här sparar vi värdet i variabeln 'email'
-        const password = passwordInput.value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value; // Ändrat från reg-password till register-email/password matchning i HTML? 
+        // OBS: I din HTML heter inputen "reg-email" och "reg-password". Vi måste matcha det.
+        // Hämta input baserat på vad de faktiskt heter i din HTML (globala modalerna)
+        const emailVal = document.getElementById('reg-email').value;
+        const passVal = document.getElementById('reg-password').value;
 
         try {
-            // 1. Skapa inloggning i Authentication
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
-
-            // 2. Skapa användardokument i Firestore
-            // VIKTIGT: Vi använder variabeln 'email' här, inte 'emailVal'
             await setDoc(doc(db, "users", user.uid), {
-                email: email, 
-                name: email.split('@')[0], // Skapar ett tillfälligt namn baserat på mailen
-                isAdmin: false,
-                isClubMember: false, // Måste vara false för att passera reglerna
-                mailingList: false,
-                createdAt: serverTimestamp()
+                email: emailVal,
+                isAdmin: false
             });
-
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
-            
-            // Göm modalen efter lyckad registrering
+            // Göm modalen efter lyckad reg
             if (registerPanel) registerPanel.classList.add('hidden');
-
         } catch (error) {
-            console.error("Registreringsfel:", error);
-            
-            // Om det kraschar i steg 2 (Databasen), ta bort användaren från Auth så den inte fastnar
-            if (auth.currentUser) {
-                await deleteUser(auth.currentUser).catch(err => console.error("Kunde inte städa upp:", err));
-            }
-
             if (error.code === 'auth/email-already-in-use') {
-                showModal('errorModal', 'Denna e-postadress är redan registrerad. Logga in istället.');
-            } else if (error.code === 'permission-denied') {
-                showModal('errorModal', 'Behörighet saknas. Databasreglerna stoppade skapandet.');
+                showModal('errorModal', 'Denna e-postadress är redan registrerad. Vänligen logga in istället.');
             } else {
-                showModal('errorModal', `Ett fel uppstod: ${error.message}`);
+                showModal('errorModal', error.message);
             }
         }
     });
