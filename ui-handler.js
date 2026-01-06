@@ -851,7 +851,7 @@ export async function renderProfileInfo(user) {
         
         if (userDoc.exists()) {
             const data = userDoc.data();
-            container.innerHTML = 
+            container.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-4">
                         <div>
@@ -877,8 +877,8 @@ export async function renderProfileInfo(user) {
                             <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
                         </div>
                     </div>
-                </div>
-            ;
+                </div> 
+            `;
         }
     } catch (error) {
         console.error("Fel vid rendering av profilinfo:", error);
