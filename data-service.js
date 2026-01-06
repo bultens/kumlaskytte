@@ -97,11 +97,15 @@ export async function addOrUpdateDocument(collectionName, docId, data, successMe
 }
 
 export async function deleteDocument(docId, collectionName, seriesId) {
-    if (!isAdminLoggedIn) {
+    // Tillåt medlemmar att ta bort sina egna resultat och skyttar
+    const userOwnedCollections = ['results', 'shooters'];
+    
+    if (!isAdminLoggedIn && !userOwnedCollections.includes(collectionName)) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
-    try {
+    
+    try {   
         if (collectionName === 'events' && seriesId) {
             const q = query(collection(db, collectionName), where("seriesId", "==", seriesId));
             const querySnapshot = await getDocs(q);
