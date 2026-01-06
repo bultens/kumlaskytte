@@ -29,7 +29,7 @@ async function checkAdminStatus(user) {
         }
     }
     currentUserId = null;
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+    const docRef = doc(db, 'users', user.uid);
     return false;
 }
 

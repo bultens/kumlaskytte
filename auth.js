@@ -5,8 +5,8 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, wr
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.18 (Automatisk korrigering av admin-datatyp och utökad loggning)
-let currentUserId = null;
+// Ver. 2.19 (Städad och synkad med standard-sökvägar)
+export let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -48,31 +48,10 @@ onAuthStateChanged(auth, async (user) => {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const userData = docSnap.data();
-                const isAdminValue = userData.isAdmin;
-                const isAdminType = typeof isAdminValue;
-                
-                console.log(`--- Autentiseringskontroll ---`);
-                console.log(`Email: ${userData.email}`);
-                console.log(`UID: ${user.uid}`);
-                console.log(`isAdmin värde:`, isAdminValue);
-                console.log(`isAdmin datatyp: ${isAdminType}`);
-
-                // AUTOMATISK KORRIGERING: 
-                // Om isAdmin är strängen "true", ändra till boolean true i databasen.
-                // Detta krävs för att Firebase Security Rules ska godkänna isAdmin() kontrollen.
-                if (isAdminValue === "true" || (isAdminType === "string" && isAdminValue.toLowerCase() === "true")) {
-                    console.warn("KORRIGERAR: isAdmin är en sträng. Konverterar till boolean för att matcha Security Rules...");
-                    await updateDoc(docRef, { isAdmin: true });
-                    console.log("KORRIGERING KLART: Ladda om sidan för att aktivera reglerna.");
-                }
-
                 const name = userData.name || userData.email;
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
-            } else {
-                console.error("KRITISKT FEL: Inget dokument hittades i /users/ med ID: " + user.uid);
-                console.log("Kontrollera att dokumentets namn i Firestore matchar UID ovan exakt.");
             }
         } catch (err) {
             console.error("Fel vid hämtning av användardata:", err);
@@ -84,17 +63,14 @@ onAuthStateChanged(auth, async (user) => {
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const emailVal = document.getElementById('reg-email').value.trim();
         const passVal = document.getElementById('reg-password').value;
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
-            
             const userDocRef = doc(db, 'users', user.uid);
             
-            // Säkerställ att vi skickar med booleans (false) och inte strängar
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,

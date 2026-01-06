@@ -53,7 +53,7 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
     
-    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (snapshot) => {
+    onSnapshot(collection(db, 'users'), (snapshot) => {
     usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
     });
