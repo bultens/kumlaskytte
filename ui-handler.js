@@ -307,6 +307,27 @@ export function handleAdminUI(isAdmin) {
     }
 }
 
+
+export function toggleProfileUI(user, isAdmin) {
+    const showLoginLink = document.getElementById('show-login-link');
+    const profilePanel = document.getElementById('profile-panel');
+    const adminIndicator = document.getElementById('admin-indicator');
+
+    if (user) {
+        // Användare inloggad
+        if (showLoginLink) showLoginLink.classList.add('hidden');
+        if (profilePanel) profilePanel.classList.remove('hidden');
+        if (adminIndicator) {
+            isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
+        }
+    } else {
+        // Utloggad
+        if (showLoginLink) showLoginLink.classList.remove('hidden');
+        if (profilePanel) profilePanel.classList.add('hidden');
+        if (adminIndicator) adminIndicator.classList.add('hidden');
+    }
+}
+
 export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
     const news = newsData;
     const homeNewsContainer = document.getElementById('home-news-container');

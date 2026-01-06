@@ -7,17 +7,16 @@ import {
     signOut as firebaseSignOut 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initializeDataListeners, setCurrentUserId } from "./data-service.js"; // Notera: setCurrentUserId
+import { initializeDataListeners, setCurrentUserId } from "./data-service.js";
 import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate } from "./ui-handler.js";
 
-// Ver. 3.17 - Fullständig fil med fixad initieringsföljd för admin-listor
+// Ver. 3.17 - Fixat importfelet genom att lägga till toggleProfileUI i ui-handler
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
 
 onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
-        // Uppdatera nuvarande användar-ID i datatjänsten på ett säkert sätt
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
@@ -35,8 +34,6 @@ onAuthStateChanged(auth, async (user) => {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
             }
-            
-            // Uppdatera profilsidan
             await renderProfileInfo(user);
         } catch (err) {
             console.error("Fel vid hämtning av användarprofil:", err);
@@ -46,7 +43,6 @@ onAuthStateChanged(auth, async (user) => {
             setCurrentUserId(null);
         }
         
-        // Hantera navigering för utloggade
         if (window.location.hash !== '#hem' && window.location.hash !== '') {
             const publicHashes = ['#hem', '#nyheter', '#kalender', '#bilder', '#omoss', '#topplistor', '#tavlingar'];
             if (!publicHashes.some(h => window.location.hash.startsWith(h))) {
@@ -55,32 +51,23 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
 
-    /**
-     * KRITISK ORDNINGSFÖLJD FÖR ADMIN-LISTOR:
-     * 1. handleAdminUI(isAdmin) sätter 'isAdminLoggedIn' till true i ui-handler.js.
-     * 2. initializeDataListeners() startar onSnapshot-lyssnarna.
-     * Om handleAdminUI inte körs först, kommer render-funktionerna (för tävlingar/medlemmar) 
-     * att avbrytas eftersom de tror att användaren inte är admin.
-     */
+    // Dessa körs alltid för att säkerställa att rätt UI visas för admin/besökare
     handleAdminUI(isAdmin); 
     initializeDataListeners(); 
-    toggleProfileUI(user, isAdmin);
+    toggleProfileUI(user, isAdmin); 
 });
 
 // --- AUTH FUNKTIONER ---
-
 export async function signUp(email, password) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
         await setDoc(doc(db, 'users', user.uid), {
             email: email,
             isAdmin: false,
             mailingList: false,
             createdAt: serverTimestamp()
         });
-        
         return user;
     } catch (error) {
         console.error("Registreringsfel:", error);
@@ -107,8 +94,7 @@ export async function signOut() {
     }
 }
 
-// --- FORM HANTERING (Behåller allt från din originalfil) ---
-
+// --- FORM HANTERING ---
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('user-login-form');
     const registerForm = document.getElementById('register-form');
@@ -146,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Växla mellan logga in / registrera
     const showRegisterLink = document.getElementById('show-register-link');
     if (showRegisterLink) {
         showRegisterLink.addEventListener('click', (e) => {
