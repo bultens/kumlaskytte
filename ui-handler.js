@@ -309,23 +309,42 @@ export function handleAdminUI(isAdmin) {
 
 
 export function toggleProfileUI(user, isAdmin) {
-    const profileNavLink = document.getElementById('profile-nav-link');
-    const resultsNavLink = document.getElementById('results-nav-link');
     const showLoginLink = document.getElementById('show-login-link');
     const profilePanel = document.getElementById('profile-panel');
+    const adminIndicator = document.getElementById('admin-indicator');
+    
+    // Desktop-länkar
+    const resultsNavLink = document.getElementById('results-nav-link');
+    const profileNavLink = document.getElementById('profile-nav-link');
+    
+    // Mobil-länkar (nya rader för att matcha din index.html)
+    const mobileResultsLink = document.getElementById('mobile-results-nav-link');
+    const mobileProfileLink = document.getElementById('mobile-profile-nav-link');
 
     if (user) {
-        // Visa länkar för inloggad medlem
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
-        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
         if (showLoginLink) showLoginLink.classList.add('hidden');
         if (profilePanel) profilePanel.classList.remove('hidden');
+        
+        // Visa resultat och profil
+        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
+        if (profileNavLink) profileNavLink.classList.remove('hidden');
+        if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
+        if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
+        
+        if (adminIndicator) {
+            isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
+        }
     } else {
-        // Göm länkar för utloggad
-        if (profileNavLink) profileNavLink.classList.add('hidden');
-        if (resultsNavLink) resultsNavLink.classList.add('hidden');
         if (showLoginLink) showLoginLink.classList.remove('hidden');
         if (profilePanel) profilePanel.classList.add('hidden');
+        
+        // Dölj resultat och profil
+        if (resultsNavLink) resultsNavLink.classList.add('hidden');
+        if (profileNavLink) profileNavLink.classList.add('hidden');
+        if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
+        if (mobileProfileLink) mobileProfileLink.classList.add('hidden');
+        
+        if (adminIndicator) adminIndicator.classList.add('hidden');
     }
 }
 
