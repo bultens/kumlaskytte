@@ -3,9 +3,9 @@ import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
-import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
+import { showModal, hideModal, showDeleteProfileModal, handleAdminUI } from "./ui-handler.js";
 
-// Ver. 2.19 (Städad och synkad med standard-sökvägar)
+// Ver. 2.21 (Kumla Skytteförening - Fixad admin-synkronisering)
 export let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -18,8 +18,12 @@ const userLoginPanel = document.getElementById('user-login-panel');
 const registerForm = document.getElementById('register-form');
 const userLoginForm = document.getElementById('user-login-form');
 
-function toggleProfileUI(user) {
+function toggleProfileUI(user, isAdmin = false) {
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
+    
+    // Uppdatera admin-gränssnittet i ui-handler
+    handleAdminUI(isAdmin);
+
     if (user) {
         if (profilePanel) profilePanel.classList.remove('hidden');
         if (userLoginPanel) userLoginPanel.classList.add('hidden');
@@ -41,6 +45,7 @@ function toggleProfileUI(user) {
 
 onAuthStateChanged(auth, async (user) => {
     currentUserId = user ? user.uid : null;
+    let isAdmin = false;
     
     if (user) {
         const docRef = doc(db, 'users', user.uid);
@@ -48,6 +53,8 @@ onAuthStateChanged(auth, async (user) => {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const userData = docSnap.data();
+                isAdmin = userData.isAdmin === true;
+                
                 const name = userData.name || userData.email;
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
@@ -57,7 +64,9 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Fel vid hämtning av användardata:", err);
         }
     }
-    toggleProfileUI(user);
+    
+    // Skicka med isAdmin-statusen till UI-hanteraren
+    toggleProfileUI(user, isAdmin);
 });
 
 if (registerForm) {
@@ -71,6 +80,7 @@ if (registerForm) {
             const user = userCredential.user;
             const userDocRef = doc(db, 'users', user.uid);
             
+            // VIKTIGT: Matchar reglerna (isAdmin: false, isClubMember: false)
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,
@@ -89,7 +99,7 @@ if (registerForm) {
             if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
             console.error("Registreringsfel:", error);
-            showModal('errorModal', 'Ett fel uppstod: ' + error.message);
+            showModal('errorModal', 'Ett fel uppstod vid registrering: ' + error.message);
         }
     });
 }
