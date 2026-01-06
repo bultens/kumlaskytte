@@ -5,7 +5,7 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, wr
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.16 (Matchar Firebase Security Rules för 'users')
+// Ver. 2.17 (Förbättrad admin-verifiering och matchning mot regler)
 let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -41,16 +41,28 @@ function toggleProfileUI(user) {
 
 onAuthStateChanged(auth, async (user) => {
     currentUserId = user ? user.uid : null;
+    
     if (user) {
         const docRef = doc(db, 'users', user.uid);
         try {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const userData = docSnap.data();
+                
+                // Logga admin-status för felsökning i konsolen
+                console.log(`Inloggad som: ${userData.email}, Admin: ${userData.isAdmin}`);
+                
                 const name = userData.name || userData.email;
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
+                
+                // Om användaren är admin men listorna är tomma, kontrollera att 'isAdmin' verkligen är en boolean true
+                if (userData.isAdmin !== true && userData.isAdmin !== undefined) {
+                    console.warn("VARNING: isAdmin-fältet är inte en boolean true. Kolla Firestore!");
+                }
+            } else {
+                console.error("Användardokument saknas i Firestore för UID:", user.uid);
             }
         } catch (err) {
             console.error("Fel vid hämtning av användardata:", err);
@@ -72,12 +84,12 @@ if (registerForm) {
             
             const userDocRef = doc(db, 'users', user.uid);
             
-            // VIKTIGT: Här har jag lagt till isClubMember: false för att matcha din regel
+            // Matchar reglerna: isAdmin=false, isClubMember=false är ett krav för 'allow create'
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,
                 isAdmin: false,
-                isClubMember: false, // Krävs för att regeln 'allow create' ska passera
+                isClubMember: false, 
                 createdAt: serverTimestamp(),
                 name: '',
                 phone: '',
@@ -91,7 +103,7 @@ if (registerForm) {
             if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
             console.error("Registreringsfel:", error);
-            showModal('errorModal', 'Ett fel uppstod vid registrering: ' + error.message);
+            showModal('errorModal', 'Ett fel uppstod: ' + error.message);
         }
     });
 }
