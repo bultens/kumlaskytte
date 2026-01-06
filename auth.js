@@ -1,11 +1,11 @@
 // auth.js
 import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.17 (Förbättrad admin-verifiering och matchning mot regler)
+// Ver. 2.18 (Automatisk korrigering av admin-datatyp och utökad loggning)
 let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -48,21 +48,31 @@ onAuthStateChanged(auth, async (user) => {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const userData = docSnap.data();
+                const isAdminValue = userData.isAdmin;
+                const isAdminType = typeof isAdminValue;
                 
-                // Logga admin-status för felsökning i konsolen
-                console.log(`Inloggad som: ${userData.email}, Admin: ${userData.isAdmin}`);
-                
+                console.log(`--- Autentiseringskontroll ---`);
+                console.log(`Email: ${userData.email}`);
+                console.log(`UID: ${user.uid}`);
+                console.log(`isAdmin värde:`, isAdminValue);
+                console.log(`isAdmin datatyp: ${isAdminType}`);
+
+                // AUTOMATISK KORRIGERING: 
+                // Om isAdmin är strängen "true", ändra till boolean true i databasen.
+                // Detta krävs för att Firebase Security Rules ska godkänna isAdmin() kontrollen.
+                if (isAdminValue === "true" || (isAdminType === "string" && isAdminValue.toLowerCase() === "true")) {
+                    console.warn("KORRIGERAR: isAdmin är en sträng. Konverterar till boolean för att matcha Security Rules...");
+                    await updateDoc(docRef, { isAdmin: true });
+                    console.log("KORRIGERING KLART: Ladda om sidan för att aktivera reglerna.");
+                }
+
                 const name = userData.name || userData.email;
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
-                
-                // Om användaren är admin men listorna är tomma, kontrollera att 'isAdmin' verkligen är en boolean true
-                if (userData.isAdmin !== true && userData.isAdmin !== undefined) {
-                    console.warn("VARNING: isAdmin-fältet är inte en boolean true. Kolla Firestore!");
-                }
             } else {
-                console.error("Användardokument saknas i Firestore för UID:", user.uid);
+                console.error("KRITISKT FEL: Inget dokument hittades i /users/ med ID: " + user.uid);
+                console.log("Kontrollera att dokumentets namn i Firestore matchar UID ovan exakt.");
             }
         } catch (err) {
             console.error("Fel vid hämtning av användardata:", err);
@@ -75,7 +85,7 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const emailVal = document.getElementById('reg-email').value;
+        const emailVal = document.getElementById('reg-email').value.trim();
         const passVal = document.getElementById('reg-password').value;
 
         try {
@@ -84,7 +94,7 @@ if (registerForm) {
             
             const userDocRef = doc(db, 'users', user.uid);
             
-            // Matchar reglerna: isAdmin=false, isClubMember=false är ett krav för 'allow create'
+            // Säkerställ att vi skickar med booleans (false) och inte strängar
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,
@@ -111,7 +121,7 @@ if (registerForm) {
 if (userLoginForm) {
     userLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const emailVal = document.getElementById('user-email').value;
+        const emailVal = document.getElementById('user-email').value.trim();
         const passVal = document.getElementById('user-password').value;
 
         try {
