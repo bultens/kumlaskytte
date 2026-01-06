@@ -3,10 +3,10 @@ import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
-import { showModal, hideModal, showDeleteProfileModal, handleAdminUI } from "./ui-handler.js";
+import { showModal, hideModal, showDeleteProfileModal, handleAdminUI, renderProfileInfo, navigate } from "./ui-handler.js";
+import { initializeDataListeners } from "./data-service.js";
 
-// Ver. 2.23 (Kumla Skytteförening - Full synkronisering med main.js och data-service.js)
-// Vi ser till att exportera dessa så att main.js kan importera dem vid behov
+// Ver. 2.25 (Kumla Skytteförening - Fixad initieringsordning för Admin)
 export let currentUserId = null;
 export let isAdminLoggedInGlobal = false;
 
@@ -23,7 +23,7 @@ const userLoginForm = document.getElementById('user-login-form');
 function toggleProfileUI(user, isAdmin = false) {
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     
-    // 1. Uppdatera den globala flaggan i ui-handler.js (Viktigt för data-service.js)
+    // 1. Sätt de globala flaggorna i ui-handler och här (Detta MÅSTE ske först)
     handleAdminUI(isAdmin);
     isAdminLoggedInGlobal = isAdmin;
 
@@ -48,14 +48,20 @@ function toggleProfileUI(user, isAdmin = false) {
     }
 }
 
-// Denna lyssnare blir nu "Master" för inloggning
+/**
+ * MASTER AUTH LISTENER
+ */
 onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
-        const docRef = doc(db, 'users', user.uid);
+        currentUserId = user.uid;
+        
         try {
+            // Hämta användardokumentet för att kolla admin-status
+            const docRef = doc(db, 'users', user.uid);
             const docSnap = await getDoc(docRef);
+            
             if (docSnap.exists()) {
                 const userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
@@ -65,12 +71,29 @@ onAuthStateChanged(auth, async (user) => {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
             }
+
+            // --- VIKTIG ORDNINGSFÖLJD ---
+            // 1. Uppdatera UI-tillståndet och globala isAdmin-flaggor
+            toggleProfileUI(user, isAdmin);
+            
+            // 2. Rendera profildata
+            renderProfileInfo(user);
+            
+            // 3. Starta datalyssnare (Nu vet data-service.js att isAdminLoggedIn är true)
+            initializeDataListeners();
+            
         } catch (err) {
-            console.error("Fel vid hämtning av användardata:", err);
+            console.error("Fel vid inloggnings-initiering:", err);
+            toggleProfileUI(user, false);
+        }
+    } else {
+        currentUserId = null;
+        toggleProfileUI(null, false);
+        // Kontrollera om vi behöver navigera bort från en låst sida
+        if (window.location.hash !== '#hem') {
+            navigate('#hem');
         }
     }
-    
-    toggleProfileUI(user, isAdmin);
 });
 
 if (registerForm) {
@@ -128,13 +151,13 @@ if (logoutProfileBtn) {
     logoutProfileBtn.addEventListener('click', async () => {
         try {
             await signOut(auth);
-            window.location.hash = '#hem';
         } catch (error) {
             showModal('errorModal', "Ett fel uppstod vid utloggning.");
         }
     });
 }
 
+// Navigeringshjälp för paneler
 const linkToReg = document.getElementById('show-register-link');
 const linkToLogin = document.getElementById('show-login-link-from-reg');
 
