@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.5 (Fixed Syntax)
+// Ver. 1.6 (Fixad await i renderProfileInfo)
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
@@ -27,6 +27,18 @@ export function hideModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
     modal.classList.remove('active');
+}
+
+export function handleAdminUI(isAdmin) {
+    isAdminLoggedIn = isAdmin;
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(el => {
+        if (isAdmin) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
 }
 
 export function showUserInfoModal(user) {
@@ -807,52 +819,51 @@ export async function renderSiteSettings() {
     }
 }
 
-export function renderProfileInfo(userDoc, myShooters = []) {
-    if (!userDoc || !userDoc.exists()) {
-        const profileNameInput = document.getElementById('profile-name-input');
-        const profileAddressInput = document.getElementById('profile-address-input');
-        const profilePhoneInput = document.getElementById('profile-phone-input');
-        const profileBirthyearInput = document.getElementById('profile-birthyear-input');
-        const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+export async function renderProfileInfo(user) {
+    const container = document.getElementById('profile-info-container');
+    if (!container || !user) return;
 
-        profileNameInput.value = '';
-        profileAddressInput.value = '';
-        profilePhoneInput.value = '';
-        profileBirthyearInput.value = '';
-        profileMailingListCheckbox.checked = false;
-        return;
-    }
-    const data = userDoc.data();
-    const profileNameInput = document.getElementById('profile-name-input');
-    const profileAddressInput = document.getElementById('profile-address-input');
-    const profilePhoneInput = document.getElementById('profile-phone-input');
-    const profileBirthyearInput = document.getElementById('profile-birthyear-input');
-    const profileMailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
-
-    profileNameInput.value = data.name || '';
-    profileAddressInput.value = data.address || '';
-    profilePhoneInput.value = data.phone || '';
-    profileBirthyearInput.value = data.birthyear || '';
-    profileMailingListCheckbox.checked = data.mailingList || false;
-
-    const profileForm = document.getElementById('profile-form');
-    const oldList = document.getElementById('profile-linked-shooters');
-    if (oldList) oldList.remove();
-
-    if (myShooters && myShooters.length > 0) {
-        const listHtml = document.createElement('div');
-        listHtml.id = 'profile-linked-shooters';
-        listHtml.className = "mt-6 p-4 bg-blue-50 rounded border border-blue-100";
+    try {
+        // RAD 811: Nu med await för att förhindra "userDoc.exists is not a function"
+        const userDoc = await getFirestoreDoc(doc(db, 'users', user.uid));
         
-        let html = '<h3 class="font-bold text-blue-900 mb-2">Kopplade Skyttprofiler</h3><ul class="list-disc pl-5 text-sm text-blue-800">';
-        myShooters.forEach(s => {
-            html += `<li>${s.name} (Född ${s.birthyear})</li>`;
-        });
-        html += '</ul>';
-        listHtml.innerHTML = html;
-        
-        const saveBtn = document.getElementById('save-profile-btn');
-        profileForm.insertBefore(listHtml, saveBtn);
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Namn</label>
+                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.name || 'Ej angivet'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">E-post</label>
+                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.email || user.email}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Födelseår</label>
+                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.birthyear || 'Ej angivet'}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Adress</label>
+                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.address || 'Ej angivet'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Telefon</label>
+                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2">
+                            <input type="checkbox" disabled ${data.mailingList ? 'checked' : ''} class="w-4 h-4">
+                            <label class="text-sm font-bold text-gray-700">Prenumererar på nyhetsbrev</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error("Fel vid rendering av profilinfo:", error);
     }
 }
 

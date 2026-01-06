@@ -6,7 +6,7 @@ import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal, handleAdminUI, renderProfileInfo, navigate } from "./ui-handler.js";
 import { initializeDataListeners } from "./data-service.js";
 
-// Ver. 2.25 (Kumla Skytteförening - Fixad initieringsordning för Admin)
+// Ver. 2.26 (Kumla Skytteförening - Fixad await för profilrendering)
 export let currentUserId = null;
 export let isAdminLoggedInGlobal = false;
 
@@ -76,15 +76,17 @@ onAuthStateChanged(auth, async (user) => {
             // 1. Uppdatera UI-tillståndet och globala isAdmin-flaggor
             toggleProfileUI(user, isAdmin);
             
-            // 2. Rendera profildata
-            renderProfileInfo(user);
+            // 2. Rendera profildata - Vi lägger till await här för att hantera async-fel i ui-handler
+            await renderProfileInfo(user);
             
             // 3. Starta datalyssnare (Nu vet data-service.js att isAdminLoggedIn är true)
             initializeDataListeners();
             
         } catch (err) {
             console.error("Fel vid inloggnings-initiering:", err);
-            toggleProfileUI(user, false);
+            // Om renderProfileInfo kraschar vill vi ändå försöka starta resten av appen
+            toggleProfileUI(user, isAdmin);
+            initializeDataListeners();
         }
     } else {
         currentUserId = null;
