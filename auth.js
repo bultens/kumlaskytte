@@ -5,8 +5,7 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, wr
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.14 (Synkad med miljöns krav på sökvägar)
-export const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
+// Ver. 2.15 (Återställt till standard-sökvägar för att matcha din befintliga databas)
 let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -43,8 +42,8 @@ function toggleProfileUI(user) {
 onAuthStateChanged(auth, async (user) => {
     currentUserId = user ? user.uid : null;
     if (user) {
-        // Sökväg som följer miljöns regler
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+        // Återställt till din original-sökväg
+        const docRef = doc(db, 'users', user.uid);
         try {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
@@ -65,6 +64,7 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        // Dessa ID:n matchar din index.html
         const emailVal = document.getElementById('reg-email').value;
         const passVal = document.getElementById('reg-password').value;
 
@@ -72,8 +72,8 @@ if (registerForm) {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
             
-            // Vi sparar i den publika sökvägen så att administratörer kan se användaren
-            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+            // Spara i den vanliga 'users'-samlingen
+            const userDocRef = doc(db, 'users', user.uid);
             
             await setDoc(userDocRef, {
                 uid: user.uid,
@@ -87,7 +87,7 @@ if (registerForm) {
             if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
             console.error("Registreringsfel:", error);
-            showModal('errorModal', 'Ett fel uppstod: ' + error.message);
+            showModal('errorModal', 'Ett fel uppstod vid registrering: ' + error.message);
         }
     });
 }
@@ -120,7 +120,6 @@ if (logoutProfileBtn) {
     });
 }
 
-// ... Hjälplänkar för UI ...
 const linkToReg = document.getElementById('show-register-link');
 const linkToLogin = document.getElementById('show-login-link-from-reg');
 
@@ -166,7 +165,8 @@ if (confirmDeleteProfileBtn) {
         const userId = user.uid;
 
         try {
-            const shootersRef = collection(db, 'artifacts', appId, 'public', 'data', 'shooters');
+            // Använd din original-samling 'shooters'
+            const shootersRef = collection(db, 'shooters');
             const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
             const querySnapshot = await getDocs(q);
             const batch = writeBatch(db);
@@ -175,7 +175,7 @@ if (confirmDeleteProfileBtn) {
                 batch.update(docSnap.ref, { parentUserIds: arrayRemove(userId) });
             });
 
-            batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId));
+            batch.delete(doc(db, 'users', userId));
             await batch.commit();
             await deleteUser(user);
             showModal('confirmationModal', "Ditt konto har tagits bort.");
