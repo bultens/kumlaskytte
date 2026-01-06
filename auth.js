@@ -1,12 +1,13 @@
 // auth.js
 import { auth } from "./firebase-config.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal, handleAdminUI } from "./ui-handler.js";
 
-// Ver. 2.21 (Kumla Skytteförening - Fixad admin-synkronisering)
-export let currentUserId = null;
+// Ver. 2.22 (Kumla Skytteförening - Fixad global state och skytt-logik)
+// Vi exporterar inte currentUserId härifrån för att undvika krockar med main.js.
+// Använd istället auth.currentUser i andra filer för att vara säker.
 
 const profilePanel = document.getElementById('profile-panel');
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -21,7 +22,7 @@ const userLoginForm = document.getElementById('user-login-form');
 function toggleProfileUI(user, isAdmin = false) {
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     
-    // Uppdatera admin-gränssnittet i ui-handler
+    // Uppdatera admin-flaggan i ui-handler så att knappar och listor aktiveras
     handleAdminUI(isAdmin);
 
     if (user) {
@@ -44,7 +45,6 @@ function toggleProfileUI(user, isAdmin = false) {
 }
 
 onAuthStateChanged(auth, async (user) => {
-    currentUserId = user ? user.uid : null;
     let isAdmin = false;
     
     if (user) {
@@ -65,7 +65,7 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
     
-    // Skicka med isAdmin-statusen till UI-hanteraren
+    // Kör UI-uppdatering
     toggleProfileUI(user, isAdmin);
 });
 
@@ -80,7 +80,7 @@ if (registerForm) {
             const user = userCredential.user;
             const userDocRef = doc(db, 'users', user.uid);
             
-            // VIKTIGT: Matchar reglerna (isAdmin: false, isClubMember: false)
+            // Säkerställ att alla fält som reglerna kräver finns med
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,
@@ -99,7 +99,7 @@ if (registerForm) {
             if (registerPanel) registerPanel.classList.add('hidden');
         } catch (error) {
             console.error("Registreringsfel:", error);
-            showModal('errorModal', 'Ett fel uppstod vid registrering: ' + error.message);
+            showModal('errorModal', 'Ett fel uppstod: ' + error.message);
         }
     });
 }
@@ -132,34 +132,13 @@ if (logoutProfileBtn) {
     });
 }
 
+// Navigeringshjälp
 const linkToReg = document.getElementById('show-register-link');
 const linkToLogin = document.getElementById('show-login-link-from-reg');
 
-if (linkToReg) {
-    linkToReg.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (userLoginPanel) userLoginPanel.classList.add('hidden');
-        if (registerPanel) registerPanel.classList.remove('hidden');
-    });
-}
-
-if (linkToLogin) {
-    linkToLogin.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (registerPanel) registerPanel.classList.add('hidden');
-        if (userLoginPanel) userLoginPanel.classList.remove('hidden');
-    });
-}
-
-if (showLoginLink) {
-    showLoginLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (userLoginPanel) {
-            userLoginPanel.classList.remove('hidden');
-            registerPanel.classList.add('hidden');
-        }
-    });
-}
+if (linkToReg) linkToReg.onclick = (e) => { e.preventDefault(); userLoginPanel.classList.add('hidden'); registerPanel.classList.remove('hidden'); };
+if (linkToLogin) linkToLogin.onclick = (e) => { e.preventDefault(); registerPanel.classList.add('hidden'); userLoginPanel.classList.remove('hidden'); };
+if (showLoginLink) showLoginLink.onclick = (e) => { e.preventDefault(); userLoginPanel.classList.remove('hidden'); registerPanel.classList.add('hidden'); };
 
 const deleteAccountBtnEl = document.getElementById('delete-account-btn');
 if (deleteAccountBtnEl) {
