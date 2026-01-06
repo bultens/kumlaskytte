@@ -10,7 +10,6 @@ import { initFileManager } from "./admin-documents.js";
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 
 // Ver. 3.11
-export let currentUserId = null;
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
 async function checkAdminStatus(user) {
@@ -33,28 +32,7 @@ async function checkAdminStatus(user) {
     return false;
 }
 
-function initializeAuthListener() {
-    onAuthStateChanged(auth, async (user) => {
-        const isAdmin = await checkAdminStatus(user);
-        handleAdminUI(isAdmin);
-        initializeDataListeners();
-        if (user) {
-            const docRef = doc(db, 'users', user.uid);
-            const docSnap = await getFirestoreDoc(docRef);
-            renderProfileInfo(docSnap);
-            const name = docSnap.data()?.name || user.email;
-            const profileWelcomeMessage = document.getElementById('profile-welcome-message');
-            if (profileWelcomeMessage) {
-                profileWelcomeMessage.textContent = `Välkommen, ${name}`;
-            }
-        } else {
-            renderProfileInfo(null);
-        }
-    });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-    initializeAuthListener();
     setupEventListeners();
     initFileManager();
     navigate(window.location.hash || '#hem');
