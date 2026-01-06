@@ -5,9 +5,10 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, wr
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal, handleAdminUI } from "./ui-handler.js";
 
-// Ver. 2.22 (Kumla Skytteförening - Fixad global state och skytt-logik)
-// Vi exporterar inte currentUserId härifrån för att undvika krockar med main.js.
-// Använd istället auth.currentUser i andra filer för att vara säker.
+// Ver. 2.23 (Kumla Skytteförening - Full synkronisering med main.js och data-service.js)
+// Vi ser till att exportera dessa så att main.js kan importera dem vid behov
+export let currentUserId = null;
+export let isAdminLoggedInGlobal = false;
 
 const profilePanel = document.getElementById('profile-panel');
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -22,10 +23,12 @@ const userLoginForm = document.getElementById('user-login-form');
 function toggleProfileUI(user, isAdmin = false) {
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     
-    // Uppdatera admin-flaggan i ui-handler så att knappar och listor aktiveras
+    // 1. Uppdatera den globala flaggan i ui-handler.js (Viktigt för data-service.js)
     handleAdminUI(isAdmin);
+    isAdminLoggedInGlobal = isAdmin;
 
     if (user) {
+        currentUserId = user.uid;
         if (profilePanel) profilePanel.classList.remove('hidden');
         if (userLoginPanel) userLoginPanel.classList.add('hidden');
         if (registerPanel) registerPanel.classList.add('hidden');
@@ -34,6 +37,7 @@ function toggleProfileUI(user, isAdmin = false) {
         if (showLoginLink) showLoginLink.classList.add('hidden'); 
         if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
     } else {
+        currentUserId = null;
         if (profilePanel) profilePanel.classList.add('hidden');
         if (userLoginPanel) userLoginPanel.classList.add('hidden'); 
         if (registerPanel) registerPanel.classList.add('hidden');
@@ -44,6 +48,7 @@ function toggleProfileUI(user, isAdmin = false) {
     }
 }
 
+// Denna lyssnare blir nu "Master" för inloggning
 onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
@@ -65,7 +70,6 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
     
-    // Kör UI-uppdatering
     toggleProfileUI(user, isAdmin);
 });
 
@@ -80,7 +84,6 @@ if (registerForm) {
             const user = userCredential.user;
             const userDocRef = doc(db, 'users', user.uid);
             
-            // Säkerställ att alla fält som reglerna kräver finns med
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,
@@ -132,7 +135,6 @@ if (logoutProfileBtn) {
     });
 }
 
-// Navigeringshjälp
 const linkToReg = document.getElementById('show-register-link');
 const linkToLogin = document.getElementById('show-login-link-from-reg');
 
