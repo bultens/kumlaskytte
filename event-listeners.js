@@ -202,22 +202,25 @@ export function setupEventListeners() {
 
     if (openAddShooterBtn) {
         openAddShooterBtn.addEventListener('click', () => {
-            if (addShooterModal) addShooterModal.classList.add('active');
+            if (addShooterModal) {
+                addShooterModal.classList.remove('hidden'); // Säkerställ att hidden tas bort
+                addShooterModal.classList.add('active');
+            }
         });
     }
-    if (closeShooterModalBtn) {
-        closeShooterModalBtn.addEventListener('click', () => {
-            if (addShooterModal) addShooterModal.classList.remove('active');
-        });
-    }
+
+    // Inuti add-shooter-form (när man sparat)
     if (addShooterForm) {
         addShooterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('new-shooter-name').value;
-            const year = document.getElementById('new-shooter-birthyear').value;
+            // ... din befintliga kod ...
             if (auth.currentUser) {
                 await createShooterProfile(auth.currentUser.uid, name, year);
+                
+                // Stäng modalen ordentligt
                 addShooterModal.classList.remove('active');
+                addShooterModal.classList.add('hidden'); // Lägg tillbaka hidden vid stängning
+                
                 addShooterForm.reset();
                 loadShootersIntoDropdown();
             }
