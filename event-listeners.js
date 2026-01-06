@@ -213,49 +213,43 @@ if (addShooterForm) {
     addShooterForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Hämta elementen ordentligt
+        // Hämta värdena inuti lyssnaren så att de alltid är aktuella
         const nameInput = document.getElementById('new-shooter-name');
         const yearInput = document.getElementById('new-shooter-birthyear');
+        
+        const name = nameInput ? nameInput.value : "";
+        const year = yearInput ? yearInput.value : ""; // Här definieras 'year' korrekt
 
-        if (!nameInput || !yearInput) {
-            console.error("Kunde inte hitta ingångsfälten i DOM.");
-            return;
-        }
-
-        const shooterName = nameInput.value.trim();
-        const shooterYear = yearInput.value.trim();
-
-        if (auth.currentUser && shooterName && shooterYear) {
+        if (auth.currentUser && name && year) {
             try {
-                // Skapa profilen i Firestore
-                await createShooterProfile(auth.currentUser.uid, shooterName, shooterYear);
+                await createShooterProfile(auth.currentUser.uid, name, year);
                 
-                // Stäng modalen
-                if (addShooterModal) {
-                    addShooterModal.classList.remove('active');
-                    addShooterModal.classList.add('hidden'); // För Tailwind-kompatibilitet
-                }
+                // Stäng modalen genom att använda funktionen istället för inline-kod
+                addShooterModal.classList.remove('active');
+                addShooterModal.classList.add('hidden');
                 
-                // Nollställ formuläret
                 addShooterForm.reset();
-                
-                // Uppdatera dropdown-menyn så den nya skytten syns direkt
                 await loadShootersIntoDropdown();
+                setupResultFormListeners();
                 
             } catch (error) {
-                console.error("Misslyckades att skapa skytt:", error);
-                showModal('errorModal', "Ett fel uppstod när skytten skulle sparas.");
+                console.error("Fel vid skapande av skytt:", error);
             }
-        } else {
-            showModal('errorModal', "Vänligen fyll i både namn och födelseår.");
         }
     });
 }
 
     async function loadShootersIntoDropdown() {
-        const select = document.getElementById('shooter-selector');
-        if (!select || !auth.currentUser) return;
+    const select = document.getElementById('shooter-selector');
+    if (!select) return;
 
+    // Vänta på att auth är redo om det behövs
+    if (!auth.currentUser) {
+        setTimeout(loadShootersIntoDropdown, 500);
+        return;
+    }
+
+    try {
         const shooters = await getMyShooters(auth.currentUser.uid);
         select.innerHTML = '';
         
@@ -270,9 +264,20 @@ if (addShooterForm) {
                 option.dataset.birthyear = shooter.birthyear;
                 select.appendChild(option);
             });
+            
+            // Tvinga dropdownen att välja den första skytten och ladda dess data
             select.dispatchEvent(new Event('change'));
+            
+            // SÄKERSTÄLL att inmatningsfälten ritas ut
+            if (typeof setupResultFormListeners === 'function') {
+                setupResultFormListeners();
+            }
         }
+    } catch (error) {
+        console.error("Fel vid laddning av skyttar:", error);
+        select.innerHTML = '<option value="">Kunde inte ladda skyttar</option>';
     }
+}
 
     window.addEventListener('hashchange', () => {
         const currentHash = window.location.hash;
