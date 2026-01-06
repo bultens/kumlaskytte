@@ -842,46 +842,49 @@ export async function renderSiteSettings() {
 }
 
 export async function renderProfileInfo(user) {
-    const container = document.getElementById('profile-info-container');
-    if (!container || !user) return;
+    if (!user) return;
 
     try {
-        // RAD 811: Nu med await för att förhindra "userDoc.exists is not a function"
-        const userDoc = await getFirestoreDoc(doc(db, 'users', user.uid));
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getFirestoreDoc(docRef);
         
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Namn</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.name || 'Ej angivet'}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">E-post</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.email || user.email}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Födelseår</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.birthyear || 'Ej angivet'}</p>
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Adress</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.address || 'Ej angivet'}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Telefon</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
-                        </div>
-                    </div>
-                </div> 
-            `;
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            
+            // Text-visning
+            const emailEl = document.getElementById('profile-display-email');
+            const nameEl = document.getElementById('profile-display-name');
+            const joinedEl = document.getElementById('profile-display-joined');
+            
+            if (emailEl) emailEl.textContent = user.email || '-';
+            if (nameEl) nameEl.textContent = data.name || 'Ej angivet';
+            if (joinedEl && data.createdAt) {
+                const date = data.createdAt.toDate();
+                joinedEl.textContent = date.toLocaleDateString('sv-SE');
+            }
+
+            // Formulär-fält (för redigering)
+            const nameInput = document.getElementById('profile-name-input');
+            const addressInput = document.getElementById('profile-address-input');
+            const phoneInput = document.getElementById('profile-phone-input');
+            const birthyearInput = document.getElementById('profile-birthyear-input');
+            const mailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+
+            if (nameInput) nameInput.value = data.name || '';
+            if (addressInput) addressInput.value = data.address || '';
+            if (phoneInput) phoneInput.value = data.phone || '';
+            if (birthyearInput) birthyearInput.value = data.birthyear || '';
+            if (mailingListCheckbox) mailingListCheckbox.checked = data.mailingList || false;
+
+            // Inställningar för resultat
+            const trackMedalsToggle = document.getElementById('track-medals-toggle');
+            const defaultShareToggle = document.getElementById('profile-default-share');
+            
+            if (trackMedalsToggle) trackMedalsToggle.checked = data.settings?.trackMedals !== false;
+            if (defaultShareToggle) defaultShareToggle.checked = data.settings?.defaultShareResults || false;
         }
     } catch (error) {
-        console.error("Fel vid rendering av profilinfo:", error);
+        console.error("Fel vid rendering av profil:", error);
     }
 }
 
