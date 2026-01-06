@@ -19,16 +19,12 @@ async function checkAdminStatus(user) {
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getFirestoreDoc(docRef);
             if (docSnap.exists()) {
-                if (docSnap.data().isAdmin) {
-                    return true;
-                }
+                return docSnap.data().isAdmin === true;
             }
         } catch (error) {
             console.error("Fel vid hämtning av admin-status:", error);
         }
     }
-    currentUserId = null;
-    const docRef = doc(db, 'users', user.uid);
     return false;
 }
 

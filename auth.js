@@ -6,7 +6,7 @@ import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal, handleAdminUI, renderProfileInfo, navigate } from "./ui-handler.js";
 import { initializeDataListeners } from "./data-service.js";
 
-// Ver. 2.26 (Kumla Skytteförening - Fixad await för profilrendering)
+// Ver. 2.27 (Kumla Skytteförening - Uppdaterad onAuthStateChanged med globala lyssnare)
 export let currentUserId = null;
 export let isAdminLoggedInGlobal = false;
 
@@ -23,7 +23,7 @@ const userLoginForm = document.getElementById('user-login-form');
 function toggleProfileUI(user, isAdmin = false) {
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     
-    // 1. Sätt de globala flaggorna i ui-handler och här (Detta MÅSTE ske först)
+    // Uppdatera globala flaggor i ui-handler och lokalt
     handleAdminUI(isAdmin);
     isAdminLoggedInGlobal = isAdmin;
 
@@ -50,52 +50,46 @@ function toggleProfileUI(user, isAdmin = false) {
 
 /**
  * MASTER AUTH LISTENER
+ * Hanterar inloggning, admin-status och initierar datalyssnare för alla.
  */
 onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
         currentUserId = user.uid;
-        
         try {
-            // Hämta användardokumentet för att kolla admin-status
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getDoc(docRef);
             
             if (docSnap.exists()) {
                 const userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
-                
                 const name = userData.name || userData.email;
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
             }
-
-            // --- VIKTIG ORDNINGSFÖLJD ---
-            // 1. Uppdatera UI-tillståndet och globala isAdmin-flaggor
             toggleProfileUI(user, isAdmin);
-            
-            // 2. Rendera profildata - Vi lägger till await här för att hantera async-fel i ui-handler
             await renderProfileInfo(user);
-            
-            // 3. Starta datalyssnare (Nu vet data-service.js att isAdminLoggedIn är true)
-            initializeDataListeners();
-            
         } catch (err) {
             console.error("Fel vid inloggnings-initiering:", err);
-            // Om renderProfileInfo kraschar vill vi ändå försöka starta resten av appen
             toggleProfileUI(user, isAdmin);
-            initializeDataListeners();
         }
     } else {
         currentUserId = null;
         toggleProfileUI(null, false);
-        // Kontrollera om vi behöver navigera bort från en låst sida
-        if (window.location.hash !== '#hem') {
-            navigate('#hem');
+        if (window.location.hash !== '#hem' && window.location.hash !== '') {
+            // Tillåt publika sidor även om man är utloggad
+            const publicHashes = ['#hem', '#nyheter', '#kalender', '#bilder', '#omoss', '#topplistor', '#tavlingar'];
+            if (!publicHashes.some(h => window.location.hash.startsWith(h))) {
+                navigate('#hem');
+            }
         }
     }
+
+    // VIKTIGT: Starta alltid datalyssnarna här, efter att auth-status är fastställd.
+    // Detta gör att nyheter, tävlingar osv laddas för alla besökare, inloggade som utloggade.
+    initializeDataListeners(); 
 });
 
 if (registerForm) {
@@ -159,7 +153,7 @@ if (logoutProfileBtn) {
     });
 }
 
-// Navigeringshjälp för paneler
+// Navigeringshjälp för inloggningspaneler
 const linkToReg = document.getElementById('show-register-link');
 const linkToLogin = document.getElementById('show-login-link-from-reg');
 
