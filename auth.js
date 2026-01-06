@@ -5,7 +5,7 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, arrayRemove, wr
 import { db } from "./firebase-config.js";
 import { showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 2.15 (Återställt till standard-sökvägar för att matcha din befintliga databas)
+// Ver. 2.16 (Matchar Firebase Security Rules för 'users')
 let currentUserId = null;
 
 const profilePanel = document.getElementById('profile-panel');
@@ -42,7 +42,6 @@ function toggleProfileUI(user) {
 onAuthStateChanged(auth, async (user) => {
     currentUserId = user ? user.uid : null;
     if (user) {
-        // Återställt till din original-sökväg
         const docRef = doc(db, 'users', user.uid);
         try {
             const docSnap = await getDoc(docRef);
@@ -64,7 +63,6 @@ if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Dessa ID:n matchar din index.html
         const emailVal = document.getElementById('reg-email').value;
         const passVal = document.getElementById('reg-password').value;
 
@@ -72,15 +70,21 @@ if (registerForm) {
             const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
             const user = userCredential.user;
             
-            // Spara i den vanliga 'users'-samlingen
             const userDocRef = doc(db, 'users', user.uid);
             
+            // VIKTIGT: Här har jag lagt till isClubMember: false för att matcha din regel
             await setDoc(userDocRef, {
                 uid: user.uid,
                 email: emailVal,
                 isAdmin: false,
+                isClubMember: false, // Krävs för att regeln 'allow create' ska passera
                 createdAt: serverTimestamp(),
-                name: ''
+                name: '',
+                phone: '',
+                address: '',
+                birthyear: '',
+                mailingList: false,
+                settings: {}
             });
             
             showModal('confirmationModal', 'Konto skapat! Du är nu inloggad.');
@@ -165,7 +169,6 @@ if (confirmDeleteProfileBtn) {
         const userId = user.uid;
 
         try {
-            // Använd din original-samling 'shooters'
             const shootersRef = collection(db, 'shooters');
             const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
             const querySnapshot = await getDocs(q);
