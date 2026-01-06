@@ -209,23 +209,48 @@ export function setupEventListeners() {
         });
     }
 
-    // Inuti add-shooter-form (när man sparat)
-    if (addShooterForm) {
-        addShooterForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // ... din befintliga kod ...
-            if (auth.currentUser) {
-                await createShooterProfile(auth.currentUser.uid, name, year);
+if (addShooterForm) {
+    addShooterForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Hämta elementen ordentligt
+        const nameInput = document.getElementById('new-shooter-name');
+        const yearInput = document.getElementById('new-shooter-birthyear');
+
+        if (!nameInput || !yearInput) {
+            console.error("Kunde inte hitta ingångsfälten i DOM.");
+            return;
+        }
+
+        const shooterName = nameInput.value.trim();
+        const shooterYear = yearInput.value.trim();
+
+        if (auth.currentUser && shooterName && shooterYear) {
+            try {
+                // Skapa profilen i Firestore
+                await createShooterProfile(auth.currentUser.uid, shooterName, shooterYear);
                 
-                // Stäng modalen ordentligt
-                addShooterModal.classList.remove('active');
-                addShooterModal.classList.add('hidden'); // Lägg tillbaka hidden vid stängning
+                // Stäng modalen
+                if (addShooterModal) {
+                    addShooterModal.classList.remove('active');
+                    addShooterModal.classList.add('hidden'); // För Tailwind-kompatibilitet
+                }
                 
+                // Nollställ formuläret
                 addShooterForm.reset();
-                loadShootersIntoDropdown();
+                
+                // Uppdatera dropdown-menyn så den nya skytten syns direkt
+                await loadShootersIntoDropdown();
+                
+            } catch (error) {
+                console.error("Misslyckades att skapa skytt:", error);
+                showModal('errorModal', "Ett fel uppstod när skytten skulle sparas.");
             }
-        });
-    }
+        } else {
+            showModal('errorModal', "Vänligen fyll i både namn och födelseår.");
+        }
+    });
+}
 
     async function loadShootersIntoDropdown() {
         const select = document.getElementById('shooter-selector');

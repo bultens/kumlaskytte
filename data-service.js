@@ -234,9 +234,12 @@ export async function createShooterProfile(userId, name, birthyear) {
     try {
         await addDoc(collection(db, 'shooters'), {
             name: name,
-            birthyear: parseInt(birthyear),
-            parentUserIds: [userId], 
-            settings: { trackMedals: true, defaultShareResults: false },
+            birthyear: parseInt(birthyear), // Sparas som siffra i DB
+            parentUserIds: [userId],        // Kopplas till din inloggning
+            settings: { 
+                trackMedals: true, 
+                defaultShareResults: false 
+            },
             createdAt: serverTimestamp()
         });
         showModal('confirmationModal', `Profil för ${name} skapad!`);
