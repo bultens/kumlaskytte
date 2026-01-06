@@ -16,6 +16,11 @@ export let sponsorsData = [];
 export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
+export let currentUserId = null;
+
+export function setCurrentUserId(id) {
+    currentUserId = id;
+}
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 
