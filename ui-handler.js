@@ -832,7 +832,7 @@ export async function renderProfileInfo(user) {
         
         if (userDoc.exists()) {
             const data = userDoc.data();
-            container.innerHTML = `
+            container.innerHTML = 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-4">
                         <div>
@@ -857,13 +857,9 @@ export async function renderProfileInfo(user) {
                             <label class="block text-sm font-bold text-gray-700">Telefon</label>
                             <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
                         </div>
-                        <div class="flex items-center space-x-2 p-2">
-                            <input type="checkbox" disabled ${data.mailingList ? 'checked' : ''} class="w-4 h-4">
-                            <label class="text-sm font-bold text-gray-700">Prenumererar på nyhetsbrev</label>
-                        </div>
                     </div>
                 </div>
-            `;
+            ;
         }
     } catch (error) {
         console.error("Fel vid rendering av profilinfo:", error);
