@@ -910,56 +910,18 @@ export function updateToolbarButtons(editor) {
 }
 
 export function navigate(hash) {
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
+    // Dölj alla sektioner
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => page.classList.remove('active'));
 
-    const hashParts = hash.split('#');
-    let targetPageId = hashParts[1];
-    
-    if (targetPageId) {
-        targetPageId = targetPageId.split('?')[0];
-    }
+    // Ta bort # och hitta rätt ID, standard till hem
+    const id = hash.replace('#', '') || 'hem';
+    const targetPage = document.getElementById(id);
 
-    const targetElementId = hashParts[2];
-    
-    if (!targetPageId || targetPageId === 'hem') {
-        targetPageId = 'hem';
-        const homePage = document.getElementById(targetPageId);
-        if (homePage) homePage.classList.add('active');
-    } else {
-        try {
-            const targetPage = document.querySelector(`#${targetPageId}`);
-            if (targetPage) {
-                targetPage.classList.add('active');
-            } else {
-                targetPageId = 'hem';
-                document.getElementById('hem').classList.add('active');
-            }
-        } catch (e) {
-            console.warn("Kunde inte navigera till:", targetPageId);
-            targetPageId = 'hem';
-            document.getElementById('hem').classList.add('active');
-        }
-    }
-
-    const correspondingNavLink = document.querySelector(`a[href="#${targetPageId}"]`);
-    if (correspondingNavLink) {
-        correspondingNavLink.classList.add('active');
-    }
-
-    if (targetElementId) {
-        setTimeout(() => {
-            const targetElement = document.getElementById(targetElementId);
-            if (targetElement) {
-                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 500);
-    } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (targetPage) {
+        targetPage.classList.add('active');
+        // Scrolla till toppen vid sidbyte
+        window.scrollTo(0, 0);
     }
 }
 
