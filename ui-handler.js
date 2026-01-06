@@ -29,17 +29,6 @@ export function hideModal(modalId) {
     modal.classList.remove('active');
 }
 
-export function handleAdminUI(isAdmin) {
-    isAdminLoggedIn = isAdmin;
-    const adminElements = document.querySelectorAll('.admin-only');
-    adminElements.forEach(el => {
-        if (isAdmin) {
-            el.classList.remove('hidden');
-        } else {
-            el.classList.add('hidden');
-        }
-    });
-}
 
 export function showUserInfoModal(user) {
     const modal = document.getElementById('userInfoModal');
@@ -265,63 +254,55 @@ export function renderCompetitions(data, isAdminLoggedIn) {
 }
 
 export function handleAdminUI(isAdmin) {
-    // Referenser till element
+    isAdminLoggedIn = isAdmin;
+
+    // Hantera generella admin-element
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(el => {
+        isAdmin ? el.classList.remove('hidden') : el.classList.add('hidden');
+    });
+
+    // Specifika referenser till element
     const adminNavLink = document.getElementById('admin-nav-link'); 
     const adminIndicator = document.getElementById('admin-indicator');
     const mobileAdminLink = document.getElementById('mobile-admin-nav-link'); 
     
     // Sektioner som ska visas/döljas
-    const newsEditSection = document.getElementById('news-edit-section');
-    const competitionEditSection = document.getElementById('competition-edit-section');
-    const calendarEditSection = document.getElementById('calendar-edit-section');
-    const imageEditSection = document.getElementById('image-edit-section');
-    const historyEditSection = document.getElementById('history-edit-section');
-    const sponsorsEditSection = document.getElementById('sponsors-edit-section');
-    const adminPanel = document.getElementById('admin-panel');
+    const adminSections = [
+        'news-edit-section', 'competition-edit-section', 
+        'calendar-edit-section', 'image-edit-section', 
+        'history-edit-section', 'sponsors-edit-section', 'admin-panel'
+    ];
+    
     const adminLoginPanel = document.getElementById('admin-login-panel');
     const adminUserInfo = document.getElementById('admin-user-info');
     
     if (isAdmin) {
-        isAdminLoggedIn = true;
-        
-        // VISA admin-element
-        if (adminNavLink) adminNavLink.classList.remove('hidden'); // Visa menyvalet
-        if (adminIndicator) adminIndicator.classList.remove('hidden'); // Visa flaggan
-        
-        if (newsEditSection) newsEditSection.classList.remove('hidden');
-        if (competitionEditSection) competitionEditSection.classList.remove('hidden');
-        if (calendarEditSection) calendarEditSection.classList.remove('hidden');
-        if (imageEditSection) imageEditSection.classList.remove('hidden');
-        if (historyEditSection) historyEditSection.classList.remove('hidden');
-        if (sponsorsEditSection) sponsorsEditSection.classList.remove('hidden');
-        if (adminPanel) adminPanel.classList.remove('hidden');
+        if (adminNavLink) adminNavLink.classList.remove('hidden');
+        if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
         
-        // Göm inloggningsrutan på adminsidan (eftersom vi redan är inloggade)
+        adminSections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden');
+        });
+
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
-        // Uppdatera välkomsttext
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Inloggad som administratör: ${loggedInAdminUsername}`;
         }
     } else {
-        isAdminLoggedIn = false;
-        
-        // GÖM admin-element
         if (adminNavLink) adminNavLink.classList.add('hidden');
         if (adminIndicator) adminIndicator.classList.add('hidden');
-
-        if (newsEditSection) newsEditSection.classList.add('hidden');
-        if (competitionEditSection) competitionEditSection.classList.add('hidden');
-        if (calendarEditSection) calendarEditSection.classList.add('hidden');
-        if (imageEditSection) imageEditSection.classList.add('hidden');
-        if (historyEditSection) historyEditSection.classList.add('hidden');
-        if (sponsorsEditSection) sponsorsEditSection.classList.add('hidden');
-        if (adminPanel) adminPanel.classList.add('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
+
+        adminSections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
         
-        // Visa inloggningsrutan om man går till #admin men inte är admin
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
     }
 }
