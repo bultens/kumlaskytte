@@ -4,13 +4,17 @@ import {
     onAuthStateChanged, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
-    signOut as firebaseSignOut 
+    signOut as firebaseSignOut,
+    deleteUser
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { 
+    doc, getDoc, setDoc, serverTimestamp, collection, 
+    query, where, getDocs, writeBatch, arrayRemove 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initializeDataListeners, setCurrentUserId } from "./data-service.js";
-import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate } from "./ui-handler.js";
+import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
-// Ver. 3.17 - Fixat importfelet genom att lägga till toggleProfileUI i ui-handler
+// Ver. 3.18 - Återställt alla navigationslänkar och kontohantering
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
 
 onAuthStateChanged(auth, async (user) => {
@@ -34,6 +38,7 @@ onAuthStateChanged(auth, async (user) => {
                     profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
             }
+            // Rendera profilinfon (viktigt för profilsidan)
             await renderProfileInfo(user);
         } catch (err) {
             console.error("Fel vid hämtning av användarprofil:", err);
@@ -42,22 +47,16 @@ onAuthStateChanged(auth, async (user) => {
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
-        
-        if (window.location.hash !== '#hem' && window.location.hash !== '') {
-            const publicHashes = ['#hem', '#nyheter', '#kalender', '#bilder', '#omoss', '#topplistor', '#tavlingar'];
-            if (!publicHashes.some(h => window.location.hash.startsWith(h))) {
-                navigate('#hem');
-            }
-        }
     }
 
-    // Dessa körs alltid för att säkerställa att rätt UI visas för admin/besökare
+    // Uppdatera UI i rätt ordning
     handleAdminUI(isAdmin); 
     initializeDataListeners(); 
-    toggleProfileUI(user, isAdmin); 
+    toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
 });
 
 // --- AUTH FUNKTIONER ---
+
 export async function signUp(email, password) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -94,7 +93,47 @@ export async function signOut() {
     }
 }
 
-// --- FORM HANTERING ---
+// --- RADERING AV KONTO (Återställd logik) ---
+
+const deleteAccountBtnEl = document.getElementById('delete-account-btn');
+if (deleteAccountBtnEl) {
+    deleteAccountBtnEl.addEventListener('click', () => {
+        showDeleteProfileModal();
+    });
+}
+
+const confirmDeleteProfileBtn = document.getElementById('confirm-delete-profile-btn');
+if (confirmDeleteProfileBtn) {
+    confirmDeleteProfileBtn.addEventListener('click', async () => {
+        hideModal('deleteProfileModal');
+        const user = auth.currentUser;
+        if (!user) return;
+        const userId = user.uid;
+
+        try {
+            const shootersRef = collection(db, 'shooters');
+            const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
+            const querySnapshot = await getDocs(q);
+            const batch = writeBatch(db);
+
+            querySnapshot.forEach((docSnap) => {
+                batch.update(docSnap.ref, { parentUserIds: arrayRemove(userId) });
+            });
+
+            batch.delete(doc(db, 'users', userId));
+            await batch.commit();
+            await deleteUser(user);
+            showModal('confirmationModal', "Ditt konto har tagits bort.");
+            navigate('#hem');
+        } catch (error) {
+            console.error("Fel vid borttagning av konto:", error);
+            showModal('errorModal', "Kunde inte ta bort kontot.");
+        }
+    });
+}
+
+// --- FORM OCH MODAL HANTERING ---
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('user-login-form');
     const registerForm = document.getElementById('register-form');
@@ -125,35 +164,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 await signUp(email, pass);
                 if (registerPanel) registerPanel.classList.add('hidden');
                 registerForm.reset();
-                alert("Konto skapat! Du är nu inloggad.");
+                alert("Konto skapat!");
             } catch (err) {
                 alert("Registrering misslyckades: " + err.message);
             }
         });
     }
 
+    // Inloggnings-växlare (onclick som du hade tidigare fungerar också här)
     const showRegisterLink = document.getElementById('show-register-link');
     if (showRegisterLink) {
-        showRegisterLink.addEventListener('click', (e) => {
+        showRegisterLink.onclick = (e) => {
             e.preventDefault();
             if (loginPanel) loginPanel.classList.add('hidden');
             if (registerPanel) registerPanel.classList.remove('hidden');
-        });
+        };
     }
 
     const showLoginLinkFromReg = document.getElementById('show-login-link-from-reg');
     if (showLoginLinkFromReg) {
-        showLoginLinkFromReg.addEventListener('click', (e) => {
+        showLoginLinkFromReg.onclick = (e) => {
             e.preventDefault();
             if (registerPanel) registerPanel.classList.add('hidden');
             if (loginPanel) loginPanel.classList.remove('hidden');
-        });
-    }
-
-    const showLoginBtn = document.getElementById('show-login-link');
-    if (showLoginBtn) {
-        showLoginBtn.addEventListener('click', () => {
-            if (loginPanel) loginPanel.classList.remove('hidden');
-        });
+        };
     }
 });

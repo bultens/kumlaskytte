@@ -309,22 +309,23 @@ export function handleAdminUI(isAdmin) {
 
 
 export function toggleProfileUI(user, isAdmin) {
+    const profileNavLink = document.getElementById('profile-nav-link');
+    const resultsNavLink = document.getElementById('results-nav-link');
     const showLoginLink = document.getElementById('show-login-link');
     const profilePanel = document.getElementById('profile-panel');
-    const adminIndicator = document.getElementById('admin-indicator');
 
     if (user) {
-        // Användare inloggad
+        // Visa länkar för inloggad medlem
+        if (profileNavLink) profileNavLink.classList.remove('hidden');
+        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
         if (showLoginLink) showLoginLink.classList.add('hidden');
         if (profilePanel) profilePanel.classList.remove('hidden');
-        if (adminIndicator) {
-            isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
-        }
     } else {
-        // Utloggad
+        // Göm länkar för utloggad
+        if (profileNavLink) profileNavLink.classList.add('hidden');
+        if (resultsNavLink) resultsNavLink.classList.add('hidden');
         if (showLoginLink) showLoginLink.classList.remove('hidden');
         if (profilePanel) profilePanel.classList.add('hidden');
-        if (adminIndicator) adminIndicator.classList.add('hidden');
     }
 }
 
