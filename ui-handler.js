@@ -683,40 +683,35 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
 }
 
-export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
-    const adminListEl = document.getElementById('admin-list');
-    const allUsersContainer = document.getElementById('all-users-container');
-    if (!adminListEl || !allUsersContainer) return;
+export function renderAdminsAndUsers(users) {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
 
-    adminListEl.innerHTML = '';
-    allUsersContainer.innerHTML = '';
+    if (!isAdminLoggedIn) {
+        container.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Behörighet saknas</td></tr>';
+        return;
+    }
+
+    container.innerHTML = '';
     
-    usersData.forEach(user => {
-        const isUserAdmin = user.isAdmin || false;
-        const userEl = document.createElement('div');
-        userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
-        
-        if (isUserAdmin) {
-            userEl.innerHTML = `
-                <span class="font-semibold">${user.email} (Admin)</span>
-                <div class="flex space-x-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
-                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
-                </div>
-            `;
-            adminListEl.appendChild(userEl);
-        } else {
-            userEl.innerHTML = `
-                <span class="font-semibold">${user.email}</span>
-                <div class="flex space-x-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
-                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
-                </div>
-            `;
-            allUsersContainer.appendChild(userEl);
-        }
+    users.forEach(user => {
+        const row = document.createElement('tr');
+        row.className = 'border-b hover:bg-gray-50';
+        // Här använder vi backticks (`) för att tillåta flera rader
+        row.innerHTML = `
+            <td class="p-3 text-sm">${user.name || user.email}</td>
+            <td class="p-3 text-sm">${user.email}</td>
+            <td class="p-3 text-sm">
+                <span class="px-2 py-1 rounded-full text-xs ${user.isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}">
+                    ${user.isAdmin ? 'Admin' : 'Medlem'}
+                </span>
+            </td>
+            <td class="p-3 text-right">
+                <button class="text-blue-600 hover:text-blue-800 mr-2 edit-user-btn" data-id="${user.id}">Redigera</button>
+                ${!user.isAdmin ? `<button class="text-red-600 hover:text-red-800 delete-user-btn" data-id="${user.id}">Ta bort</button>` : ''}
+            </td>
+        `;
+        container.appendChild(row);
     });
 }
 
