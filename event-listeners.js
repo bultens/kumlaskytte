@@ -34,6 +34,7 @@ export function setupEventListeners() {
     const deleteSeriesEventBtn = document.getElementById('delete-series-event-btn');
     const cancelEventDeleteBtn = document.getElementById('cancel-event-delete-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const logoutProfileBtn = document.getElementById('logout-profile-btn'); // Lägg till denna
     const profileForm = document.getElementById('profile-form');
     const settingsForm = document.getElementById('settings-form');
     const addNewsForm = document.getElementById('add-news-form');
@@ -585,7 +586,10 @@ if (addShooterForm) {
             signOut(auth);
         });
     }
-
+    if (logoutProfileBtn) {
+        logoutProfileBtn.addEventListener('click', () => signOut(auth));
+    }
+    
     if (profileForm) {
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();

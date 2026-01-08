@@ -271,7 +271,7 @@ export function handleAdminUI(isAdmin) {
     const adminSections = [
         'news-edit-section', 'competition-edit-section', 
         'calendar-edit-section', 'image-edit-section', 
-        'history-edit-section', 'sponsors-edit-section', 'admin-panel'
+        'history-edit-section', 'sponsors-edit-section', 'admin-panel', 'file-manager-container'
     ];
     
     const adminLoginPanel = document.getElementById('admin-login-panel');
@@ -845,46 +845,63 @@ export async function renderSiteSettings() {
 }
 
 export async function renderProfileInfo(user) {
-    const container = document.getElementById('profile-info-container');
-    if (!container || !user) return;
+    if (!user) return;
 
     try {
-        // RAD 811: Nu med await för att förhindra "userDoc.exists is not a function"
+        // Hämta färsk data från Firestore för den inloggade användaren
         const userDoc = await getFirestoreDoc(doc(db, 'users', user.uid));
         
         if (userDoc.exists()) {
             const data = userDoc.data();
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Namn</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.name || 'Ej angivet'}</p>
+
+            // 1. Rendera den statiska sammanfattningen (kräver id="profile-info-container" i index.html)
+            const container = document.getElementById('profile-info-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-gray-100">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Namn</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.name || 'Ej angivet'}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">E-post</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.email || user.email}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Födelseår</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.birthyear || 'Ej angivet'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">E-post</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.email || user.email}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Födelseår</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.birthyear || 'Ej angivet'}</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Adress</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.address || 'Ej angivet'}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Telefon</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Adress</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.address || 'Ej angivet'}</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700">Telefon</label>
-                            <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
-                        </div>
-                    </div>
-                </div> 
-            `;
+                `;
+            }
+
+            // 2. Fyll i formulärets input-fält så användaren slipper skriva allt på nytt vid ändring
+            const nameInput = document.getElementById('profile-name-input');
+            const addressInput = document.getElementById('profile-address-input');
+            const phoneInput = document.getElementById('profile-phone-input');
+            const birthyearInput = document.getElementById('profile-birthyear-input');
+            const mailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
+
+            if (nameInput) nameInput.value = data.name || '';
+            if (addressInput) addressInput.value = data.address || '';
+            if (phoneInput) phoneInput.value = data.phone || '';
+            if (birthyearInput) birthyearInput.value = data.birthyear || '';
+            if (mailingListCheckbox) mailingListCheckbox.checked = data.mailingList || false;
         }
     } catch (error) {
-        console.error("Fel vid rendering av profilinfo:", error);
+        console.error("Fel vid hämtning av profilinfo:", error);
     }
 }
 
