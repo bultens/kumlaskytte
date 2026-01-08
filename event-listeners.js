@@ -144,7 +144,19 @@ export function setupEventListeners() {
             cancelClassBtn.classList.add('hidden');
         });
     }
-
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut();
+                // Stäng mobilmenyn efter utloggning
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenu) mobileMenu.classList.add('hidden');
+            } catch (error) {
+                console.error("Fel vid utloggning från mobil:", error);
+            }
+        });
+    }
     const adminClassesList = document.getElementById('admin-classes-list');
     if (adminClassesList) {
         adminClassesList.addEventListener('click', (e) => {

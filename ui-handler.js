@@ -320,6 +320,7 @@ export function toggleProfileUI(user, isAdmin) {
     // Mobil-länkar (nya rader för att matcha din index.html)
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     const mobileProfileLink = document.getElementById('mobile-profile-nav-link');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
 
     if (user) {
         if (showLoginLink) showLoginLink.classList.add('hidden');
@@ -330,6 +331,7 @@ export function toggleProfileUI(user, isAdmin) {
         if (profileNavLink) profileNavLink.classList.remove('hidden');
         if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
         if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
+        if (mobileLogoutBtn) mobileLogoutBtn.classList.remove('hidden');
         
         if (adminIndicator) {
             isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
@@ -343,6 +345,7 @@ export function toggleProfileUI(user, isAdmin) {
         if (profileNavLink) profileNavLink.classList.add('hidden');
         if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
         if (mobileProfileLink) mobileProfileLink.classList.add('hidden');
+        if (mobileLogoutBtn) mobileLogoutBtn.classList.add('hidden');
         
         if (adminIndicator) adminIndicator.classList.add('hidden');
     }
