@@ -1,6 +1,6 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-import { auth, db, signOut } from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
@@ -8,6 +8,7 @@ import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, a
 import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 import { loadAndRenderChart } from "./statistics-chart.js";
+import { signOut } from "./auth.js";
 
 // Ver. 2.2
 let editingNewsId = null;
@@ -583,14 +584,12 @@ if (addShooterForm) {
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            signOut(auth);
+            signOut();
         });
     }
     if (logoutProfileBtn) {
         logoutProfileBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.hash = '#hem'; // Skicka användaren till hem efter utloggning
-            });
+            signOut(); 
         });
     }
     
