@@ -1,7 +1,6 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { auth, db } from "./firebase-config.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
@@ -144,19 +143,17 @@ export function setupEventListeners() {
             cancelClassBtn.classList.add('hidden');
         });
     }
+
     const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
     if (mobileLogoutBtn) {
         mobileLogoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut();
-                // Stäng mobilmenyn efter utloggning
-                const mobileMenu = document.getElementById('mobile-menu');
-                if (mobileMenu) mobileMenu.classList.add('hidden');
-            } catch (error) {
-                console.error("Fel vid utloggning från mobil:", error);
-            }
+            const { signOut } = await import("./auth.js");
+            await signOut();
+            // Stäng mobilmenyn efter utloggning
+            if (mobileMenu) mobileMenu.classList.add('hidden');
         });
     }
+    
     const adminClassesList = document.getElementById('admin-classes-list');
     if (adminClassesList) {
         adminClassesList.addEventListener('click', (e) => {
