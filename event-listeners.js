@@ -98,7 +98,7 @@ export function setupEventListeners() {
     const achievementsSection = document.getElementById('achievements-section');
     
 
-// Mobilmeny-hantering
+    // Mobilmeny-hantering
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
     const mobileLinks = document.querySelectorAll('.mobile-nav-link');
@@ -114,6 +114,17 @@ export function setupEventListeners() {
             link.addEventListener('click', () => {
                 mobileMenu.classList.add('hidden');
             });
+        });
+    }
+
+    const showLoginLink = document.getElementById('show-login-link');
+    const loginPanel = document.getElementById('user-login-panel');
+
+    if (showLoginLink && loginPanel) {
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Ta bort 'hidden' klassen för att visa modalen
+            loginPanel.classList.remove('hidden');
         });
     }
 
