@@ -253,8 +253,6 @@ export function renderCompetitions(data, isAdminLoggedIn) {
     }
 }
 
-import { auth } from "./firebase-config.js"; 
-
 export function handleAdminUI(isAdmin) {
     isAdminLoggedIn = isAdmin;
 
