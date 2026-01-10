@@ -20,17 +20,49 @@
                 <span id="admin-indicator" class="hidden bg-red-500 text-white text-xs px-2 py-1 rounded font-bold uppercase tracking-wider shadow-sm">Admin</span>
             </a>
 
-            <nav class="hidden md:flex space-x-6 items-center">
-                <a href="#hem" class="hover:text-blue-300 transition nav-link">Start</a>
-                <a href="#nyheter" class="hover:text-blue-300 transition nav-link">Nyheter</a>
-                <a href="#kalender" class="hover:text-blue-300 transition nav-link">Kalender</a>
-                <a href="#bilder" class="hover:text-blue-300 transition nav-link">Bilder</a>                
-                <a href="#tavlingar" class="hover:text-blue-300 transition nav-link">Tävlingar</a>
-                <a href="#omoss" class="hover:text-blue-300 transition nav-link">Om Oss</a>
-                <a href="#topplistor" class="hover:text-blue-300 transition nav-link">Topplistor</a>
-                <a href="#resultat" id="results-nav-link" class="hidden hover:text-blue-300 transition nav-link font-bold text-yellow-400">Mina Resultat</a>
-                <a href="#profil" id="profile-panel" class="hidden hover:text-blue-300 transition nav-link font-bold text-red-400">Profil</a>
-                <a href="#admin" id="admin-nav-link" class="hidden hover:text-red-300 transition nav-link">Admin</a>
+            <nav class="hidden md:flex space-x-8 items-center">
+                <a href="#hem" class="hover:text-blue-300 transition nav-link font-medium">Start</a>
+
+                <div class="relative group py-4">
+                    <button class="flex items-center hover:text-blue-300 transition font-medium focus:outline-none">
+                        Aktuellt
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-xl py-2 hidden group-hover:block z-50 text-gray-800">
+                        <a href="#nyheter" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Nyheter</a>
+                        <a href="#kalender" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Kalender</a>
+                        <a href="#tavlingar" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Tävlingsrapporter</a>
+                        <a href="#topplistor" id="nav-toplist" class="hidden block px-4 py-2 hover:bg-blue-50 hover:text-blue-700 font-bold border-t border-gray-100">
+                            🏆 Topplistor
+                        </a>
+                    </div>
+                </div>
+
+                <div class="relative group py-4">
+                    <button class="flex items-center hover:text-blue-300 transition font-medium focus:outline-none">
+                        Föreningen
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-xl py-2 hidden group-hover:block z-50 text-gray-800">
+                        <a href="#omoss" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Om Oss</a>
+                        <a href="#bilder" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Bilder</a>
+                        <a href="#sponsorer" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Sponsorer</a>
+                    </div>
+                </div>
+
+                <div id="nav-account-group" class="hidden relative group py-4">
+                    <button class="flex items-center text-yellow-400 hover:text-yellow-300 transition font-bold focus:outline-none">
+                        Mitt Konto
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-xl py-2 hidden group-hover:block z-50 text-gray-800">
+                        <div class="px-4 py-2 border-b border-gray-100 text-xs text-gray-500">Inloggad medlem</div>
+                        <a href="#resultat" id="results-nav-link" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Mina Resultat</a>
+                        <a href="#profil" id="profile-nav-link" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700">Min Profil</a>
+                        <a href="#admin" id="admin-nav-link" class="hidden block px-4 py-2 hover:bg-red-50 text-red-600 font-bold border-t border-gray-100">Adminpanel</a>
+                        <button id="logout-menu-btn" class="w-full text-left block px-4 py-2 hover:bg-gray-100 text-gray-700 border-t border-gray-100 mt-1">Logga ut</button>
+                    </div>
+                </div>
             </nav>
 
             <div class="flex items-center space-x-4">

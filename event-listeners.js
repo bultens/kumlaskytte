@@ -166,6 +166,14 @@ export function setupEventListeners() {
             if (mobileMenu) mobileMenu.classList.add('hidden');
         });
     }
+
+    const logoutMenuBtn = document.getElementById('logout-menu-btn');
+    if (logoutMenuBtn) {
+        logoutMenuBtn.addEventListener('click', async () => {
+             const { signOut } = await import("./auth.js");
+             signOut();
+        });
+    }
     
     const adminClassesList = document.getElementById('admin-classes-list');
     if (adminClassesList) {

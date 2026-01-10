@@ -253,21 +253,23 @@ export function renderCompetitions(data, isAdminLoggedIn) {
     }
 }
 
+import { auth } from "./firebase-config.js"; 
+
 export function handleAdminUI(isAdmin) {
     isAdminLoggedIn = isAdmin;
 
-    // Hantera generella admin-element
+    // 1. Hantera generella admin-element (Samma som förut)
     const adminElements = document.querySelectorAll('.admin-only');
     adminElements.forEach(el => {
         isAdmin ? el.classList.remove('hidden') : el.classList.add('hidden');
     });
 
-    // Specifika referenser till element
+    // 2. Referenser
+    // OBS: admin-indicator hanteras nu i toggleProfileUI, så den behövs inte här.
     const adminNavLink = document.getElementById('admin-nav-link'); 
-    const adminIndicator = document.getElementById('admin-indicator');
     const mobileAdminLink = document.getElementById('mobile-admin-nav-link'); 
     
-    // Sektioner som ska visas/döljas
+    // 3. Sektioner som ska visas/döljas (Samma som förut)
     const adminSections = [
         'news-edit-section', 'competition-edit-section', 
         'calendar-edit-section', 'image-edit-section', 
@@ -275,11 +277,10 @@ export function handleAdminUI(isAdmin) {
     ];
     
     const adminLoginPanel = document.getElementById('admin-login-panel');
-    const adminUserInfo = document.getElementById('admin-user-info');
+    const adminUserInfo = document.getElementById('admin-user-info'); // Återställd referens
     
     if (isAdmin) {
         if (adminNavLink) adminNavLink.classList.remove('hidden');
-        if (adminIndicator) adminIndicator.classList.remove('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
         
         adminSections.forEach(id => {
@@ -289,13 +290,14 @@ export function handleAdminUI(isAdmin) {
 
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
+        // ÅTERSTÄLLD: Visa vem som är inloggad
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Inloggad som administratör: ${loggedInAdminUsername}`;
         }
+
     } else {
         if (adminNavLink) adminNavLink.classList.add('hidden');
-        if (adminIndicator) adminIndicator.classList.add('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.add('hidden');
 
         adminSections.forEach(id => {
@@ -310,39 +312,43 @@ export function handleAdminUI(isAdmin) {
 
 export function toggleProfileUI(user, isAdmin) {
     const showLoginLink = document.getElementById('show-login-link');
-    const profilePanel = document.getElementById('profile-panel');
     const adminIndicator = document.getElementById('admin-indicator');
     
-    // Desktop-länkar
-    const resultsNavLink = document.getElementById('results-nav-link');
-    const profileNavLink = document.getElementById('profile-nav-link');
+    // Nya referenser för desktop-menyn
+    const navAccountGroup = document.getElementById('nav-account-group'); // Hela "Mitt Konto" dropdownen
+    const navToplist = document.getElementById('nav-toplist'); // Länken inuti "Aktuellt"
     
-    // Mobil-länkar (nya rader för att matcha din index.html)
+    // Mobil-länkar (Oförändrade)
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
     const mobileProfileLink = document.getElementById('mobile-profile-nav-link');
     const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
 
     if (user) {
-        if (showLoginLink) showLoginLink.classList.add('hidden');
-        if (profilePanel) profilePanel.classList.remove('hidden');
+        // --- INLOGGAD ---
+        if (showLoginLink) showLoginLink.classList.add('hidden'); // Dölj "Logga in"-knappen
         
-        // Visa resultat och profil
-        if (resultsNavLink) resultsNavLink.classList.remove('hidden');
-        if (profileNavLink) profileNavLink.classList.remove('hidden');
+        // Visa menyer för inloggad
+        if (navAccountGroup) navAccountGroup.classList.remove('hidden');
+        if (navToplist) navToplist.classList.remove('hidden'); // Visa "Topplistor" under Aktuellt
+
+        // Mobil
         if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
         if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
         if (mobileLogoutBtn) mobileLogoutBtn.classList.remove('hidden');
         
+        // Admin-badge
         if (adminIndicator) {
             isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
         }
     } else {
+        // --- UTLOGGAD ---
         if (showLoginLink) showLoginLink.classList.remove('hidden');
-        if (profilePanel) profilePanel.classList.add('hidden');
         
-        // Dölj resultat och profil
-        if (resultsNavLink) resultsNavLink.classList.add('hidden');
-        if (profileNavLink) profileNavLink.classList.add('hidden');
+        // Dölj menyer
+        if (navAccountGroup) navAccountGroup.classList.add('hidden');
+        if (navToplist) navToplist.classList.add('hidden'); // Dölj "Topplistor"
+
+        // Mobil
         if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
         if (mobileProfileLink) mobileProfileLink.classList.add('hidden');
         if (mobileLogoutBtn) mobileLogoutBtn.classList.add('hidden');
