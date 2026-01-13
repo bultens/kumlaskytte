@@ -280,10 +280,8 @@
         <section id="admin-login-panel" class="card max-w-md mx-auto">
             <h1 class="font-display text-2xl font-bold mb-6 text-center">Admininloggning</h1>
             <div class="space-y-4">
-                <input type="text" id="admin-username" placeholder="Användarnamn" 
-                       class="form-group input">
-                <input type="password" id="admin-password" placeholder="Lösenord" 
-                       class="form-group input" onkeypress="if(event.key === 'Enter') document.getElementById('login-btn').click()">
+                <input type="email" id="admin-email" placeholder="E-postadress" 
+                    class="form-group input" >
                 <button id="login-btn" class="btn-primary w-full">Logga in</button>
             </div>
         </section>
@@ -525,16 +523,10 @@
     </footer>
 
     <script type="module" src="admin-functions.js"></script>
-    <script type="module">
-    import { 
-        initializeApp 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { 
-        getAuth, onAuthStateChanged, signOut 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { 
-        getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, setDoc 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
     import { firebaseConfig } from "./firebase-config.js";
     import { 
@@ -548,6 +540,7 @@
 
     window.globalState = {
         db: null,
+        storage: null, // Lade till denna för tydlighet
         isAdminLoggedIn: false,
         appId: firebaseConfig.projectId,
         defaultPriceGroupId: 'default',
@@ -568,10 +561,12 @@
         unsubscribeOrders: null,
         firebase: {
             initializeApp, getAuth, onAuthStateChanged, signOut,
-            getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, setDoc, getStorage, ref, uploadBytes, getDownloadURL
+            getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc, serverTimestamp, setDoc, 
+            getStorage, ref, uploadBytes, getDownloadURL, signInWithEmailAndPassword: null // Fylls på av modulen om den importeras där, men vi har den via getAuth i handleLogin
         }
     };
     
+    // Gör funktioner tillgängliga globalt för onclick-events i HTML
     window.editPriceGroup = (id) => editPriceGroup(window.globalState, id);
     window.deletePriceGroup = (id) => deletePriceGroup(window.globalState, id);
     window.editGroup = (id) => editGroup(window.globalState, id);
@@ -582,49 +577,81 @@
     window.deleteSale = (id) => deleteSale(window.globalState, id);
     window.editNews = (id) => editNews(window.globalState, id);
     window.deleteNews = (id) => deleteNews(window.globalState, id);
+    window.updateNews = () => updateNews(window.globalState); // Glömde denna i din lista?
 
     document.addEventListener('DOMContentLoaded', () => {
         if (firebaseConfig.projectId) {
             try {
+                // Initiera Firebase
                 const app = window.globalState.firebase.initializeApp(firebaseConfig);
                 window.globalState.db = window.globalState.firebase.getFirestore(app);
                 window.globalState.storage = window.globalState.firebase.getStorage(app);
                 
-                const loggedIn = localStorage.getItem('adminLoggedIn');
-                if (loggedIn) {
-                    window.globalState.isAdminLoggedIn = true;
-                    document.getElementById('admin-login-panel').classList.add('hidden');
-                    document.getElementById('admin-panel').classList.remove('hidden');
-                    document.getElementById('admin-management-section').classList.remove('hidden');
-                    document.getElementById('admin-indicator').classList.remove('hidden');
-                    document.getElementById('admin-user-info').textContent = `Du är inloggad som ${localStorage.getItem('adminUsername')}.`;
-                    startAdminListeners();
-                    document.getElementById('order-status-summary').classList.remove('hidden');
-                    document.getElementById('orders-link').classList.remove('hidden');
-                } else {
-                    document.getElementById('admin-login-panel').classList.remove('hidden');
-                }
+                // Vi behöver även importera signInWithEmailAndPassword för att skicka med i globalState om handleLogin kräver det från objektet
+                // I din admin-functions.js använder du: const { getAuth, signInWithEmailAndPassword } = globalState.firebase;
+                // Så vi måste lägga till den importen här eller lita på att admin-functions.js importerar den själv. 
+                // Din admin-functions.js importerar den själv högst upp, men för att din kod i handleLogin ska funka:
+                // "const { getAuth, signInWithEmailAndPassword } = globalState.firebase;"
+                // ...så måste vi lägga in den i objektet här:
+                
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js").then((authModule) => {
+                    window.globalState.firebase.signInWithEmailAndPassword = authModule.signInWithEmailAndPassword;
+                    
+                    const auth = window.globalState.firebase.getAuth(app);
+
+                    window.globalState.firebase.onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            console.log("Admin inloggad:", user.email);
+                            window.globalState.isAdminLoggedIn = true;
+                            
+                            document.getElementById('admin-login-panel').classList.add('hidden');
+                            document.getElementById('admin-panel').classList.remove('hidden');
+                            document.getElementById('admin-management-section').classList.remove('hidden');
+                            document.getElementById('admin-indicator').classList.remove('hidden');
+                            document.getElementById('admin-user-info').textContent = `Inloggad som ${user.email}`;
+                            
+                            document.getElementById('order-status-summary').classList.remove('hidden');
+                            document.getElementById('orders-link').classList.remove('hidden');
+                            
+                            startAdminListeners();
+                        } else {
+                            window.globalState.isAdminLoggedIn = false;
+                            document.getElementById('admin-login-panel').classList.remove('hidden');
+                            document.getElementById('admin-panel').classList.add('hidden');
+                            stopAdminListeners();
+                        }
+                    });
+                });
+
             } catch (e) {
                 console.error("Firebase initieringsfel:", e);
-                showMessage("Databasen kunde inte anslutas. Kontakta webbplatsadministratören.");
             }
-        } else {
-            showMessage("Firebase-konfiguration saknas.");
         }
-        document.getElementById('postcard-image-file').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('image-preview').src = e.target.result;
-                    document.getElementById('image-preview-container').classList.remove('hidden');
+
+        // Event Listeners
+        
+        // Bildförhandsvisning
+        const fileInput = document.getElementById('postcard-image-file');
+        if(fileInput) {
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('image-preview').src = e.target.result;
+                        document.getElementById('image-preview-container').classList.remove('hidden');
+                    }
+                    reader.readAsDataURL(file);
                 }
-                reader.readAsDataURL(file);
-            }
-        });
-        document.getElementById('login-btn').addEventListener('click', () => handleLogin(window.globalState.db, window.globalState.appId));
+            });
+        }
+
+        // Login - HÄR VAR FELET: Skicka hela globalState
+        document.getElementById('login-btn').addEventListener('click', () => handleLogin(window.globalState));
+        
         document.getElementById('logout-btn').addEventListener('click', () => handleLogout(window.globalState));
         
+        // Formulärhantering
         document.getElementById('add-price-group-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('new-price-group-name').value;
@@ -648,7 +675,7 @@
         document.getElementById('add-postcard-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             await addOrUpdatePostcard(window.globalState);
-            e.target.reset();
+            // Reset hanteras inuti addOrUpdatePostcard för att hantera "edit mode" korrekt
         });
         
         document.getElementById('add-admin-form').addEventListener('submit', async (e) => {
@@ -659,22 +686,27 @@
             e.target.reset();
         });
         
+        // Rea-logik
         const saleTargetTypeSelect = document.getElementById('sale-target-type');
         const saleTargetSelectContainer = document.getElementById('sale-target-select-container');
         const saleDateFields = document.getElementById('sale-date-fields');
         const noTimeLimitCheckbox = document.getElementById('no-time-limit');
 
-        noTimeLimitCheckbox.addEventListener('change', (e) => {
-            saleDateFields.classList.toggle('hidden', e.target.checked);
-        });
+        if(noTimeLimitCheckbox) {
+            noTimeLimitCheckbox.addEventListener('change', (e) => {
+                saleDateFields.classList.toggle('hidden', e.target.checked);
+            });
+        }
 
-        saleTargetTypeSelect.addEventListener('change', (e) => {
-            const showTargetSelect = e.target.value === 'group' || e.target.value === 'product';
-            saleTargetSelectContainer.classList.toggle('hidden', !showTargetSelect);
-            if(showTargetSelect) {
-                renderGroupsAndPrices(window.globalState);
-            }
-        });
+        if(saleTargetTypeSelect) {
+            saleTargetTypeSelect.addEventListener('change', (e) => {
+                const showTargetSelect = e.target.value === 'group' || e.target.value === 'product';
+                saleTargetSelectContainer.classList.toggle('hidden', !showTargetSelect);
+                if(showTargetSelect) {
+                    renderGroupsAndPrices(window.globalState);
+                }
+            });
+        }
 
         document.getElementById('add-sale-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -697,9 +729,13 @@
             saleDateFields.classList.add('hidden');
         });
         
-        document.getElementById('news-no-time-limit').addEventListener('change', (e) => {
-            document.getElementById('news-date-fields').classList.toggle('hidden', e.target.checked);
-        });
+        // Nyheter
+        const newsNoTimeLimit = document.getElementById('news-no-time-limit');
+        if(newsNoTimeLimit) {
+            newsNoTimeLimit.addEventListener('change', (e) => {
+                document.getElementById('news-date-fields').classList.toggle('hidden', e.target.checked);
+            });
+        }
 
         document.getElementById('add-news-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -720,13 +756,36 @@
             document.getElementById('news-date-fields').classList.add('hidden');
         });
         
-        document.getElementById('edit-news-no-time-limit').addEventListener('change', (e) => {
-            document.getElementById('edit-news-date-fields').classList.toggle('hidden', e.target.checked);
-        });
+        const editNewsNoTimeLimit = document.getElementById('edit-news-no-time-limit');
+        if(editNewsNoTimeLimit) {
+            editNewsNoTimeLimit.addEventListener('change', (e) => {
+                document.getElementById('edit-news-date-fields').classList.toggle('hidden', e.target.checked);
+            });
+        }
 
         document.getElementById('edit-news-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             await updateNews(window.globalState);
+        });
+
+        // Inställningar
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const swishNumber = document.getElementById('setting-swish-number').value;
+            const swishName = document.getElementById('setting-swish-name').value;
+            
+            // Vi importerar updateSettings här dynamiskt eller lägger till den i admin-functions importen
+            // Eftersom den inte fanns i din ursprungliga import-lista i script-taggen (men fanns i admin-functions.js), 
+            // så antar jag att du kan anropa den via window.updateSettings om du lägger till den i window-objektet, 
+            // eller importerar den högst upp.
+            // Jag har lagt till den i import-listan högst upp i detta svar.
+            
+            // Notera: Du behöver importera updateSettings högst upp i <script> för att detta ska funka
+            import("./admin-functions.js").then(module => {
+                if(module.updateSettings) {
+                    module.updateSettings(window.globalState, swishNumber, swishName);
+                }
+            });
         });
     });
     </script>

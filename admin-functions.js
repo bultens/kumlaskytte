@@ -1,10 +1,13 @@
-// Version 1.01
+// Version 1.2
 import { 
     getFirestore, onSnapshot, collection, query, orderBy, where, getDocs, writeBatch, updateDoc, doc, deleteDoc, addDoc 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { 
     getStorage, ref, uploadBytes, getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import { 
+    getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // Modala funktioner
 export function showMessage(message) {
@@ -433,65 +436,57 @@ export function stopAdminListeners() {
     if (window.globalState.unsubscribeOrders) window.globalState.unsubscribeOrders();
 }
 
-export async function handleLogin(db, appId) {
-    const username = document.getElementById('admin-username').value;
+export async function handleLogin(globalState) {
+    const email = document.getElementById('admin-email').value; // OBS: Ändrat ID
     const password = document.getElementById('admin-password').value;
 
-    if (!db) {
-        showMessage("Databasen är inte ansluten.");
+    if (!globalState.firebase) {
+        showMessage("Firebase är inte initierat.");
         return;
     }
 
     try {
-        const adminsRef = collection(db, `artifacts/${appId}/public/data/admins`);
-        const q = query(adminsRef, where('username', '==', username), where('password', '==', password));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            showMessage('Fel: Ogiltiga inloggningsuppgifter.');
-            return;
-        }
+        const { getAuth, signInWithEmailAndPassword } = globalState.firebase;
+        const auth = getAuth(); // Hämta auth-instansen
         
-        const adminData = querySnapshot.docs[0].data();
+        // Detta loggar in dig på riktigt och ger dig rättigheter till Storage
+        await signInWithEmailAndPassword(auth, email, password);
         
-        window.globalState.isAdminLoggedIn = true;
+        // UI-uppdateringar sköts nu av onAuthStateChanged-lyssnaren i admin.html
+        // Men vi kan sätta flaggan här för säkerhets skull
+        globalState.isAdminLoggedIn = true;
         
-        localStorage.setItem('adminLoggedIn', 'true');
-        localStorage.setItem('adminUsername', adminData.username);
-
-        document.getElementById('admin-login-panel').classList.add('hidden');
-        document.getElementById('admin-panel').classList.remove('hidden');
-        document.getElementById('admin-management-section').classList.remove('hidden');
-        document.getElementById('admin-indicator').classList.remove('hidden');
-        document.getElementById('admin-user-info').textContent = `Du är inloggad som ${adminData.username}.`;
-        
-        document.getElementById('orders-link-container').classList.remove('hidden');
-        document.getElementById('order-status-summary').classList.remove('hidden');
-        
-        startAdminListeners();
     } catch (e) {
         console.error("Inloggningsfel:", e);
-        showMessage('Ett fel uppstod vid inloggning.');
+        let msg = 'Ett fel uppstod vid inloggning.';
+        if (e.code === 'auth/invalid-email') msg = 'Ogiltig e-postadress.';
+        if (e.code === 'auth/user-not-found') msg = 'Användaren finns inte.';
+        if (e.code === 'auth/wrong-password') msg = 'Fel lösenord.';
+        showMessage(msg);
     }
 }
 
-export function handleLogout(globalState) {
-    globalState.isAdminLoggedIn = false;
-    localStorage.removeItem('adminLoggedIn');
-    localStorage.removeItem('adminUsername');
-
-    document.getElementById('admin-login-panel').classList.remove('hidden');
-    document.getElementById('admin-panel').classList.add('hidden');
-    document.getElementById('admin-management-section').classList.add('hidden');
-    document.getElementById('admin-indicator').classList.add('hidden');
-    document.getElementById('admin-username').value = '';
-    document.getElementById('admin-password').value = '';
-    globalState.currentEditingPostcardId = null;
-    document.getElementById('add-postcard-btn').textContent = 'Lägg till vykort';
-    document.getElementById('add-postcard-form').reset();
-    stopAdminListeners();
-    document.getElementById('order-status-summary').classList.add('hidden');
-    document.getElementById('orders-link-container').classList.add('hidden');
+export async function handleLogout(globalState) {
+    try {
+        const { getAuth, signOut } = globalState.firebase;
+        const auth = getAuth();
+        await signOut(auth);
+        
+        // UI-återställning
+        globalState.isAdminLoggedIn = false;
+        document.getElementById('admin-login-panel').classList.remove('hidden');
+        document.getElementById('admin-panel').classList.add('hidden');
+        document.getElementById('admin-management-section').classList.add('hidden');
+        document.getElementById('admin-indicator').classList.add('hidden');
+        
+        // Rensa fält
+        document.getElementById('admin-email').value = ''; // OBS: Uppdaterat ID
+        document.getElementById('admin-password').value = '';
+        
+        stopAdminListeners();
+    } catch (e) {
+        console.error("Utloggningsfel:", e);
+    }
 }
 
 export async function editPriceGroup(globalState, id) {
