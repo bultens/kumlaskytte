@@ -990,33 +990,45 @@
 
     </main>
 
-    <footer class="bg-blue-800 text-white text-center py-4 mt-8">
-        <div class="container text-sm flex flex-col sm:flex-row justify-between items-center">
-            <p class="font-bold">Kumla Skytteförening</p>
-            <div class="mt-2 sm:mt-0">
-                <a href="https://www.facebook.com/Kumlaskytte/" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-300 transition duration-300 mx-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
-                    </svg>
+    <footer class="bg-blue-800 text-white text-center py-8 mt-8">
+        <div class="container mx-auto px-4 flex flex-col gap-6">
+            
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                
+                <div class="flex items-center gap-3">
+                    <p class="font-bold text-lg">Kumla Skytteförening</p>
+                    <a href="https://www.facebook.com/Kumlaskytte/" target="_blank" rel="noopener noreferrer" class="text-white hover:text-blue-300 transition duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.542-1.333h2.458v-4h-3c-3.153 0-4 1.258-4 3.75v1.25z"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-2 md:gap-6 text-sm text-blue-100">
+                    <p>Adress: <span id="contact-address"></span></p>
+                    <p>Lokal: <span id="contact-location"></span></p>
+                    <p>Tel: <span id="contact-phone"></span></p>
+                    <p>Email: <span id="contact-email"></span></p>
+                </div>
+            </div>
+
+            <div class="w-full h-px bg-blue-700"></div>
+
+            <div class="flex justify-center">
+                <a href="https://bultens.net" target="_blank" class="flex items-center gap-3 group opacity-80 hover:opacity-100 transition-all duration-300 p-2 rounded-lg hover:bg-blue-900/30">
+                    
+                    <img src="logo2.png" alt="Bultens Logo" class="h-10 w-auto object-contain grayscale group-hover:grayscale-0 transition-all duration-300">
+                    
+                    <div class="text-left flex flex-col leading-tight">
+                        <span class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold group-hover:text-blue-300 transition-colors">Design & Code</span>
+                        <span class="font-bold text-sm text-white group-hover:text-white transition-colors">Bultens.net</span>
+                    </div>
                 </a>
             </div>
-            <p class="mt-2 sm:mt-0">Adress: <span id="contact-address"></span></p>
-            <p class="mt-2 sm:mt-0">Skyttelokal: <span id="contact-location"></span></p>
-            <p class="mt-2 sm:mt-0">Telefon: <span id="contact-phone"></span></p>
-            <p class="mt-2 sm:mt-0">Email: <span id="contact-email"></span></p>
-            <div class="w-16 h-px bg-sage-300 opacity-50"></div>
-
-            <a href="https://bultens.net" target="_blank" class="flex items-center gap-3 group opacity-80 hover:opacity-100 transition-opacity duration-300">
-                
-                <img src="logo2.png" alt="Bultens Logo" class="h-10 w-auto object-contain grayscale group-hover:grayscale-0 transition-all duration-300">
-                
-                <div class="text-left flex flex-col leading-tight">
-                    <span class="text-[10px] uppercase tracking-wider text-sage-500 font-semibold group-hover:text-terracotta-600 transition-colors">Design & Code</span>
-                    <span class="font-display text-sage-800 font-bold text-sm group-hover:text-charcoal transition-colors">Bultens.net</span>
-                </div>
-            </a>
+            
         </div>
     </footer>
+
     <div id="user-login-panel" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md relative">
         <button onclick="document.getElementById('user-login-panel').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
