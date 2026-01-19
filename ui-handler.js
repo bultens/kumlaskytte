@@ -586,6 +586,19 @@ export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {
         `;
     });
 }
+// Scrolla till nyhet om det finns ett #news-ID i hash
+function scrollToNewsIfNeeded() {
+  const hash = window.location.hash;          // t.ex. "#nyheter#news-abc123"
+  const parts  = hash.split('#');             // ["", "nyheter", "news-abc123"]
+  if (parts[2] && parts[2].startsWith('news-')) {
+    const el = document.getElementById(parts[2]);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// Kör både vid sidladdning och vid hash-ändring
+window.addEventListener('hashchange', scrollToNewsIfNeeded);
+document.addEventListener('DOMContentLoaded', scrollToNewsIfNeeded);
 
 export function renderImages(imageData, isAdminLoggedIn) {
     const galleryContainer = document.getElementById('gallery-container');
