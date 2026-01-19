@@ -362,6 +362,9 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
 
     if (!homeNewsContainer || !allNewsContainer) return;
 
+    // Nollställ “ready-flaggan” varje gång vi ritar om
+    window.newsRendered = false;
+
     homeNewsContainer.innerHTML = '';
     allNewsContainer.innerHTML = '';
 
@@ -388,6 +391,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         return firstImage ? firstImage.outerHTML : '';
     };
 
+    // STARTSIDAN – 2 senaste
     news.slice(0, 2).forEach(item => {
         const date = new Date(item.date);
         const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -405,7 +409,6 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         }
         
         const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
-
         const newsUrl = `#nyheter#news-${item.id}`;
 
         homeNewsContainer.innerHTML += `
@@ -420,6 +423,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         `;
     });
 
+    // NYHETSSSIDAN – alla
     news.forEach(item => {
         const date = new Date(item.date);
         const createdAt = item.createdAt?.toDate() || new Date();
@@ -440,7 +444,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
                         👍 <span class="like-count">${likeCount}</span>
                     </button>
                     <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg " class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
                         </svg>
                         <span class="ml-1 hidden sm:inline">Dela</span>
@@ -453,6 +457,10 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
             </div>
         `;
     });
+
+    // Alla nyheter är nu i DOM – flagga klart och försök scrolla
+    window.newsRendered = true;
+    scrollToNewsIfNeeded();
 }
 
 export function renderEvents(eventsData, isAdminLoggedIn) {
@@ -586,13 +594,22 @@ export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {
         `;
     });
 }
-// Scrolla till nyhet om det finns ett #news-ID i hash
-function scrollToNewsIfNeeded() {
-  const hash = window.location.hash;          // t.ex. "#nyheter#news-abc123"
-  const parts  = hash.split('#');             // ["", "nyheter", "news-abc123"]
+// Robusta scroll-funktionen – väntar tills nyheterna finns
+export function scrollToNewsIfNeeded() {
+  const hash = window.location.hash;          // "#nyheter#news-YZTs7G19qcXvmFBXWtz1"
+  const parts  = hash.split('#');             // ["", "nyheter", "news-YZTs7G19qcXvmFBXWtz1"]
   if (parts[2] && parts[2].startsWith('news-')) {
     const el = document.getElementById(parts[2]);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) {
+      // Artikeln finns – scrolla direkt
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    } else if (window.newsRendered) {
+      // Artikeln finns inte ens efter att nyheterna ritats – avbryt
+      console.warn('Nyhet med id', parts[2], 'hittades inte i DOM');
+    } else {
+      // Nyheterna är inte klara än – onSnapshot kommer anropa scrollToNewsIfNeeded igen
+      console.log('Väntar på nyhets-data …');
+    }
   }
 }
 

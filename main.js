@@ -32,7 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initFileManager();
     navigate(window.location.hash || '#hem');
     window.addEventListener('hashchange', () => {
-        navigate(window.location.hash || '#hem');
+    navigate(window.location.hash || '#hem');
+    scrollToNewsIfNeeded();   // <-- NYTT
     });
     
     // Setup modal close buttons
