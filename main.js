@@ -2,7 +2,7 @@
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { initializeDataListeners } from "./data-service.js";
-import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
+import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn, scrollToNewsIfNeeded} from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
@@ -30,10 +30,14 @@ async function checkAdminStatus(user) {
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFileManager();
-    navigate(window.location.hash || '#hem');
+    
+    const currentHash = window.location.hash || '#hem';
+    navigate(currentHash);
+    scrollToNewsIfNeeded(); // <--- Lägg till här också för direktlänkar
+    
     window.addEventListener('hashchange', () => {
-    navigate(window.location.hash || '#hem');
-    scrollToNewsIfNeeded();   // <-- NYTT
+        navigate(window.location.hash || '#hem');
+        scrollToNewsIfNeeded();
     });
     
     // Setup modal close buttons

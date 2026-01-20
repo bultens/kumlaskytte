@@ -964,18 +964,26 @@ export function updateToolbarButtons(editor) {
 }
 
 export function navigate(hash) {
-    // Dölj alla sektioner
+    // 1. Dölj alla sidor först
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => page.classList.remove('active'));
 
-    // Ta bort # och hitta rätt ID, standard till hem
-    const id = hash.replace('#', '') || 'hem';
-    const targetPage = document.getElementById(id);
+    // 2. Dela upp hashen ifall den innehåller flera delar (t.ex. #nyheter#news-123)
+    // Vi filtrerar bort tomma strängar och tar första delen som sid-ID
+    const parts = hash.split('#').filter(p => p !== '');
+    const pageId = parts[0] || 'hem'; 
+
+    // 3. Hitta sektionen och visa den
+    const targetPage = document.getElementById(pageId);
 
     if (targetPage) {
         targetPage.classList.add('active');
-        // Scrolla till toppen vid sidbyte
+        // Scrolla till toppen av den nya sidan
         window.scrollTo(0, 0);
+    } else {
+        // Om inget hittas, gå till hem som fallback
+        const home = document.getElementById('hem');
+        if (home) home.classList.add('active');
     }
 }
 
