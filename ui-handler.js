@@ -594,23 +594,31 @@ export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {
         `;
     });
 }
-// Robusta scroll-funktionen – väntar tills nyheterna finns
+
 export function scrollToNewsIfNeeded() {
-  const hash = window.location.hash;          // "#nyheter#news-YZTs7G19qcXvmFBXWtz1"
-  const parts  = hash.split('#');             // ["", "nyheter", "news-YZTs7G19qcXvmFBXWtz1"]
-  if (parts[2] && parts[2].startsWith('news-')) {
-    const el = document.getElementById(parts[2]);
-    if (el) {
-      // Artikeln finns – scrolla direkt
-      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } else if (window.newsRendered) {
-      // Artikeln finns inte ens efter att nyheterna ritats – avbryt
-      console.warn('Nyhet med id', parts[2], 'hittades inte i DOM');
-    } else {
-      // Nyheterna är inte klara än – onSnapshot kommer anropa scrollToNewsIfNeeded igen
-      console.log('Väntar på nyhets-data …');
-    }
-  }
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    // Dela upp hashen så vi hittar alla delar, t.ex. "nyheter" och "news-123"
+    const parts = hash.split('#').filter(p => p !== '');
+    
+    parts.forEach(part => {
+        // Kolla om delen är ett ID för nyhet, event eller tävling
+        if (part.startsWith('news-') || part.startsWith('event-') || part.startsWith('comp-')) {
+            // Vänta lite (300ms) så att Firebase hinner rendera listan först
+            setTimeout(() => {
+                const targetEl = document.getElementById(part);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Valfritt: "Blinka" till posten så användaren ser den tydligt
+                    targetEl.style.transition = "background-color 1s";
+                    targetEl.style.backgroundColor = "#fef9c3"; // Ljusgul highlight
+                    setTimeout(() => targetEl.style.backgroundColor = "", 2000);
+                }
+            }, 300); 
+        }
+    });
 }
 
 // Kör både vid sidladdning och vid hash-ändring
