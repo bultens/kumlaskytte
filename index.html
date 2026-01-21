@@ -404,9 +404,20 @@
                 </div>
             </div>
             <div id="sponsors-container">
-                <div id="sponsors-by-1" class="sponsors-grid-container-1"></div>
-                <div id="sponsors-by-2" class="sponsors-grid-container-2"></div>
-                <div id="sponsors-by-4" class="sponsors-grid-container-4"></div>
+                <div id="section-guld" class="hidden mb-10">
+                    <h2 class="text-2xl font-bold text-yellow-600 border-b-2 border-yellow-200 mb-4">🥇 Guldsponsorer</h2>
+                    <div id="sponsors-by-1" class="sponsors-grid-container"></div>
+                </div>
+
+                <div id="section-silver" class="hidden mb-10">
+                    <h2 class="text-2xl font-bold text-gray-500 border-b-2 border-gray-200 mb-4">🥈 Silversponsorer</h2>
+                    <div id="sponsors-by-2" class="sponsors-grid-container"></div>
+                </div>
+
+                <div id="section-brons" class="hidden mb-10">
+                    <h2 class="text-2xl font-bold text-orange-600 border-b-2 border-orange-200 mb-4">🥉 Bronssponsorer</h2>
+                    <div id="sponsors-by-4" class="sponsors-grid-container"></div>
+                </div>
             </div>
 
             <div class="card mt-6 hidden" id="sponsors-edit-section">
@@ -426,9 +437,9 @@
 
                     <label for="sponsor-size" class="block mb-2 font-semibold">Sponsorns storlek (visuell bredd)</label>
                     <select id="sponsor-size" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
-                        <option value="1/1">Full bredd (1 per rad)</option>
-                        <option value="1/2">Halv bredd (2 per rad)</option>
-                        <option value="1/4">Fjärdedels bredd (4 per rad)</option>
+                        <option value="1/1">Guld (Full bredd)</option>
+                        <option value="1/2">Silver (Halv bredd)</option>
+                        <option value="1/4">Brons (Fjärdedels bredd)</option>
                     </select>
                     
                     <div class="mt-4 border-t-2 border-dashed border-gray-300 pt-4">

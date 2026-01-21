@@ -682,50 +682,66 @@ export function renderImages(imageData, isAdminLoggedIn) {
 }
 
 export function renderSponsors(sponsorsData, isAdminLoggedIn) {
-    const sponsorsContainer = document.getElementById('sponsors-container');
-    if (!sponsorsContainer) return;
-    sponsorsContainer.innerHTML = '';
-    
-    const sizeOrder = {'1/1': 1, '1/2': 2, '1/4': 3};
-    sponsorsData.sort((a, b) => {
-        const sizeDiff = sizeOrder[a.size] - sizeOrder[b.size];
-        if (sizeDiff !== 0) {
-            return sizeDiff;
-        }
-        return a.priority - b.priority;
-    });
+    // Hämta behållarna för de inre listorna
+    const containerGuld = document.getElementById('sponsors-by-1');
+    const containerSilver = document.getElementById('sponsors-by-2');
+    const containerBrons = document.getElementById('sponsors-by-4');
 
-    const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
-    const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
-    const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
+    // Hämta själva rubrik-sektionerna
+    const sectionGuld = document.getElementById('section-guld');
+    const sectionSilver = document.getElementById('section-silver');
+    const sectionBrons = document.getElementById('section-brons');
 
-    const renderSponsorGroup = (group, className) => {
-        return group.map(sponsor => {
-            const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
-            const closingTag = sponsor.url ? '</a>' : '';
-            
-            const sponsorHtml = `
-                <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
-                    ${sponsorLink}
-                        <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
-                        <h3 class="text-xl font-semibold">${sponsor.name}</h3>
-                        ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
-                    ${closingTag}
-                    ${isAdminLoggedIn ? `
-                        <div class="flex space-x-2 mt-2">
-                            <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
-                            <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            return sponsorHtml;
-        }).join('');
+    if (!containerGuld || !containerSilver || !containerBrons) return;
+
+    // Rensa gamla resultat i de inre listorna (inte hela sponsors-container)
+    containerGuld.innerHTML = '';
+    containerSilver.innerHTML = '';
+    containerBrons.innerHTML = '';
+
+    // Dölj sektionerna som standard
+    sectionGuld.classList.add('hidden');
+    sectionSilver.classList.add('hidden');
+    sectionBrons.classList.add('hidden');
+
+    // Sortera data efter prioritet
+    const sortedData = [...sponsorsData].sort((a, b) => a.priority - b.priority);
+
+    // Hjälpfunktion för att skapa HTML för ett sponsorkort
+    const createSponsorHtml = (sponsor, className) => {
+        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
+        const closingTag = sponsor.url ? '</a>' : '';
+        
+        return `
+            <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
+                ${sponsorLink}
+                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
+                    <h3 class="text-xl font-semibold">${sponsor.name}</h3>
+                    ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
+                ${closingTag}
+                ${isAdminLoggedIn ? `
+                    <div class="flex space-x-2 mt-2">
+                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
+                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
     };
 
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByFull, 'sponsor-card-1-1')}</div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByHalf, 'sponsor-card-1-2')}</div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
+    // Fördela sponsorer till rätt behållare och visa sektionen om den har innehåll
+    sortedData.forEach(sponsor => {
+        if (sponsor.size === '1/1') {
+            sectionGuld.classList.remove('hidden');
+            containerGuld.innerHTML += createSponsorHtml(sponsor, 'sponsor-card-1-1');
+        } else if (sponsor.size === '1/2') {
+            sectionSilver.classList.remove('hidden');
+            containerSilver.innerHTML += createSponsorHtml(sponsor, 'sponsor-card-1-2');
+        } else if (sponsor.size === '1/4') {
+            sectionBrons.classList.remove('hidden');
+            containerBrons.innerHTML += createSponsorHtml(sponsor, 'sponsor-card-1-4');
+        }
+    });
 }
 
 export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {

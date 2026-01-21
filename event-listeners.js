@@ -728,7 +728,13 @@ if (addShooterForm) {
     if (addSponsorForm) {
         addSponsorForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await handleSponsorUpload(e);
+            // Skicka med editingSponsorId till upload-handlern
+            await handleSponsorUpload(e, editingSponsorId); 
+            
+            // Återställ formuläret och ID efter lyckad sparning
+            editingSponsorId = null; 
+            document.getElementById('sponsor-form-title').textContent = 'Lägg till Sponsor';
+            addSponsorBtn.textContent = 'Lägg till Sponsor';
         });
     }
 
