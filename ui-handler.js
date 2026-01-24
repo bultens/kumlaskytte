@@ -1249,23 +1249,22 @@ export function renderTopLists(results, shooters) {
     const container = document.getElementById('top-lists-container');
     if (!container) return;
 
-    // Kontrollera behörighet via de globala variablerna i ui-handler.js
+    // VIKTIGT: Vi använder isClubMemberGlobal (inte isClubMember)
     if (!isClubMemberGlobal && !isAdminLoggedIn) {
         container.innerHTML = `
             <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-xl shadow-sm">
                 <div class="text-4xl mb-3">🔒</div>
-                <p class="text-yellow-800 font-bold text-lg">Topplistor är låsta</p>
+                <p class="text-yellow-800 font-bold text-lg text-balance">Topplistor är endast tillgängliga för klubbmedlemmar.</p>
                 <p class="text-sm text-yellow-700 mt-2 max-w-md mx-auto">
-                    Topplistor är endast tillgängliga för verifierade klubbmedlemmar. 
-                    Dina egna resultat ser du alltid under "Mina Sidor".
+                    Dina egna resultat ser du alltid under "Mina Sidor", men för att se klubbens gemensamma topplistor behöver ditt konto verifieras av en administratör.
                 </p>
-                <p class="text-xs text-yellow-600 mt-4 italic">Kontakta admin om du är medlem men saknar åtkomst.</p>
+                <p class="text-xs text-yellow-600 mt-4 italic text-balance">Kontakta styrelsen eller admin@bultens.net om du är medlem i föreningen men inte har tillgång.</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = '';
+    container.innerHTML = ''; 
 
     if (!results || results.length === 0) {
         container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga delade resultat hittades ännu.</p>';
@@ -1290,9 +1289,9 @@ export function renderTopLists(results, shooters) {
 
         if (filtered.length > 0) {
             const card = document.createElement('div');
-            card.className = 'card overflow-hidden border-t-4 border-blue-900';
+            card.className = 'card overflow-hidden border-t-4 border-blue-900 shadow-md';
             card.innerHTML = `
-                <h3 class="bg-gray-100 p-3 font-bold text-center text-blue-900 uppercase text-sm tracking-wider">${cat.name}</h3>
+                <h3 class="bg-gray-100 p-3 font-bold text-center text-blue-900 uppercase text-xs tracking-wider">${cat.name}</h3>
                 <div class="p-2">
                     ${filtered.map((r, i) => {
                         const shooter = shooters.find(s => s.id === r.shooterId);

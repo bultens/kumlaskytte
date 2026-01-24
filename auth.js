@@ -21,6 +21,7 @@ onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
+        // Sätt användar-ID globalt för tjänster
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
@@ -33,32 +34,39 @@ onAuthStateChanged(auth, async (user) => {
                 const userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
                 
-                // Berätta för ui-handler om vi är klubbmedlemmar
-                setClubStatus(userData.isClubMember === true);
+                // --- UPPDATERA MEDLEMSSTATUS ---
+                // Vi skickar resultatet av om man är klubbmedlem till ui-handler
+                if (typeof setClubStatus === 'function') {
+                    setClubStatus(userData.isClubMember === true);
+                }
+                // -------------------------------
 
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
                 }
+                
                 renderProfileInfo(userData);
             } else {
-                // Om inget dokument finns, sätt medlemsstatus till false
-                setClubStatus(false);
+                // Om dokumentet inte finns i Firestore (men finns i Auth)
+                if (typeof setClubStatus === 'function') setClubStatus(false);
             }
         } catch (error) {
             console.error("Fel vid hämtning av användarprofil:", error);
-            setClubStatus(false);
+            if (typeof setClubStatus === 'function') setClubStatus(false);
         }
 
+        // Hantera vad Admin ska se i menyn
         handleAdminUI(isAdmin);
+        // Byt ut "Logga in" mot "Min profil"
         toggleProfileUI(true);
 
     } else {
-        // Vid utloggning
+        // Vid utloggning: Nollställ allt
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
         
-        setClubStatus(false);
+        if (typeof setClubStatus === 'function') setClubStatus(false);
         handleAdminUI(false);
         toggleProfileUI(false);
         
