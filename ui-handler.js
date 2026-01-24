@@ -1249,31 +1249,28 @@ export function renderTopLists(results, shooters) {
     const container = document.getElementById('top-lists-container');
     if (!container) return;
 
-    // Kontrollera om användaren får se listorna (måste vara medlem eller admin)
+    // Kontrollera behörighet via de globala variablerna i ui-handler.js
     if (!isClubMemberGlobal && !isAdminLoggedIn) {
         container.innerHTML = `
             <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-xl shadow-sm">
                 <div class="text-4xl mb-3">🔒</div>
-                <p class="text-yellow-800 font-bold text-lg text-balance">Topplistor är endast tillgängliga för klubbmedlemmar.</p>
+                <p class="text-yellow-800 font-bold text-lg">Topplistor är låsta</p>
                 <p class="text-sm text-yellow-700 mt-2 max-w-md mx-auto">
-                    Dina egna resultat ser du alltid under "Mina Sidor", men för att se klubbens gemensamma topplistor behöver ditt konto verifieras av en administratör.
+                    Topplistor är endast tillgängliga för verifierade klubbmedlemmar. 
+                    Dina egna resultat ser du alltid under "Mina Sidor".
                 </p>
-                <p class="text-xs text-yellow-600 mt-4 italic text-balance">Kontakta styrelsen eller admin@bultens.net om du är medlem i föreningen men inte har tillgång.</p>
+                <p class="text-xs text-yellow-600 mt-4 italic">Kontakta admin om du är medlem men saknar åtkomst.</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = ''; // Rensa behållaren om man har behörighet
+    container.innerHTML = '';
 
     if (!results || results.length === 0) {
         container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga delade resultat hittades ännu.</p>';
         return;
     }
-
-    // --- Nedan följer din befintliga logik för att rita ut listorna ---
-    // (Jag inkluderar en förkortad version av din layout här, 
-    // se till att behålla din specifika sorteringslogik om den skiljer sig)
 
     const categories = [
         { name: 'Sittande 20 skott', discipline: 'sitting', shots: 20 },
@@ -1289,13 +1286,13 @@ export function renderTopLists(results, shooters) {
         const filtered = results
             .filter(r => r.discipline === cat.discipline && r.shotCount === cat.shots && r.sharedWithClub === true)
             .sort((a, b) => b.total - a.total)
-            .slice(0, 10); // Topp 10
+            .slice(0, 10);
 
         if (filtered.length > 0) {
             const card = document.createElement('div');
-            card.className = 'card overflow-hidden';
+            card.className = 'card overflow-hidden border-t-4 border-blue-900';
             card.innerHTML = `
-                <h3 class="bg-blue-900 text-white p-3 font-bold text-center">${cat.name}</h3>
+                <h3 class="bg-gray-100 p-3 font-bold text-center text-blue-900 uppercase text-sm tracking-wider">${cat.name}</h3>
                 <div class="p-2">
                     ${filtered.map((r, i) => {
                         const shooter = shooters.find(s => s.id === r.shooterId);
@@ -1313,7 +1310,7 @@ export function renderTopLists(results, shooters) {
     });
 
     if (grid.children.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga resultat har delats med klubben ännu i de vanliga kategorierna.</p>';
+        container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga resultat har delats med klubben ännu.</p>';
     } else {
         container.appendChild(grid);
     }

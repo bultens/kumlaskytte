@@ -12,7 +12,7 @@ import {
     query, where, getDocs, writeBatch, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initializeDataListeners, setCurrentUserId } from "./data-service.js";
-import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
+import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal , setClubStatus} from "./ui-handler.js";
 
 // Ver. 3.18 - Återställt alla navigationslänkar och kontohantering
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -21,13 +21,11 @@ onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
-        // Sätt globalt ID för data-service
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
         
         try {
-            // Hämta användardokumentet från Firestore
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getDoc(docRef);
             
@@ -35,19 +33,15 @@ onAuthStateChanged(auth, async (user) => {
                 const userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
                 
-                // --- UPPDATERA KLUBB-STATUS HÄR ---
-                const isMember = userData.isClubMember === true;
-                setClubStatus(isMember); 
-                // ----------------------------------
+                // Berätta för ui-handler om vi är klubbmedlemmar
+                setClubStatus(userData.isClubMember === true);
 
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
                 }
-                
-                // Rendera profilinformationen på "Mina sidor"
                 renderProfileInfo(userData);
             } else {
-                // Om dokumentet inte finns (t.ex. raderat i Firestore men inloggad i Auth)
+                // Om inget dokument finns, sätt medlemsstatus till false
                 setClubStatus(false);
             }
         } catch (error) {
@@ -55,20 +49,18 @@ onAuthStateChanged(auth, async (user) => {
             setClubStatus(false);
         }
 
-        // Uppdatera gränssnittet baserat på admin-status
         handleAdminUI(isAdmin);
-        toggleProfileUI(true); // Visa profil-knapp, dölj logga-in-knapp
+        toggleProfileUI(true);
 
     } else {
-        // Användaren har loggat ut
+        // Vid utloggning
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
         
-        // Återställ alla globala statusar
         setClubStatus(false);
         handleAdminUI(false);
-        toggleProfileUI(false); // Visa logga-in-knapp, dölj profil-knapp
+        toggleProfileUI(false);
         
         if (profileWelcomeMessage) {
             profileWelcomeMessage.textContent = '';
