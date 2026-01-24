@@ -55,7 +55,6 @@ onAuthStateChanged(auth, async (user) => {
     toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
 });
 
-// --- AUTH FUNKTIONER ---
 
 export async function signUp(email, password) {
     try {
@@ -65,14 +64,16 @@ export async function signUp(email, password) {
         console.log("Konto skapat i Auth! UID:", user.uid);
 
         console.log("Försöker skriva till Firestore...");
+        // VIKTIGT: Fälten måste matcha dina Firestore Rules exakt!
         await setDoc(doc(db, 'users', user.uid), {
             email: email,
             isAdmin: false,
+            isClubMember: false, // <--- Detta fält krävs av dina regler!
             mailingList: false,
             createdAt: serverTimestamp()
         });
-        console.log("Dokument skrivet till Firestore!");
         
+        console.log("Dokument skrivet till Firestore!");
         return user;
     } catch (error) {
         console.error("Detta steg misslyckades:", error.code, error.message);
