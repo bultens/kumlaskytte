@@ -21,7 +21,6 @@ onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
-        // Sätt användar-ID globalt för tjänster
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
@@ -32,22 +31,23 @@ onAuthStateChanged(auth, async (user) => {
             
             if (docSnap.exists()) {
                 const userData = docSnap.data();
+                // VIKTIGT: Vi sparar UID i objektet så ui-handler vet vems profil det är
+                userData.id = user.uid; 
+                
                 isAdmin = userData.isAdmin === true;
                 
-                // --- UPPDATERA MEDLEMSSTATUS ---
-                // Vi skickar resultatet av om man är klubbmedlem till ui-handler
+                // Berätta för ui-handler om vi är klubbmedlemmar
                 if (typeof setClubStatus === 'function') {
                     setClubStatus(userData.isClubMember === true);
                 }
-                // -------------------------------
 
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
                 }
                 
+                // Rendera profilinfo (Här skickar vi nu med det kompletta objektet med ID)
                 renderProfileInfo(userData);
             } else {
-                // Om dokumentet inte finns i Firestore (men finns i Auth)
                 if (typeof setClubStatus === 'function') setClubStatus(false);
             }
         } catch (error) {
@@ -55,13 +55,10 @@ onAuthStateChanged(auth, async (user) => {
             if (typeof setClubStatus === 'function') setClubStatus(false);
         }
 
-        // Hantera vad Admin ska se i menyn
         handleAdminUI(isAdmin);
-        // Byt ut "Logga in" mot "Min profil"
         toggleProfileUI(true);
 
     } else {
-        // Vid utloggning: Nollställ allt
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }

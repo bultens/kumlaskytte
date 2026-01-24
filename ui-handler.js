@@ -918,64 +918,80 @@ export async function renderSiteSettings() {
     }
 }
 
-export async function renderProfileInfo(user) {
-    if (!user) return;
+export async function renderProfileInfo(userData) {
+    const container = document.getElementById('profile-info-display');
+    if (!container) return;
+
+    // Säkerhetskontroll: Om userData saknas helt
+    if (!userData) {
+        container.innerHTML = '<p class="text-gray-500 italic">Kunde inte ladda profiluppgifter.</p>';
+        return;
+    }
 
     try {
-        // Hämta färsk data från Firestore för den inloggade användaren
-        const userDoc = await getFirestoreDoc(doc(db, 'users', user.uid));
-        
-        if (userDoc.exists()) {
-            const data = userDoc.data();
+        // Skapa HTML för basinfo
+        let html = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Namn</p>
+                    <p class="text-lg font-semibold">${userData.name || 'Ej angivet'}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">E-post</p>
+                    <p class="text-lg font-semibold">${userData.email || 'Ej angivet'}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Födelseår</p>
+                    <p class="text-lg font-semibold">${userData.birthyear || 'Ej angivet'}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Telefon</p>
+                    <p class="text-lg font-semibold">${userData.phone || 'Ej angivet'}</p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Adress</p>
+                    <p class="text-lg font-semibold">${userData.address || 'Ej angivet'}</p>
+                </div>
+            </div>
 
-            // 1. Rendera den statiska sammanfattningen (kräver id="profile-info-container" i index.html)
-            const container = document.getElementById('profile-info-container');
-            if (container) {
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-gray-100">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">Namn</label>
-                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.name || 'Ej angivet'}</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">E-post</label>
-                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.email || user.email}</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">Födelseår</label>
-                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.birthyear || 'Ej angivet'}</p>
-                            </div>
+            <div class="flex flex-wrap gap-3 mb-6">
+                <span class="px-3 py-1 rounded-full text-xs font-bold ${userData.isAdmin ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
+                    ${userData.isAdmin ? '🛡️ Admin' : '👤 Användare'}
+                </span>
+                <span class="px-3 py-1 rounded-full text-xs font-bold ${userData.isClubMember ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}">
+                    ${userData.isClubMember ? '✅ Verifierad Klubbmedlem' : '⏳ Väntar på verifiering'}
+                </span>
+                ${userData.mailingList ? '<span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">📧 Nyhetsbrev</span>' : ''}
+            </div>
+        `;
+
+        // HÄR KOMMER FIXEN FÖR "indexOf"-FELET:
+        // Vi kollar om parentUserId finns OCH är en giltig sträng innan vi anropar doc()
+        if (userData.parentUserId && typeof userData.parentUserId === 'string' && userData.parentUserId.trim() !== "") {
+            try {
+                const parentRef = doc(db, 'users', userData.parentUserId);
+                const parentSnap = await getFirestoreDoc(parentRef);
+                
+                if (parentSnap.exists()) {
+                    const parentData = parentSnap.data();
+                    html += `
+                        <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <p class="text-xs font-bold text-blue-800 uppercase mb-1">Kopplad till förälder/målsman:</p>
+                            <p class="font-semibold text-blue-900">${parentData.name || parentData.email}</p>
                         </div>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">Adress</label>
-                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.address || 'Ej angivet'}</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700">Telefon</label>
-                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    `;
+                }
+            } catch (parentError) {
+                console.error("Kunde inte hämta föräldrainfo:", parentError);
+                // Vi låter bli att krascha hela sidan om just detta misslyckas
             }
-
-            // 2. Fyll i formulärets input-fält så användaren slipper skriva allt på nytt vid ändring
-            const nameInput = document.getElementById('profile-name-input');
-            const addressInput = document.getElementById('profile-address-input');
-            const phoneInput = document.getElementById('profile-phone-input');
-            const birthyearInput = document.getElementById('profile-birthyear-input');
-            const mailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
-
-            if (nameInput) nameInput.value = data.name || '';
-            if (addressInput) addressInput.value = data.address || '';
-            if (phoneInput) phoneInput.value = data.phone || '';
-            if (birthyearInput) birthyearInput.value = data.birthyear || '';
-            if (mailingListCheckbox) mailingListCheckbox.checked = data.mailingList || false;
         }
-    } catch (error) {
-        console.error("Fel vid hämtning av profilinfo:", error);
+
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error("Fel vid hämtning av profilinfo:", err);
+        container.innerHTML = `<p class="text-red-500">Ett fel uppstod när profilen skulle ritas ut: ${err.message}</p>`;
     }
 }
 
