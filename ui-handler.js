@@ -744,6 +744,8 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     });
 }
 
+// ui-handler.js
+
 export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
     const adminListEl = document.getElementById('admin-list');
     const allUsersContainer = document.getElementById('all-users-container');
@@ -758,21 +760,33 @@ export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) 
         userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
         
         if (isUserAdmin) {
+            // Admin-listan (valfritt om du vill ha knappen här också)
             userEl.innerHTML = `
                 <span class="font-semibold">${user.email} (Admin)</span>
                 <div class="flex space-x-2">
                     <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
                     ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
+                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== currentUserId ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
                 </div>
             `;
             adminListEl.appendChild(userEl);
         } else {
+            // Listan för vanliga användare
             userEl.innerHTML = `
                 <span class="font-semibold">${user.email}</span>
                 <div class="flex space-x-2">
                     <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    
                     ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
+                    
+                    ${isAdminLoggedIn ? `
+                        <button class="toggle-member-btn px-3 py-1 rounded-full text-xs font-bold transition duration-300 ${user.isClubMember ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}" 
+                                data-id="${user.id}" 
+                                data-status="${user.isClubMember || false}">
+                            ${user.isClubMember ? '✓ Medlem' : 'Gör till medlem'}
+                        </button>
+                    ` : ''}
+
                     ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
                 </div>
             `;
@@ -1236,7 +1250,7 @@ export function renderTopLists(classes, allResults, allShooters) {
     if (!container) return;
     
     // SÄKERHETSKOLL I UI:
-    if (!auth.currentUser) {
+    if (!isClubMember && !auth.currentUser) {
         container.innerHTML = `
             <div class="col-span-full text-center p-8 bg-blue-50 rounded-xl border border-blue-100">
                 <h3 class="text-2xl font-bold text-blue-900 mb-2">Endast för medlemmar</h3>

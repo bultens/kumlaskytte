@@ -197,3 +197,35 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 });
+export async function deleteUserAccount() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const confirmFirst = confirm("Är du säker? Din personliga profil raderas direkt.\n\nOBS: Skjutresultat och skyttar sparas för föreningens historik. Vill du ta bort även dessa måste du kontakta admin@bultens.net.");
+    
+    if (confirmFirst) {
+        try {
+            const uid = user.uid;
+            
+            // 1. Radera profildokumentet i Firestore
+            // (Detta tar bort namn, e-post, adress etc.)
+            await deleteDoc(doc(db, 'users', uid));
+            console.log("Firestore-profil raderad.");
+
+            // 2. Radera själva inloggningskontot i Firebase Auth
+            await deleteUser(user);
+            console.log("Auth-konto raderat.");
+            
+            alert("Ditt konto har raderats helt enligt GDPR-förfrågan.");
+            window.location.hash = "#hem";
+            location.reload(); // Ladda om för att rensa alla lokala tillstånd
+        } catch (error) {
+            console.error("Fel vid radering:", error);
+            if (error.code === 'auth/requires-recent-login') {
+                alert("Säkerhetsåtgärd: Du måste logga ut och logga in igen precis innan du raderar ditt konto.");
+            } else {
+                alert("Ett fel uppstod: " + error.message);
+            }
+        }
+    }
+}

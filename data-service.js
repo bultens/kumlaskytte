@@ -566,3 +566,17 @@ export async function deleteAdminFolder(folderId) {
         return false;
     }
 }
+export async function toggleClubMemberStatus(userId, currentStatus) {
+    if (!isAdminLoggedIn) return;
+    
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            isClubMember: !currentStatus
+        });
+        return true;
+    } catch (error) {
+        console.error("Kunde inte uppdatera medlemsstatus:", error);
+        return false;
+    }
+}
