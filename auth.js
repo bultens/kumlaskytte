@@ -59,17 +59,23 @@ onAuthStateChanged(auth, async (user) => {
 
 export async function signUp(email, password) {
     try {
+        console.log("Försöker skapa konto i Auth...");
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        console.log("Konto skapat i Auth! UID:", user.uid);
+
+        console.log("Försöker skriva till Firestore...");
         await setDoc(doc(db, 'users', user.uid), {
             email: email,
             isAdmin: false,
             mailingList: false,
             createdAt: serverTimestamp()
         });
+        console.log("Dokument skrivet till Firestore!");
+        
         return user;
     } catch (error) {
-        console.error("Registreringsfel:", error);
+        console.error("Detta steg misslyckades:", error.code, error.message);
         throw error;
     }
 }
