@@ -922,14 +922,13 @@ export async function renderProfileInfo(userData) {
     const container = document.getElementById('profile-info-display');
     if (!container) return;
 
-    // Säkerhetskontroll: Om userData saknas helt
     if (!userData) {
         container.innerHTML = '<p class="text-gray-500 italic">Kunde inte ladda profiluppgifter.</p>';
         return;
     }
 
     try {
-        // Skapa HTML för basinfo
+        // Din befintliga HTML-struktur för profilen
         let html = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
@@ -965,10 +964,10 @@ export async function renderProfileInfo(userData) {
             </div>
         `;
 
-        // HÄR KOMMER FIXEN FÖR "indexOf"-FELET:
-        // Vi kollar om parentUserId finns OCH är en giltig sträng innan vi anropar doc()
+        // FIX FÖR KRASCH: Vi hämtar bara förälder om fältet faktiskt har ett ID
         if (userData.parentUserId && typeof userData.parentUserId === 'string' && userData.parentUserId.trim() !== "") {
             try {
+                // Vi använder getFirestoreDoc (som du importerat som alias)
                 const parentRef = doc(db, 'users', userData.parentUserId);
                 const parentSnap = await getFirestoreDoc(parentRef);
                 
@@ -982,16 +981,16 @@ export async function renderProfileInfo(userData) {
                     `;
                 }
             } catch (parentError) {
+                // Logga felet men låt profilen visas ändå
                 console.error("Kunde inte hämta föräldrainfo:", parentError);
-                // Vi låter bli att krascha hela sidan om just detta misslyckas
             }
         }
 
         container.innerHTML = html;
 
     } catch (err) {
-        console.error("Fel vid hämtning av profilinfo:", err);
-        container.innerHTML = `<p class="text-red-500">Ett fel uppstod när profilen skulle ritas ut: ${err.message}</p>`;
+        console.error("Fel vid utritning av profilinfo:", err);
+        container.innerHTML = `<p class="text-red-500">Kunde inte visa profil: ${err.message}</p>`;
     }
 }
 

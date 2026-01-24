@@ -21,6 +21,7 @@ onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
+        // Sätt användar-ID globalt för tjänster
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
@@ -31,9 +32,9 @@ onAuthStateChanged(auth, async (user) => {
             
             if (docSnap.exists()) {
                 const userData = docSnap.data();
-                // VIKTIGT: Vi sparar UID i objektet så ui-handler vet vems profil det är
-                userData.id = user.uid; 
                 
+                // VIKTIGT: Spara UID i objektet så ui-handler vet vems profil det är
+                userData.id = user.uid; 
                 isAdmin = userData.isAdmin === true;
                 
                 // Berätta för ui-handler om vi är klubbmedlemmar
@@ -41,11 +42,12 @@ onAuthStateChanged(auth, async (user) => {
                     setClubStatus(userData.isClubMember === true);
                 }
 
+                // Din välkomsthälsning
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
                 }
                 
-                // Rendera profilinfo (Här skickar vi nu med det kompletta objektet med ID)
+                // Rendera profilinfo med det kompletta objektet
                 renderProfileInfo(userData);
             } else {
                 if (typeof setClubStatus === 'function') setClubStatus(false);
@@ -59,6 +61,7 @@ onAuthStateChanged(auth, async (user) => {
         toggleProfileUI(true);
 
     } else {
+        // Vid utloggning
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
