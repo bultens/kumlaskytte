@@ -21,11 +21,13 @@ onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
+        // Sätt globalt ID för data-service
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
         
         try {
+            // Hämta användardokumentet från Firestore
             const docRef = doc(db, 'users', user.uid);
             const docSnap = await getDoc(docRef);
             
@@ -33,26 +35,45 @@ onAuthStateChanged(auth, async (user) => {
                 const userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
                 
+                // --- UPPDATERA KLUBB-STATUS HÄR ---
+                const isMember = userData.isClubMember === true;
+                setClubStatus(isMember); 
+                // ----------------------------------
+
                 if (profileWelcomeMessage) {
-                    const name = userData.name || userData.email;
-                    profileWelcomeMessage.textContent = `Välkommen, ${name}`;
+                    profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
                 }
+                
+                // Rendera profilinformationen på "Mina sidor"
+                renderProfileInfo(userData);
+            } else {
+                // Om dokumentet inte finns (t.ex. raderat i Firestore men inloggad i Auth)
+                setClubStatus(false);
             }
-            // Rendera profilinfon (viktigt för profilsidan)
-            await renderProfileInfo(user);
-        } catch (err) {
-            console.error("Fel vid hämtning av användarprofil:", err);
+        } catch (error) {
+            console.error("Fel vid hämtning av användarprofil:", error);
+            setClubStatus(false);
         }
+
+        // Uppdatera gränssnittet baserat på admin-status
+        handleAdminUI(isAdmin);
+        toggleProfileUI(true); // Visa profil-knapp, dölj logga-in-knapp
+
     } else {
+        // Användaren har loggat ut
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
+        
+        // Återställ alla globala statusar
+        setClubStatus(false);
+        handleAdminUI(false);
+        toggleProfileUI(false); // Visa logga-in-knapp, dölj profil-knapp
+        
+        if (profileWelcomeMessage) {
+            profileWelcomeMessage.textContent = '';
+        }
     }
-
-    // Uppdatera UI i rätt ordning
-    handleAdminUI(isAdmin); 
-    initializeDataListeners(); 
-    toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
 });
 
 

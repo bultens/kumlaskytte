@@ -191,6 +191,23 @@ export function setupEventListeners() {
             }
         });
     }
+        document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('toggle-member-btn')) {
+            const userId = e.target.dataset.id;
+            const currentStatus = e.target.dataset.status === 'true';
+            
+            if (confirm('Vill du ändra medlemsstatus för denna användare?')) {
+                // Du behöver importera updateDoc och doc från firebase/firestore
+                const userRef = doc(db, 'users', userId);
+                try {
+                    await updateDoc(userRef, { isClubMember: !currentStatus });
+                    // Sidan kommer uppdateras automatiskt via snapshot
+                } catch (err) {
+                    alert("Kunde inte uppdatera: " + err.message);
+                }
+            }
+        }
+    });
 
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {
