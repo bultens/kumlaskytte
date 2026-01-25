@@ -26,20 +26,29 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
+    // VIKTIGT: Bestäm admin-status direkt från datan, inte från global variabel
+    const determineIfAdmin = () => {
+        const currentUser = usersData.find(u => u.id === uid);
+        return currentUser ? currentUser.isAdmin === true : false;
+    };
+
     if (auth.currentUser) {
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            if (isAdminLoggedIn) renderShootersAdmin(allShootersData); 
-             if (latestResultsCache.length > 0) {
-                 renderHomeAchievements(latestResultsCache, allShootersData);
-                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
-             }
+            
+            // Använd determineIfAdmin() istället för isAdminLoggedIn
+            if (determineIfAdmin()) renderShootersAdmin(allShootersData);
+            
+            if (latestResultsCache.length > 0) {
+                renderHomeAchievements(latestResultsCache, allShootersData);
+                renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+            }
         });
 
         onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
             competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             competitionClasses.sort((a, b) => a.minAge - b.minAge);
-            if (isAdminLoggedIn) renderClassesAdmin(competitionClasses);
+            if (determineIfAdmin()) renderClassesAdmin(competitionClasses);
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
 
@@ -47,27 +56,50 @@ export function initializeDataListeners() {
             const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             latestResultsCache = allResults; 
             if (allShootersData.length > 0) {
-                 renderHomeAchievements(latestResultsCache, allShootersData);
-                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+                renderHomeAchievements(latestResultsCache, allShootersData);
+                renderTopLists(competitionClasses, latestResultsCache, allShootersData);
             }
         });
     }
 
-    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
-    onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
-    onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'news'), (snapshot) => { 
+        newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderNews(newsData, determineIfAdmin(), uid); 
+    });
+    
+    onSnapshot(collection(db, 'events'), (snapshot) => { 
+        eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderEvents(eventsData, determineIfAdmin()); 
+    });
+    
+    onSnapshot(collection(db, 'competitions'), (snapshot) => { 
+        competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderCompetitions(competitionsData, determineIfAdmin()); 
+    });
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
         usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const uid = auth.currentUser ? auth.currentUser.uid : null;
+        // Uppdatera isAdminLoggedIn globalt också så andra delar av appen vet
         const currentUser = usersData.find(u => u.id === uid);
-        const isAdmin = currentUser ? currentUser.isAdmin === true : false;
-        renderAdminsAndUsers(usersData, isAdmin, uid);
+        isAdminLoggedIn = currentUser ? currentUser.isAdmin === true : false;
+        
+        renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
     });
 
-    onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
-    onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
-    onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'history'), (snapshot) => { 
+        historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderHistory(historyData, determineIfAdmin(), uid); 
+    });
+    
+    onSnapshot(collection(db, 'images'), (snapshot) => { 
+        imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderImages(imageData, determineIfAdmin()); 
+    });
+    
+    onSnapshot(collection(db, 'sponsors'), (snapshot) => { 
+        sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        renderSponsors(sponsorsData, determineIfAdmin()); 
+    });
     
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const faviconLink = document.getElementById('favicon-link');
