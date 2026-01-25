@@ -928,7 +928,7 @@ export async function renderProfileInfo(userData) {
     }
 
     try {
-        // Din befintliga HTML-struktur för profilen
+        // Din HTML för profilöversikten
         let html = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
@@ -958,16 +958,14 @@ export async function renderProfileInfo(userData) {
                     ${userData.isAdmin ? '🛡️ Admin' : '👤 Användare'}
                 </span>
                 <span class="px-3 py-1 rounded-full text-xs font-bold ${userData.isClubMember ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}">
-                    ${userData.isClubMember ? '✅ Verifierad Klubbmedlem' : '⏳ Väntar på verifiering'}
+                    ${userData.isClubMember ? '✅ Klubbmedlem' : '⏳ Väntar på verifiering'}
                 </span>
-                ${userData.mailingList ? '<span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">📧 Nyhetsbrev</span>' : ''}
             </div>
         `;
 
-        // FIX FÖR KRASCH: Vi hämtar bara förälder om fältet faktiskt har ett ID
+        // SÄKERHETSKONTROLL: Hämta endast förälder om ID:t faktiskt finns och är en textsträng
         if (userData.parentUserId && typeof userData.parentUserId === 'string' && userData.parentUserId.trim() !== "") {
             try {
-                // Vi använder getFirestoreDoc (som du importerat som alias)
                 const parentRef = doc(db, 'users', userData.parentUserId);
                 const parentSnap = await getFirestoreDoc(parentRef);
                 
@@ -975,13 +973,12 @@ export async function renderProfileInfo(userData) {
                     const parentData = parentSnap.data();
                     html += `
                         <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                            <p class="text-xs font-bold text-blue-800 uppercase mb-1">Kopplad till förälder/målsman:</p>
+                            <p class="text-xs font-bold text-blue-800 uppercase mb-1">Kopplad till förälder:</p>
                             <p class="font-semibold text-blue-900">${parentData.name || parentData.email}</p>
                         </div>
                     `;
                 }
             } catch (parentError) {
-                // Logga felet men låt profilen visas ändå
                 console.error("Kunde inte hämta föräldrainfo:", parentError);
             }
         }
@@ -1264,22 +1261,19 @@ export function renderTopLists(results, shooters) {
     const container = document.getElementById('top-lists-container');
     if (!container) return;
 
-    // VIKTIGT: Vi använder isClubMemberGlobal (inte isClubMember)
+    // HÄR ÄR FIXEN: Vi använder isClubMemberGlobal som är deklarerad högst upp i filen
     if (!isClubMemberGlobal && !isAdminLoggedIn) {
         container.innerHTML = `
-            <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-xl shadow-sm">
+            <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-xl">
                 <div class="text-4xl mb-3">🔒</div>
-                <p class="text-yellow-800 font-bold text-lg text-balance">Topplistor är endast tillgängliga för klubbmedlemmar.</p>
-                <p class="text-sm text-yellow-700 mt-2 max-w-md mx-auto">
-                    Dina egna resultat ser du alltid under "Mina Sidor", men för att se klubbens gemensamma topplistor behöver ditt konto verifieras av en administratör.
-                </p>
-                <p class="text-xs text-yellow-600 mt-4 italic text-balance">Kontakta styrelsen eller admin@bultens.net om du är medlem i föreningen men inte har tillgång.</p>
+                <p class="text-yellow-800 font-bold">Topplistor är endast för klubbmedlemmar.</p>
+                <p class="text-sm text-yellow-700 mt-2">Ditt konto måste verifieras av en admin innan du kan se klubbens gemensamma listor.</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = ''; 
+    container.innerHTML = '';
 
     if (!results || results.length === 0) {
         container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga delade resultat hittades ännu.</p>';

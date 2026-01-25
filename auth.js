@@ -33,21 +33,21 @@ onAuthStateChanged(auth, async (user) => {
             if (docSnap.exists()) {
                 const userData = docSnap.data();
                 
-                // VIKTIGT: Spara UID i objektet så ui-handler vet vems profil det är
+                // --- VIKTIGT: Spara UID i objektet så att profil-rendering inte kraschar ---
                 userData.id = user.uid; 
                 isAdmin = userData.isAdmin === true;
                 
-                // Berätta för ui-handler om vi är klubbmedlemmar
+                // Uppdatera global status för medlemskap
                 if (typeof setClubStatus === 'function') {
                     setClubStatus(userData.isClubMember === true);
                 }
 
-                // Din välkomsthälsning
+                // Din välkomsthälsning på sidan
                 if (profileWelcomeMessage) {
                     profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
                 }
                 
-                // Rendera profilinfo med det kompletta objektet
+                // Anropa din profil-rendering
                 renderProfileInfo(userData);
             } else {
                 if (typeof setClubStatus === 'function') setClubStatus(false);
@@ -57,11 +57,13 @@ onAuthStateChanged(auth, async (user) => {
             if (typeof setClubStatus === 'function') setClubStatus(false);
         }
 
+        // Din logik för Admin-menyer
         handleAdminUI(isAdmin);
+        // Din logik för inloggad-knappar
         toggleProfileUI(true);
 
     } else {
-        // Vid utloggning
+        // Logik vid utloggning
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
@@ -75,7 +77,6 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
 });
-
 
 export async function signUp(email, password) {
     try {
