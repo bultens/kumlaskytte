@@ -192,9 +192,9 @@ export function startAdminListeners() {
             renderHomeAchievements(latestResultsCache, allShootersData);
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         }
-    });
+    });*/
 }
-*/
+
     
     // Visa edit-sektioner om de är dolda
     const adminSections = [
