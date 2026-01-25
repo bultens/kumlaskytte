@@ -65,7 +65,7 @@ export function initializeDataListeners() {
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
             
-            if (determineIfAdmin()) renderShootersAdmin(allShootersData);
+            if (appState.isAdminLoggedIn) renderShootersAdmin(allShootersData);
             
             if (latestResultsCache.length > 0) {
                 renderHomeAchievements(latestResultsCache, allShootersData);
@@ -76,7 +76,7 @@ export function initializeDataListeners() {
         onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
             competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             competitionClasses.sort((a, b) => a.minAge - b.minAge);
-            if (determineIfAdmin()) renderClassesAdmin(competitionClasses);
+            if (appState.isAdminLoggedIn) renderClassesAdmin(competitionClasses);
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
 
@@ -92,42 +92,45 @@ export function initializeDataListeners() {
 
     onSnapshot(collection(db, 'news'), (snapshot) => { 
         newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderNews(newsData, determineIfAdmin(), uid); 
+        renderNews(newsData, appState.isAdminLoggedIn, uid); 
     });
     
     onSnapshot(collection(db, 'events'), (snapshot) => { 
         eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderEvents(eventsData, determineIfAdmin()); 
+        renderEvents(eventsData, appState.isAdminLoggedIn); 
     });
     
     onSnapshot(collection(db, 'competitions'), (snapshot) => { 
         competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderCompetitions(competitionsData, determineIfAdmin()); 
+        renderCompetitions(competitionsData, appState.isAdminLoggedIn); 
     });
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
         usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // FIX: Använd setAdminStatus istället för direkt tilldelning!
+        // Uppdatera admin-status om vi har en användare
         const currentUser = usersData.find(u => u.id === uid);
-        const isAdmin = uid ? (appState.isAdminLoggedIn || determineIfAdmin()) : false;
-        console.log("Admin status vid render:", isAdmin, "UID:", uid);
-        renderAdminsAndUsers(usersData, isAdmin, uid);
+        if (currentUser && currentUser.isAdmin) {
+            setAdminStatus(true);
+        }
+        
+        // Använd appState.isAdminLoggedIn istället för determineIfAdmin()
+        renderAdminsAndUsers(usersData, appState.isAdminLoggedIn, uid);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { 
         historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderHistory(historyData, determineIfAdmin(), uid); 
+        renderHistory(historyData, appState.isAdminLoggedIn, uid); 
     });
     
     onSnapshot(collection(db, 'images'), (snapshot) => { 
         imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderImages(imageData, determineIfAdmin()); 
+        renderImages(imageData, appState.isAdminLoggedIn); 
     });
     
     onSnapshot(collection(db, 'sponsors'), (snapshot) => { 
         sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderSponsors(sponsorsData, determineIfAdmin()); 
+        renderSponsors(sponsorsData, appState.isAdminLoggedIn); 
     });
     
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
