@@ -509,7 +509,7 @@ export function renderEvents(eventsData, isAdmin) {
     });
 }
 
-export function renderHistory(historyData, isAdmin, currentUserId) {
+/*export function renderHistory(historyData, isAdmin, currentUserId) {
     const historyContainer = document.getElementById('home-history-container');
     if (!historyContainer) return;
 
@@ -545,7 +545,7 @@ export function renderHistory(historyData, isAdmin, currentUserId) {
             </div>
         `;
     });
-}
+}*/
 
 export function scrollToNewsIfNeeded() {
     const hash = window.location.hash;
