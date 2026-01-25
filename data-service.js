@@ -167,7 +167,7 @@ export function startAdminListeners() {
     
     console.log("🎧 Startar admin-lyssnare...");
     
-    // Shooters
+   /* // Shooters
     onSnapshot(collection(db, 'shooters'), (snapshot) => { 
         allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         console.log("📊 Shooters laddade:", allShootersData.length);
@@ -176,7 +176,7 @@ export function startAdminListeners() {
             renderShootersAdmin(allShootersData);
         }
     });
-
+*/
     // Competition Classes
     onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
         competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
