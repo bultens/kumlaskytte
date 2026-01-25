@@ -9,9 +9,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { 
     doc, getDoc, setDoc, serverTimestamp, collection, 
-    query, where, getDocs, writeBatch, arrayRemove 
+    query, where, getDocs, writeBatch, arrayRemove, deleteDoc 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initializeDataListeners, setCurrentUserId } from "./data-service.js";
+import { initializeDataListeners, setCurrentUserId, refreshAdminViews } from "./data-service.js";
 import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal , setClubStatus, setAdminStatus } from "./ui-handler.js";
 
 // Ver. 3.18 - Återställt alla navigationslänkar och kontohantering
@@ -61,6 +61,13 @@ onAuthStateChanged(auth, async (user) => {
         handleAdminUI(isAdmin);
         setAdminStatus(isAdmin);
         toggleProfileUI(true);
+        
+        // VIKTIGT: Om vi är admin, uppdatera admin-vyerna nu när auth är klart
+        if (isAdmin && typeof refreshAdminViews === 'function') {
+            setTimeout(() => {
+                refreshAdminViews();
+            }, 100);
+        }
 
     } else {
         // Logik vid utloggning

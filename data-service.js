@@ -81,8 +81,9 @@ export function initializeDataListeners() {
         
         // FIX: Använd setAdminStatus istället för direkt tilldelning!
         const currentUser = usersData.find(u => u.id === uid);
-        console.log("Admin status vid render:", appState.isAdminLoggedIn, "UID:", uid);
-        renderAdminsAndUsers(usersData, appState.isAdminLoggedIn, uid);
+        const isAdmin = uid ? (appState.isAdminLoggedIn || determineIfAdmin()) : false;
+        console.log("Admin status vid render:", isAdmin, "UID:", uid);
+        renderAdminsAndUsers(usersData, isAdmin, uid);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { 
@@ -114,6 +115,19 @@ export function initializeDataListeners() {
         }
     });
 }
+
+    
+    // Visa edit-sektioner om de är dolda
+    const adminSections = [
+        'news-edit-section', 'competition-edit-section', 
+        'calendar-edit-section', 'image-edit-section', 
+        'history-edit-section', 'sponsors-edit-section'
+    ];
+    
+    adminSections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+    });
 
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
     if (!appState.isAdminLoggedIn) {
