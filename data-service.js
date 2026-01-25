@@ -22,6 +22,35 @@ export function setCurrentUserId(id) {
 }
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
+// Funktion för att uppdatera admin-vyer när auth-status ändras
+export function refreshAdminViews() {
+    const uid = auth.currentUser ? auth.currentUser.uid : null;
+    if (!uid || !appState.isAdminLoggedIn) {
+        console.log("❌ refreshAdminViews: Inte admin eller ingen UID");
+        return;
+    }
+    
+    console.log("🔄 Uppdaterar admin-vyer...");
+    
+    // Rendera om alla admin-vyer med korrekt status
+    renderAdminsAndUsers(usersData, true, uid);
+    renderShootersAdmin(allShootersData);
+    renderClassesAdmin(competitionClasses);
+    
+    // Visa edit-sektioner om de är dolda
+    const adminSections = [
+        'news-edit-section', 'competition-edit-section', 
+        'calendar-edit-section', 'image-edit-section', 
+        'history-edit-section', 'sponsors-edit-section'
+    ];
+    
+    adminSections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+    });
+    
+    console.log("✅ Admin-vyer uppdaterade");
+}
 
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
