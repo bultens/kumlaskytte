@@ -3,24 +3,9 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getMedalForScore } from "./result-handler.js";
 
-// Ver. 1.7 (Fixad: toggleProfileUI parametrar, renderProfileInfo ID, renderAdminsAndUsers knappar)
-export var isAdminLoggedIn = false;
-export let isClubMemberGlobal = false;
+// Ver. 1.6 (Fixad await i renderProfileInfo)
+export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
-
-export const appState = {
-    isAdminLoggedIn: false,
-    isClubMemberGlobal: false,
-    loggedInAdminUsername: ''
-};
-
-export function setClubStatus(status) {
-    appState.isClubMemberGlobal = status;
-}
-
-export function setAdminStatus(isAdmin) {
-    appState.isAdminLoggedIn = isAdmin;
-}
 
 export function showModal(modalId, message) {
     const modal = document.getElementById(modalId);
@@ -43,6 +28,7 @@ export function hideModal(modalId) {
     if (!modal) return;
     modal.classList.remove('active');
 }
+
 
 export function showUserInfoModal(user) {
     const modal = document.getElementById('userInfoModal');
@@ -79,6 +65,7 @@ export function showUserInfoModal(user) {
 export function showDeleteProfileModal() {
     const modal = document.getElementById('deleteProfileModal');
     if (modal) {
+        // Hämta kontaktmail från sidfoten
         const emailEl = document.getElementById('contact-email');
         const email = emailEl && emailEl.textContent ? emailEl.textContent.trim() : 'styrelsen';
 
@@ -187,9 +174,11 @@ export function toggleSponsorsNavLink(isVisible) {
     }
 }
 
-export function renderCompetitions(data, isAdmin) {
+export function renderCompetitions(data, isAdminLoggedIn) {
+    // 1. Hantera huvudlistan (sidan Tävlingar)
     const container = document.getElementById('competitions-container');
     
+    // Sortera: Nyast datum först
     data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     if (container) {
@@ -219,7 +208,7 @@ export function renderCompetitions(data, isAdmin) {
                     <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
                     ${pdfButton}
 
-                    ${isAdmin ? `
+                    ${isAdminLoggedIn ? `
                         <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
                             <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
                             <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
@@ -230,17 +219,30 @@ export function renderCompetitions(data, isAdmin) {
         });
     }
 
+    // 2. Hantera startsidan (Senaste tävlingarna)
     const homeContainer = document.getElementById('home-competitions-container');
     if (homeContainer) {
         homeContainer.innerHTML = '';
+
+        const getFirstLineText = (htmlContent) => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            const firstChild = tempDiv.firstElementChild;
+            if (firstChild && firstChild.tagName === 'P') {
+                return firstChild.textContent;
+            }
+            return tempDiv.textContent.split('\n')[0].trim();
+        };
+
+        // Ta de 2 senaste
         data.slice(0, 2).forEach(item => {
             const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = item.content;
-            const shortContent = tempDiv.textContent.substring(0, 150) + '...';
-            
+            const rawText = getFirstLineText(item.content);
+            const shortContent = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
+            const compUrl = '#tavlingar';
+
             homeContainer.innerHTML += `
-                <a href="#tavlingar" class="card flex flex-col items-start hover:shadow-md transition duration-300">
+                <a href="${compUrl}" class="card flex flex-col items-start hover:shadow-md transition duration-300">
                     <h3 class="text-2xl font-semibold mb-1 text-blue-900">${item.title}</h3>
                     <p class="text-sm text-gray-500 mb-2">${date} | ${item.location}</p>
                     <div class="text-gray-700 markdown-content">${shortContent}</div>
@@ -251,45 +253,21 @@ export function renderCompetitions(data, isAdmin) {
     }
 }
 
-export function toggleProfileUI(isLoggedIn, isAdmin = false) {
-    const showLoginLink = document.getElementById('show-login-link');
-    const adminIndicator = document.getElementById('admin-indicator');
-    const navAccountGroup = document.getElementById('nav-account-group');
-    const navToplist = document.getElementById('nav-toplist');
-    const mobileResultsLink = document.getElementById('mobile-results-nav-link');
-    const mobileProfileLink = document.getElementById('mobile-profile-nav-link');
-    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
-    const profilePanel = document.getElementById('profile-panel');
-
-    if (isLoggedIn) {
-        if (showLoginLink) showLoginLink.classList.add('hidden');
-        if (navAccountGroup) navAccountGroup.classList.remove('hidden');
-        if (navToplist) navToplist.classList.remove('hidden');
-        if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
-        if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
-        if (mobileLogoutBtn) mobileLogoutBtn.classList.remove('hidden');
-        if (profilePanel) profilePanel.classList.remove('hidden');
-        
-        if (adminIndicator) {
-            isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
-        }
-    } else {
-        if (showLoginLink) showLoginLink.classList.remove('hidden');
-        if (navAccountGroup) navAccountGroup.classList.add('hidden');
-        if (navToplist) navToplist.classList.add('hidden');
-        if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
-        if (mobileProfileLink) mobileProfileLink.classList.add('hidden');
-        if (mobileLogoutBtn) mobileLogoutBtn.classList.add('hidden');
-        if (profilePanel) profilePanel.classList.add('hidden');
-        if (adminIndicator) adminIndicator.classList.add('hidden');
-    }
-}
-
 export function handleAdminUI(isAdmin) {
-    appState.isAdminLoggedIn = isAdmin;
+    isAdminLoggedIn = isAdmin;
+
+    // 1. Hantera generella admin-element (Samma som förut)
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(el => {
+        isAdmin ? el.classList.remove('hidden') : el.classList.add('hidden');
+    });
+
+    // 2. Referenser
+    // OBS: admin-indicator hanteras nu i toggleProfileUI, så den behövs inte här.
     const adminNavLink = document.getElementById('admin-nav-link'); 
     const mobileAdminLink = document.getElementById('mobile-admin-nav-link'); 
     
+    // 3. Sektioner som ska visas/döljas (Samma som förut)
     const adminSections = [
         'news-edit-section', 'competition-edit-section', 
         'calendar-edit-section', 'image-edit-section', 
@@ -297,7 +275,7 @@ export function handleAdminUI(isAdmin) {
     ];
     
     const adminLoginPanel = document.getElementById('admin-login-panel');
-    const adminUserInfo = document.getElementById('admin-user-info');
+    const adminUserInfo = document.getElementById('admin-user-info'); // Återställd referens
     
     if (isAdmin) {
         if (adminNavLink) adminNavLink.classList.remove('hidden');
@@ -310,6 +288,7 @@ export function handleAdminUI(isAdmin) {
 
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
+        // ÅTERSTÄLLD: Visa vem som är inloggad
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Inloggad som administratör: ${loggedInAdminUsername}`;
@@ -328,17 +307,69 @@ export function handleAdminUI(isAdmin) {
     }
 }
 
-export function renderNews(newsData, isAdmin, currentUserId) {
+
+export function toggleProfileUI(user, isAdmin) {
+    const showLoginLink = document.getElementById('show-login-link');
+    const adminIndicator = document.getElementById('admin-indicator');
+    
+    // Nya referenser för desktop-menyn
+    const navAccountGroup = document.getElementById('nav-account-group'); // Hela "Mitt Konto" dropdownen
+    const navToplist = document.getElementById('nav-toplist'); // Länken inuti "Aktuellt"
+    
+    // Mobil-länkar (Oförändrade)
+    const mobileResultsLink = document.getElementById('mobile-results-nav-link');
+    const mobileProfileLink = document.getElementById('mobile-profile-nav-link');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+
+    if (user) {
+        // --- INLOGGAD ---
+        if (showLoginLink) showLoginLink.classList.add('hidden'); // Dölj "Logga in"-knappen
+        
+        // Visa menyer för inloggad
+        if (navAccountGroup) navAccountGroup.classList.remove('hidden');
+        if (navToplist) navToplist.classList.remove('hidden'); // Visa "Topplistor" under Aktuellt
+
+        // Mobil
+        if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
+        if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
+        if (mobileLogoutBtn) mobileLogoutBtn.classList.remove('hidden');
+        
+        // Admin-badge
+        if (adminIndicator) {
+            isAdmin ? adminIndicator.classList.remove('hidden') : adminIndicator.classList.add('hidden');
+        }
+    } else {
+        // --- UTLOGGAD ---
+        if (showLoginLink) showLoginLink.classList.remove('hidden');
+        
+        // Dölj menyer
+        if (navAccountGroup) navAccountGroup.classList.add('hidden');
+        if (navToplist) navToplist.classList.add('hidden'); // Dölj "Topplistor"
+
+        // Mobil
+        if (mobileResultsLink) mobileResultsLink.classList.add('hidden');
+        if (mobileProfileLink) mobileProfileLink.classList.add('hidden');
+        if (mobileLogoutBtn) mobileLogoutBtn.classList.add('hidden');
+        
+        if (adminIndicator) adminIndicator.classList.add('hidden');
+    }
+}
+
+export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
+    const news = newsData;
     const homeNewsContainer = document.getElementById('home-news-container');
     const allNewsContainer = document.getElementById('all-news-container');
 
     if (!homeNewsContainer || !allNewsContainer) return;
 
-    window.newsRendered = false;
     homeNewsContainer.innerHTML = '';
     allNewsContainer.innerHTML = '';
 
-    newsData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    news.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+    });
     
     const getFirstLineText = (htmlContent) => {
         const tempDiv = document.createElement('div');
@@ -357,7 +388,7 @@ export function renderNews(newsData, isAdmin, currentUserId) {
         return firstImage ? firstImage.outerHTML : '';
     };
 
-    newsData.slice(0, 2).forEach(item => {
+    news.slice(0, 2).forEach(item => {
         const date = new Date(item.date);
         const formattedDate = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
         const firstLine = getFirstLineText(item.content);
@@ -374,6 +405,7 @@ export function renderNews(newsData, isAdmin, currentUserId) {
         }
         
         const shortContent = firstLine.length > 150 ? firstLine.substring(0, 150) + '...' : firstLine;
+
         const newsUrl = `#nyheter#news-${item.id}`;
 
         homeNewsContainer.innerHTML += `
@@ -388,7 +420,7 @@ export function renderNews(newsData, isAdmin, currentUserId) {
         `;
     });
 
-    newsData.forEach(item => {
+    news.forEach(item => {
         const date = new Date(item.date);
         const createdAt = item.createdAt?.toDate() || new Date();
         const updatedAt = item.updatedAt?.toDate() || createdAt;
@@ -396,7 +428,7 @@ export function renderNews(newsData, isAdmin, currentUserId) {
         const likes = item.likes || {};
         const likeCount = Object.keys(likes).length;
         const userHasLiked = currentUserId && likes[currentUserId];
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE')} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE')} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
 
         allNewsContainer.innerHTML += `
             <div class="card" id="news-${item.id}">
@@ -408,9 +440,12 @@ export function renderNews(newsData, isAdmin, currentUserId) {
                         👍 <span class="like-count">${likeCount}</span>
                     </button>
                     <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
-                        Dela
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
+                        </svg>
+                        <span class="ml-1 hidden sm:inline">Dela</span>
                     </button>
-                    ${isAdmin ? `
+                    ${isAdminLoggedIn ? `
                         <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="news">Ta bort</button>
                         <button class="edit-news-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
                     ` : ''}
@@ -418,68 +453,111 @@ export function renderNews(newsData, isAdmin, currentUserId) {
             </div>
         `;
     });
-
-    window.newsRendered = true;
-    scrollToNewsIfNeeded();
 }
 
-export async function renderEvents() {
-    const container = document.getElementById('event-list');
-    if (!container) return;
+export function renderEvents(eventsData, isAdminLoggedIn) {
+    const events = eventsData;
+    const calendarContainer = document.getElementById('calendar-container');
+    const homeEventsContainer = document.getElementById('home-events-container');
 
-    container.innerHTML = '<p class="text-gray-500">Laddar kalendern...</p>';
+    if (!calendarContainer || !homeEventsContainer) return;
 
-    try {
-        const { collection, getDocs, query, orderBy, where } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-        const { db } = await import("./firebase-config.js");
+    calendarContainer.innerHTML = '';
+    homeEventsContainer.innerHTML = '';
+    
+    const today = new Date().toISOString().split('T')[0];
+    const upcomingEvents = events.filter(e => e.date >= today);
+    
+    upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
-        // Hämta bara framtida events eller alla sorterade efter datum
-        const q = query(collection(db, 'events'), orderBy('date', 'asc'));
-        const querySnapshot = await getDocs(q);
+    upcomingEvents.slice(0, 2).forEach(item => {
+        const eventDate = new Date(item.date);
+        const day = eventDate.getDate();
+        const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
+
+        const eventUrl = `#kalender#event-${item.id}`;
         
-        container.innerHTML = '';
+        homeEventsContainer.innerHTML += `
+            <a href="${eventUrl}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
+                <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
+                    <p class="text-xl leading-none">${day}</p>
+                    <p class="text-xs uppercase">${month}</p>
+                </div>
+                <div class="flex-grow">
+                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
+                </div>
+            </a>
+        `;
+    });
 
-        if (querySnapshot.empty) {
-            container.innerHTML = '<p class="text-gray-400 italic">Inga planerade aktiviteter just nu.</p>';
-            return;
-        }
+    upcomingEvents.forEach(item => {
+        const eventDate = new Date(item.date);
+        const day = eventDate.getDate();
+        const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = item.description;
+        const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
+        const createdAt = item.createdAt?.toDate() || new Date();
+        const updatedAt = item.updatedAt?.toDate() || createdAt;
+        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
 
-        querySnapshot.forEach(doc => {
-            const ev = doc.data();
-            const div = document.createElement('div');
-            div.className = "card p-4 border-l-4 border-blue-600 bg-white mb-3 shadow-sm";
-            div.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="text-xs font-bold text-blue-600 uppercase">${ev.date}</span>
-                        <h3 class="text-lg font-bold text-gray-800">${ev.title}</h3>
-                        <div class="text-gray-600 text-sm mt-1">${ev.description || ''}</div>
-                    </div>
-                    ${window.isAdminLoggedIn ? `
-                        <button class="delete-btn text-red-500 text-sm" data-id="${doc.id}" data-collection="events">Ta bort</button>
+        calendarContainer.innerHTML += `
+            <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
+                <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
+                    <p class="text-xl leading-none">${day}</p>
+                    <p class="text-xs uppercase">${month}</p>
+                </div>
+                <div class="flex-grow">
+                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
+                    <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
+                    <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
+                    <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
+                    ${isAdminLoggedIn ? `
+                        <div class="flex space-x-2 mt-4">
+                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
+                            <button class="edit-event-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                        </div>
                     ` : ''}
                 </div>
-            `;
-            container.appendChild(div);
+            </div>
+        `;
+    });
+
+    document.querySelectorAll('.calendar-post').forEach(post => {
+        post.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn')) {
+                return;
+            }
+            const isExpanded = post.getAttribute('data-expanded') === 'true';
+            post.setAttribute('data-expanded', !isExpanded);
+            const shortText = post.querySelector('.calendar-post-short');
+            const expandedText = post.querySelector('.calendar-post-expanded');
+            if (isExpanded) {
+                shortText.classList.remove('hidden');
+                expandedText.classList.add('hidden');
+            } else {
+                shortText.classList.add('hidden');
+                expandedText.classList.remove('hidden');
+            }
         });
-    } catch (error) {
-        console.error("Fel vid laddning av events:", error);
-        container.innerHTML = '<p class="text-red-500">Kunde inte ladda kalendern.</p>';
-    }
+    });
 }
 
-export function renderHistory(historyData, isAdmin, currentUserId) {
+export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {
     const historyContainer = document.getElementById('home-history-container');
     if (!historyContainer) return;
 
     historyContainer.innerHTML = '';
 
-    historyData.sort((a, b) => a.priority - b.priority);
+    historyData.sort((a, b) => {
+        return a.priority - b.priority;
+    });
     
     historyData.forEach(item => {
         const createdAt = item.createdAt?.toDate() || new Date();
         const updatedAt = item.updatedAt?.toDate() || createdAt;
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE')} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
         const likes = item.likes || {};
         const likeCount = Object.keys(likes).length;
         const userHasLiked = currentUserId && likes[currentUserId];
@@ -494,9 +572,12 @@ export function renderHistory(historyData, isAdmin, currentUserId) {
                         👍 <span class="like-count">${likeCount}</span>
                     </button>
                     <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" data-id="${item.id}" data-title="${item.title}">
-                        Dela
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
+                        </svg>
+                        <span class="ml-1 hidden sm:inline">Dela</span>
                     </button>
-                    ${isAdmin ? `
+                    ${isAdminLoggedIn ? `
                         <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="history">Ta bort</button>
                         <button class="edit-history-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
                     ` : ''}
@@ -506,31 +587,7 @@ export function renderHistory(historyData, isAdmin, currentUserId) {
     });
 }
 
-export function scrollToNewsIfNeeded() {
-    const hash = window.location.hash;
-    if (!hash) return;
-
-    const parts = hash.split('#').filter(p => p !== '');
-    
-    parts.forEach(part => {
-        if (part.startsWith('news-') || part.startsWith('event-') || part.startsWith('comp-')) {
-            setTimeout(() => {
-                const targetEl = document.getElementById(part);
-                if (targetEl) {
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    targetEl.style.transition = "background-color 1s";
-                    targetEl.style.backgroundColor = "#fef9c3";
-                    setTimeout(() => targetEl.style.backgroundColor = "", 2000);
-                }
-            }, 300); 
-        }
-    });
-}
-
-window.addEventListener('hashchange', scrollToNewsIfNeeded);
-document.addEventListener('DOMContentLoaded', scrollToNewsIfNeeded);
-
-export function renderImages(imageData, isAdmin) {
+export function renderImages(imageData, isAdminLoggedIn) {
     const galleryContainer = document.getElementById('gallery-container');
     if (!galleryContainer) return;
 
@@ -572,7 +629,7 @@ export function renderImages(imageData, isAdmin) {
                         <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
                             <h3 class="text-lg font-bold">${item.title}</h3>
                         </div>
-                        ${isAdmin ? `
+                        ${isAdminLoggedIn ? `
                             <div class="absolute top-2 right-2 flex space-x-2">
                                 <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
                                 <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
@@ -586,131 +643,84 @@ export function renderImages(imageData, isAdmin) {
     }
 }
 
-export function renderSponsors(sponsorsData, isAdmin) {
-    const containerGuld = document.getElementById('sponsors-by-1');
-    const containerSilver = document.getElementById('sponsors-by-2');
-    const containerBrons = document.getElementById('sponsors-by-4');
-    const sectionGuld = document.getElementById('section-guld');
-    const sectionSilver = document.getElementById('section-silver');
-    const sectionBrons = document.getElementById('section-brons');
+export function renderSponsors(sponsorsData, isAdminLoggedIn) {
+    const sponsorsContainer = document.getElementById('sponsors-container');
+    if (!sponsorsContainer) return;
+    sponsorsContainer.innerHTML = '';
+    
+    const sizeOrder = {'1/1': 1, '1/2': 2, '1/4': 3};
+    sponsorsData.sort((a, b) => {
+        const sizeDiff = sizeOrder[a.size] - sizeOrder[b.size];
+        if (sizeDiff !== 0) {
+            return sizeDiff;
+        }
+        return a.priority - b.priority;
+    });
 
-    if (!containerGuld || !containerSilver || !containerBrons) return;
+    const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
+    const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
+    const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
 
-    containerGuld.innerHTML = '';
-    containerSilver.innerHTML = '';
-    containerBrons.innerHTML = '';
-    sectionGuld.classList.add('hidden');
-    sectionSilver.classList.add('hidden');
-    sectionBrons.classList.add('hidden');
-
-    const sortedData = [...sponsorsData].sort((a, b) => a.priority - b.priority);
-
-    const createSponsorHtml = (sponsor, className) => {
-        const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
-        const closingTag = sponsor.url ? '</a>' : '';
-        
-        return `
-            <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
-                ${sponsorLink}
-                    <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
-                    <h3 class="text-xl font-semibold">${sponsor.name}</h3>
-                    ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
-                ${closingTag}
-                ${isAdmin ? `
-                    <div class="flex space-x-2 mt-2">
-                        <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
-                        <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
-                    </div>
-                ` : ''}
-            </div>
-        `;
+    const renderSponsorGroup = (group, className) => {
+        return group.map(sponsor => {
+            const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
+            const closingTag = sponsor.url ? '</a>' : '';
+            
+            const sponsorHtml = `
+                <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
+                    ${sponsorLink}
+                        <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
+                        <h3 class="text-xl font-semibold">${sponsor.name}</h3>
+                        ${sponsor.extraText ? `<p class="text-sm text-gray-500">${sponsor.extraText}</p>` : ''}
+                    ${closingTag}
+                    ${isAdminLoggedIn ? `
+                        <div class="flex space-x-2 mt-2">
+                            <button class="edit-sponsor-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${sponsor.id}">Ändra</button>
+                            <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${sponsor.id}" data-type="sponsors">Ta bort</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            return sponsorHtml;
+        }).join('');
     };
 
-    sortedData.forEach(sponsor => {
-        if (sponsor.size === '1/1') {
-            sectionGuld.classList.remove('hidden');
-            containerGuld.innerHTML += createSponsorHtml(sponsor, 'sponsor-card-1-1');
-        } else if (sponsor.size === '1/2') {
-            sectionSilver.classList.remove('hidden');
-            containerSilver.innerHTML += createSponsorHtml(sponsor, 'sponsor-card-1-2');
-        } else if (sponsor.size === '1/4') {
-            sectionBrons.classList.remove('hidden');
-            containerBrons.innerHTML += createSponsorHtml(sponsor, 'sponsor-card-1-4');
-        }
-    });
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByFull, 'sponsor-card-1-1')}</div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByHalf, 'sponsor-card-1-2')}</div>`;
+    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
 }
 
-export function renderAdminsAndUsers(usersData, isAdmin, currentUserId) {
+export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
     const adminListEl = document.getElementById('admin-list');
     const allUsersContainer = document.getElementById('all-users-container');
-    
-    if (!adminListEl || !allUsersContainer) {
-        console.log("Kunde inte hitta admin-list eller all-users-container");
-        return;
-    }
+    if (!adminListEl || !allUsersContainer) return;
 
     adminListEl.innerHTML = '';
     allUsersContainer.innerHTML = '';
     
-    console.log("Renderar admins och användare. Antal:", usersData.length, "Är admin:", isAdmin);
-    
     usersData.forEach(user => {
         const isUserAdmin = user.isAdmin || false;
         const userEl = document.createElement('div');
-        userEl.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2 border border-gray-200';
+        userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
         
         if (isUserAdmin) {
-            let buttons = `
-                <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" data-id="${user.id}">Visa info</button>
-            `;
-            
-            if (isAdmin) {
-                buttons += `
-                    <button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition ml-2" data-user-id="${user.id}">Redigera</button>
-                `;
-                
-                const adminCount = usersData.filter(u => u.isAdmin).length;
-                if (adminCount > 1 && user.id !== currentUserId) {
-                    buttons += `
-                        <button class="delete-admin-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition ml-2" data-id="${user.id}">Ta bort admin</button>
-                    `;
-                }
-            }
-            
             userEl.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold">${user.name || user.email}</span>
-                    <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold">ADMIN</span>
-                    ${user.isClubMember ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Medlem</span>' : ''}
+                <span class="font-semibold">${user.email} (Admin)</span>
+                <div class="flex space-x-2">
+                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
+                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
                 </div>
-                <div class="flex items-center">${buttons}</div>
             `;
             adminListEl.appendChild(userEl);
         } else {
-            let buttons = `
-                <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition" data-id="${user.id}">Visa info</button>
-            `;
-            
-            if (isAdmin) {
-                buttons += `
-                    <button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded hover:bg-gray-600 transition ml-2" data-user-id="${user.id}">Redigera</button>
-                    
-                    <button class="toggle-member-btn px-3 py-1 rounded text-xs font-bold transition ml-2 ${user.isClubMember ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}" 
-                            data-id="${user.id}" 
-                            data-status="${user.isClubMember || false}">
-                        ${user.isClubMember ? '✓ Medlem' : 'Gör till medlem'}
-                    </button>
-                    
-                    <button class="add-admin-btn px-3 py-1 bg-yellow-500 text-white text-xs font-bold rounded hover:bg-yellow-600 transition ml-2" data-id="${user.id}">Gör till admin</button>
-                `;
-            }
-            
             userEl.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="font-semibold">${user.name || user.email}</span>
-                    ${user.isClubMember ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Medlem</span>' : '<span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">Ej medlem</span>'}
+                <span class="font-semibold">${user.email}</span>
+                <div class="flex space-x-2">
+                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
+                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
+                    ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
                 </div>
-                <div class="flex items-center flex-wrap gap-2 justify-end">${buttons}</div>
             `;
             allUsersContainer.appendChild(userEl);
         }
@@ -723,6 +733,7 @@ export function renderShootersAdmin(shootersData) {
 
     container.innerHTML = '';
     
+    // Sortera: De som kräver åtgärd först, sen alfabetiskt
     shootersData.sort((a, b) => {
         if (a.requiresAdminAction && !b.requiresAdminAction) return -1;
         if (!a.requiresAdminAction && b.requiresAdminAction) return 1;
@@ -731,16 +742,18 @@ export function renderShootersAdmin(shootersData) {
 
     shootersData.forEach(shooter => {
         const parentCount = shooter.parentUserIds ? shooter.parentUserIds.length : 0;
+        
+        // Kolla om den är "föräldralös"
         const isOrphan = shooter.requiresAdminAction || parentCount === 0;
         
         let statusHtml = `<p class="text-xs text-gray-500">Administreras av ${parentCount} konton</p>`;
-        let bgClass = "bg-gray-50 border-gray-200";
+        let bgClass = "bg-gray-100 border-gray-200";
 
         if (isOrphan) {
-            bgClass = "bg-red-50 border-red-300";
+            bgClass = "bg-red-50 border-red-300"; // Röd bakgrund för att varna admin
             statusHtml = `
-                <p class="text-xs text-red-600 font-bold">⚠️ SAKNAR KOPPLING</p>
-                <p class="text-xs text-red-500">Profilen syns inte för någon medlem.</p>
+                <p class="text-xs text-red-600 font-bold">⚠️ SAKNAR KOPPLING (Föräldralös)</p>
+                <p class="text-xs text-red-500">Denna profil syns inte för någon medlem just nu.</p>
             `;
         }
         
@@ -754,7 +767,7 @@ export function renderShootersAdmin(shootersData) {
                 <div class="flex space-x-2">
                     <button class="link-parent-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition flex items-center gap-1" 
                             data-id="${shooter.id}" data-name="${shooter.name}">
-                        <span>👥</span> Hantera
+                        <span>👥</span> Hantera föräldrar
                     </button>
                     <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition" 
                             data-id="${shooter.id}" 
@@ -802,6 +815,7 @@ export function renderUserReport(usersData) {
     });
 }
 
+
 export function renderContactInfo() {
     const contactAddressEls = document.querySelectorAll('#contact-address');
     const contactLocationEls = document.querySelectorAll('#contact-location'); 
@@ -824,78 +838,74 @@ export async function renderSiteSettings() {
     const siteSettingsDoc = await getFirestoreDoc(doc(db, 'settings', 'siteSettings'));
     if (siteSettingsDoc.exists()) {
         const data = siteSettingsDoc.data();
-        const logoInput = document.getElementById('logo-url-input');
-        const colorInput = document.getElementById('header-color-input');
-        const sponsorsCheck = document.getElementById('show-sponsors-checkbox');
-        const addressInput = document.getElementById('contact-address-input');
-        const locationInput = document.getElementById('contact-location-input');
-        const phoneInput = document.getElementById('contact-phone-input');
-        const emailInput = document.getElementById('contact-email-input');
-
-        if (logoInput) logoInput.value = data.logoUrl || '';
-        if (colorInput) colorInput.value = data.headerColor || '#1e40af';
-        if (sponsorsCheck) sponsorsCheck.checked = data.showSponsors || false;
-        if (addressInput) addressInput.value = data.contactAddress || '';
-        if (locationInput) locationInput.value = data.contactLocation || '';
-        if (phoneInput) phoneInput.value = data.contactPhone || '';
-        if (emailInput) emailInput.value = data.contactEmail || '';
+        document.getElementById('logo-url-input').value = data.logoUrl || '';
+        document.getElementById('header-color-input').value = data.headerColor || '#1e40af';
+        document.getElementById('show-sponsors-checkbox').checked = data.showSponsors || false;
+        document.getElementById('contact-address-input').value = data.contactAddress || '';
+        document.getElementById('contact-location-input').value = data.contactLocation || '';
+        document.getElementById('contact-phone-input').value = data.contactPhone || '';
+        document.getElementById('contact-email-input').value = data.contactEmail || '';
     }
 }
 
-export async function renderProfileInfo(userData) {
-    const container = document.getElementById('profile-info-container');
-    
-    if (!container) {
-        console.error("Kunde inte hitta profile-info-container");
-        return;
-    }
-
-    if (!userData) {
-        container.innerHTML = '<p class="text-gray-500 italic">Kunde inte ladda profiluppgifter.</p>';
-        return;
-    }
+export async function renderProfileInfo(user) {
+    if (!user) return;
 
     try {
-        let html = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Namn</p>
-                    <p class="text-lg font-semibold">${userData.name || 'Ej angivet'}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">E-post</p>
-                    <p class="text-lg font-semibold">${userData.email || 'Ej angivet'}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Födelseår</p>
-                    <p class="text-lg font-semibold">${userData.birthyear || 'Ej angivet'}</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Telefon</p>
-                    <p class="text-lg font-semibold">${userData.phone || 'Ej angivet'}</p>
-                </div>
-                <div class="md:col-span-2">
-                    <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Adress</p>
-                    <p class="text-lg font-semibold">${userData.address || 'Ej angivet'}</p>
-                </div>
-            </div>
+        // Hämta färsk data från Firestore för den inloggade användaren
+        const userDoc = await getFirestoreDoc(doc(db, 'users', user.uid));
+        
+        if (userDoc.exists()) {
+            const data = userDoc.data();
 
-            <div class="flex flex-wrap gap-3 mb-6">
-                <span class="px-3 py-1 rounded-full text-xs font-bold ${userData.isAdmin ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
-                    ${userData.isAdmin ? '🛡️ Admin' : '👤 Användare'}
-                </span>
-                <span class="px-3 py-1 rounded-full text-xs font-bold ${userData.isClubMember ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}">
-                    ${userData.isClubMember ? '✅ Klubbmedlem' : '⏳ Väntar på verifiering'}
-                </span>
-                ${userData.mailingList ? '<span class="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">📧 Utskick</span>' : ''}
-            </div>
-        `;
+            // 1. Rendera den statiska sammanfattningen (kräver id="profile-info-container" i index.html)
+            const container = document.getElementById('profile-info-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 pb-6 border-b border-gray-100">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Namn</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.name || 'Ej angivet'}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">E-post</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.email || user.email}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Födelseår</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.birthyear || 'Ej angivet'}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Adress</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.address || 'Ej angivet'}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Telefon</label>
+                                <p class="p-2 bg-gray-50 border rounded text-gray-900">${data.phone || 'Ej angivet'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
 
-        container.innerHTML = html;
+            // 2. Fyll i formulärets input-fält så användaren slipper skriva allt på nytt vid ändring
+            const nameInput = document.getElementById('profile-name-input');
+            const addressInput = document.getElementById('profile-address-input');
+            const phoneInput = document.getElementById('profile-phone-input');
+            const birthyearInput = document.getElementById('profile-birthyear-input');
+            const mailingListCheckbox = document.getElementById('profile-mailing-list-checkbox');
 
-    } catch (err) {
-        console.error("Fel vid utritning av profilinfo:", err);
-        container.innerHTML = `<p class="text-red-500">Kunde inte visa profil: ${err.message}</p>`;
+            if (nameInput) nameInput.value = data.name || '';
+            if (addressInput) addressInput.value = data.address || '';
+            if (phoneInput) phoneInput.value = data.phone || '';
+            if (birthyearInput) birthyearInput.value = data.birthyear || '';
+            if (mailingListCheckbox) mailingListCheckbox.checked = data.mailingList || false;
+        }
+    } catch (error) {
+        console.error("Fel vid hämtning av profilinfo:", error);
     }
 }
 
@@ -924,16 +934,17 @@ export function updateToolbarButtons(editor) {
 }
 
 export function navigate(hash) {
+    // Dölj alla sektioner
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => page.classList.remove('active'));
 
-    const parts = hash.split('#').filter(p => p !== '');
-    const pageId = parts[0] || 'hem'; 
-    
-    const targetPage = document.getElementById(pageId);
+    // Ta bort # och hitta rätt ID, standard till hem
+    const id = hash.replace('#', '') || 'hem';
+    const targetPage = document.getElementById(id);
 
     if (targetPage) {
         targetPage.classList.add('active');
+        // Scrolla till toppen vid sidbyte
         window.scrollTo(0, 0);
     }
 }
@@ -1137,6 +1148,8 @@ export function renderHomeAchievements(allResults, allShooters) {
     });
 }
 
+// --- NYA FUNKTIONERNA ---
+
 export function renderClassesAdmin(classes) {
     const container = document.getElementById('admin-classes-list');
     if (!container) return;
@@ -1162,69 +1175,99 @@ export function renderClassesAdmin(classes) {
     });
 }
 
-export function renderTopLists(results, shooters) {
+export function renderTopLists(classes, allResults, allShooters) {
     const container = document.getElementById('top-lists-container');
+    const searchSection = document.getElementById('public-shooter-search-section'); // Om du har gett sök-diven ett ID, annars ignorera denna rad
+    
     if (!container) return;
-
-    if (!appState.isClubMemberGlobal && !appState.isAdminLoggedIn) {
+    
+    // SÄKERHETSKOLL I UI:
+    if (!auth.currentUser) {
         container.innerHTML = `
-            <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-xl">
-                <div class="text-4xl mb-3">🔒</div>
-                <p class="text-yellow-800 font-bold">Topplistor är endast för klubbmedlemmar.</p>
-                <p class="text-sm text-yellow-700 mt-2">Ditt konto måste verifieras av en admin innan du kan se klubbens gemensamma listor.</p>
+            <div class="col-span-full text-center p-8 bg-blue-50 rounded-xl border border-blue-100">
+                <h3 class="text-2xl font-bold text-blue-900 mb-2">Endast för medlemmar</h3>
+                <p class="text-gray-600 mb-4">Du måste vara inloggad för att se topplistor och statistik.</p>
+                <button onclick="document.getElementById('user-nav-link').click(); window.location.hash='#profil';" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition">
+                    Gå till inloggning
+                </button>
             </div>
         `;
+        // Dölj sök-rutan om den finns
+        const searchCard = document.querySelector('#topplistor .card');
+        if(searchCard) searchCard.classList.add('hidden');
+        return;
+    }
+    
+    // Visa sök-rutan igen om man är inloggad
+    const searchCard = document.querySelector('#topplistor .card');
+    if(searchCard) searchCard.classList.remove('hidden');
+
+    if (classes.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">Inga klasser konfigurerade än.</p>';
         return;
     }
 
     container.innerHTML = '';
 
-    if (!results || results.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga delade resultat hittades ännu.</p>';
-        return;
-    }
+    const now = new Date();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
 
-    const categories = [
-        { name: 'Sittande 20 skott', discipline: 'sitting', shots: 20 },
-        { name: 'Stående 20 skott', discipline: 'standing', shots: 20 },
-        { name: 'Sittande 40 skott', discipline: 'sitting', shots: 40 },
-        { name: 'Stående 40 skott', discipline: 'standing', shots: 40 }
-    ];
-
-    const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-6';
-
-    categories.forEach(cat => {
-        const filtered = results
-            .filter(r => r.discipline === cat.discipline && r.shotCount === cat.shots && r.sharedWithClub === true)
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 10);
-
-        if (filtered.length > 0) {
-            const card = document.createElement('div');
-            card.className = 'card overflow-hidden border-t-4 border-blue-900 shadow-md';
-            card.innerHTML = `
-                <h3 class="bg-gray-100 p-3 font-bold text-center text-blue-900 uppercase text-xs tracking-wider">${cat.name}</h3>
-                <div class="p-2">
-                    ${filtered.map((r, i) => {
-                        const shooter = shooters.find(s => s.id === r.shooterId);
-                        return `
-                            <div class="flex justify-between items-center p-2 ${i % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border-b last:border-0">
-                                <span class="text-sm font-medium"><span class="text-gray-400 mr-2">${i+1}.</span> ${shooter ? shooter.name : 'Okänd'}</span>
-                                <span class="font-bold text-blue-700">${r.total}</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-            grid.appendChild(card);
-        }
+    const recentResults = allResults.filter(res => {
+        const d = new Date(res.date);
+        return d >= oneWeekAgo && res.sharedWithClub === true;
     });
 
-    if (grid.children.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic text-center p-8">Inga resultat har delats med klubben ännu.</p>';
-    } else {
-        container.appendChild(grid);
+    const currentYear = new Date().getFullYear();
+
+    classes.forEach(cls => {
+        const classResults = recentResults.filter(res => {
+            if (res.discipline !== cls.discipline) return false;
+
+            const shooter = allShooters.find(s => s.id === res.shooterId);
+            if (!shooter || !shooter.birthyear) return false;
+
+            const age = currentYear - shooter.birthyear;
+            return age >= cls.minAge && age <= cls.maxAge;
+        });
+
+        if (classResults.length === 0) return;
+
+        classResults.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
+
+        const top5 = classResults.slice(0, 5);
+
+        let rowsHtml = '';
+        top5.forEach((res, index) => {
+            const shooter = allShooters.find(s => s.id === res.shooterId);
+            const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
+            
+            rowsHtml += `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                    <div class="flex items-center">
+                        <span class="w-6 font-bold text-gray-500">${medal}</span>
+                        <span class="font-semibold text-gray-800 truncate max-w-[120px]">${shooter.name}</span>
+                    </div>
+                    <span class="font-bold text-blue-900">${res.total}</span>
+                </div>
+            `;
+        });
+
+        container.innerHTML += `
+            <div class="bg-white rounded-xl shadow p-4 border-t-4 border-blue-600">
+                <div class="flex justify-between items-baseline mb-3">
+                    <h3 class="text-xl font-bold text-gray-800">${cls.name}</h3>
+                    <span class="text-xs text-gray-500 uppercase">${cls.discipline === 'sitting' ? 'Sittande' : 'Stående'}</span>
+                </div>
+                <div class="flex flex-col">
+                    ${rowsHtml}
+                </div>
+            </div>
+        `;
+    });
+    
+    if (container.innerHTML === '') {
+        container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">Inga resultat registrerade den senaste veckan.</p>';
     }
 }
 
@@ -1278,148 +1321,4 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
             </div>
         `;
     });
-}
-export async function renderShootersAdminList() {
-    const listContainer = document.getElementById('admin-shooters-list');
-    // Kontrollera att containern finns och att användaren är admin
-    if (!listContainer || !isAdminLoggedIn) return;
-
-    listContainer.innerHTML = '<p class="text-gray-500 p-4">Laddar skyttar och föräldrar...</p>';
-
-    try {
-        // Hämta både skyttar och alla användare samtidigt
-        const [shooters, allUsers] = await Promise.all([
-            getShooters(),
-            getUsers()
-        ]);
-
-        // Filtrera fram användare som har rollen 'parent'
-        const parents = allUsers.filter(u => u.role === 'parent');
-
-        if (shooters.length === 0) {
-            listContainer.innerHTML = '<p class="text-gray-500 italic p-4">Inga skyttar hittades i systemet.</p>';
-            return;
-        }
-
-        listContainer.innerHTML = '';
-
-        shooters.forEach(shooter => {
-            const card = document.createElement('div');
-            card.className = "flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 gap-4";
-
-            // 1. Info om skytten
-            const infoDiv = document.createElement('div');
-            infoDiv.innerHTML = `
-                <h4 class="font-bold text-gray-800">${shooter.name}</h4>
-                <p class="text-xs text-gray-400">ID: ${shooter.id}</p>
-            `;
-
-            // 2. Dropdown för att välja/ändra förälder
-            const selectDiv = document.createElement('div');
-            selectDiv.className = "flex items-center gap-2";
-            
-            let optionsHtml = `<option value="">-- Ingen kopplad förälder --</option>`;
-            parents.forEach(p => {
-                const isSelected = shooter.parentId === p.id ? 'selected' : '';
-                // Visa namn om det finns, annars e-post
-                const displayName = p.displayName || p.email;
-                optionsHtml += `<option value="${p.id}" ${isSelected}>${displayName}</option>`;
-            });
-
-            selectDiv.innerHTML = `
-                <label class="text-sm text-gray-600">Förälder:</label>
-                <select class="parent-selector border rounded p-1 text-sm bg-white" data-shooter-id="${shooter.id}">
-                    ${optionsHtml}
-                </select>
-            `;
-
-            card.appendChild(infoDiv);
-            card.appendChild(selectDiv);
-            listContainer.appendChild(card);
-        });
-
-        // 3. Lägg till event listeners för när man ändrar förälder
-        listContainer.querySelectorAll('.parent-selector').forEach(select => {
-            select.addEventListener('change', async (e) => {
-                const shooterId = e.target.dataset.shooterId;
-                const newParentId = e.target.value;
-                
-                const success = await updateShooterParent(shooterId, newParentId);
-                if (success) {
-                    showModal('successModal', "Skyttens koppling har uppdaterats!");
-                } else {
-                    showModal('errorModal', "Kunde inte uppdatera kopplingen.");
-                }
-            });
-        });
-
-    } catch (error) {
-        console.error("Fel vid rendering av skyttelista:", error);
-        listContainer.innerHTML = '<p class="text-red-500 p-4">Ett fel uppstod vid laddning av listan.</p>';
-    }
-    
-}
-// ui-handler.js
-
-/**
- * Hämtar och ritar ut alla bilder i galleriet
- */
-export async function renderGallery() {
-    const container = document.getElementById('gallery-grid');
-    if (!container) return;
-
-    container.innerHTML = '<p class="text-gray-500">Laddar galleriet...</p>';
-
-    try {
-        // Vi importerar hämtningsfunktionen härifrån för att hålla ui-handler ren
-        const { getDocs, collection, query, orderBy } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-        const { db } = await import("./firebase-config.js");
-
-        const q = query(collection(db, 'images'), orderBy('year', 'desc'), orderBy('month', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        container.innerHTML = '';
-
-        if (querySnapshot.empty) {
-            container.innerHTML = '<p class="text-gray-400 italic">Inga bilder i galleriet än.</p>';
-            return;
-        }
-
-        querySnapshot.forEach((doc) => {
-            const image = doc.data();
-            const div = document.createElement('div');
-            div.className = "card overflow-hidden group relative";
-            
-            // Om användaren är admin lägger vi till en radera-knapp
-            const adminControls = window.isAdminLoggedIn ? `
-                <button class="delete-btn absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg" 
-                        data-id="${doc.id}" data-collection="images">
-                    🗑️
-                </button>
-            ` : '';
-
-            div.innerHTML = `
-                <img src="${image.url}" alt="${image.title}" class="w-full h-48 object-cover rounded-t-lg">
-                <div class="p-3">
-                    <h4 class="font-bold text-gray-800">${image.title}</h4>
-                    <p class="text-xs text-gray-500">${image.year} - ${image.month}</p>
-                </div>
-                ${adminControls}
-            `;
-            container.appendChild(div);
-        });
-    } catch (error) {
-        console.error("Gallerifel:", error);
-        container.innerHTML = '<p class="text-red-500">Kunde inte ladda bilder.</p>';
-    }
-}
-
-/** Ritar ut profil-data för inloggad användare */
-export async function renderProfileData() {
-    const container = document.getElementById('profile-info');
-    if (!container) return;
-    const user = auth.currentUser;
-    if (user) {
-        container.innerHTML = `<p><strong>E-post:</strong> ${user.email}</p>`;
-    }
 }

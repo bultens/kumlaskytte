@@ -1,107 +1,60 @@
 // main.js
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { auth } from "./firebase-config.js";
-import { getUserRole } from "./data-service.js";
-import { 
-    showPage, 
-    showModal, 
-    renderNews, 
-    renderEvents, 
-    renderHistory, 
-    renderSponsors, 
-    renderGallery, 
-    renderProfileData,
-    renderShootersAdminList // <--- TILLAGD: Importerad från ui-handler.js
-} from "./ui-handler.js";
-import { initEventListeners } from "./event-listeners.js";
+import { db, auth } from "./firebase-config.js";
+import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { initializeDataListeners } from "./data-service.js";
+import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
+import { setupEventListeners } from "./event-listeners.js";
+import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 
-// Globalt tillstånd för inloggning
-window.isAdminLoggedIn = false;
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 
-/**
- * Huvudfunktion för att visa en sida och ladda dess data
- */
-export async function handleNavigation(pageId) {
-    showPage(pageId); // Visar rätt sektion i HTML
+// Ver. 3.11
+export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
-    // Ladda specifik data beroende på vilken sida som visas
-    if (pageId === 'home') {
-        renderNews();
-        renderSponsors();
-    } else if (pageId === 'admin') {
-        // Om användaren inte är admin (kontrolleras i ui-handler), 
-        // kommer dessa funktioner att avbrytas säkert
-        renderNews();
-        renderEvents();
-        renderHistory();
-        renderSponsors();
-        renderGallery();
-        renderShootersAdminList(); // <--- TILLAGD: Laddar listan över skyttar
-        initFileManager();
-    } else if (pageId === 'events') {
-        renderEvents();
-    } else if (pageId === 'history') {
-        renderHistory();
-    } else if (pageId === 'gallery') {
-        renderGallery();
-    } else if (pageId === 'profile') {
-        renderProfileData();
-    }
-}
-
-/**
- * Initiera applikationen vid start
- */
-function init() {
-    // 1. Lyssna på Auth-ändringar
-    onAuthStateChanged(auth, async (user) => {
-        const adminIndicator = document.getElementById('admin-indicator');
-        const adminLink = document.getElementById('nav-admin');
-        const loginBtn = document.getElementById('nav-login');
-        const profileBtn = document.getElementById('nav-profile');
-
-        if (user) {
-            // Hämta roll från Firestore
-            const userRole = await getUserRole(user.uid);
-            const isAdmin = userRole === 'admin';
-            window.isAdminLoggedIn = isAdmin;
-
-            if (isAdmin) {
-                if (adminIndicator) adminIndicator.classList.remove('hidden');
-                if (adminLink) adminLink.classList.remove('hidden');
-            }
-
-            if (loginBtn) loginBtn.classList.add('hidden');
-            if (profileBtn) profileBtn.classList.remove('hidden');
-            
-            // Om vi råkar stå på admin-sidan vid inloggning, ladda listan direkt
-            const activePage = document.querySelector('.page.active');
-            if (activePage && activePage.id === 'admin' && isAdmin) {
-                renderShootersAdminList();
-            }
-        } else {
-            // Återställ UI vid utloggning
-            window.isAdminLoggedIn = false;
-            if (adminIndicator) adminIndicator.classList.add('hidden');
-            if (adminLink) adminLink.classList.add('hidden');
-            if (loginBtn) loginBtn.classList.remove('hidden');
-            if (profileBtn) profileBtn.classList.add('hidden');
-            
-            // Skicka användaren till startsidan om de loggar ut från en skyddad sida
-            const activePage = document.querySelector('.page.active');
-            if (activePage && (activePage.id === 'admin' || activePage.id === 'profile')) {
-                handleNavigation('home');
-            }
+async function checkAdminStatus(user) {
+    if (user) {
+        currentUserId = user.uid;
+        try {
+            const docRef = doc(db, 'users', user.uid);
+            const docSnap = await getFirestoreDoc(docRef);
+            return docSnap.exists() && docSnap.data().isAdmin === true;
+        } catch (error) {
+            console.error("Admin-check misslyckades:", error);
         }
-    });
-
-    // 2. Initiera klick-lyssnare för navigering och formulär
-    initEventListeners();
-
-    // 3. Visa startsidan som standard
-    handleNavigation('home');
+    }
+    currentUserId = null;
+    return false;
 }
 
-// Starta appen
-init();
+document.addEventListener('DOMContentLoaded', () => {
+    setupEventListeners();
+    initFileManager();
+    navigate(window.location.hash || '#hem');
+    window.addEventListener('hashchange', () => {
+        navigate(window.location.hash || '#hem');
+    });
+    
+    // Setup modal close buttons
+    const closeErrorModal = document.getElementById('close-error-modal');
+    if (closeErrorModal) closeErrorModal.addEventListener('click', () => hideModal('errorModal'));
+    
+    const errorModal = document.getElementById('errorModal');
+    if (errorModal) errorModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
+    
+    const confirmationModal = document.getElementById('confirmationModal');
+    if (confirmationModal) confirmationModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
+    
+    const closeShareModalBtn = document.getElementById('close-share-modal');
+    if (closeShareModalBtn) closeShareModalBtn.addEventListener('click', () => hideModal('shareModal'));
+    
+    const shareModal = document.getElementById('shareModal');
+    if (shareModal) shareModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('shareModal'); });
+    
+    const closeUserInfoModal = document.getElementById('close-user-info-modal');
+    if (closeUserInfoModal) closeUserInfoModal.addEventListener('click', () => hideModal('userInfoModal'));
+    
+    const userInfoModal = document.getElementById('userInfoModal');
+    if (userInfoModal) userInfoModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('userInfoModal'); });
+
+});

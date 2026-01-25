@@ -1,12 +1,12 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { auth, db } from "./firebase-config.js";
-import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists } from "./ui-handler.js";
-import { handleImageUpload, handleSponsorUpload, setEditingImageId, setEditingSponsorId } from "./upload-handler.js";
-import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from "./form-validation.js";
+import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
+import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 import { loadAndRenderChart } from "./statistics-chart.js";
 import { signOut } from "./auth.js";
 
@@ -95,125 +95,9 @@ export function setupEventListeners() {
     const addResultForm = document.getElementById('add-result-form');
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
-    const achievementsSection = document.getElementById('achievements-section');}
+    const achievementsSection = document.getElementById('achievements-section');
     
-    export function initEventListeners() {
-    
-    // Navigering
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const pageId = link.getAttribute('data-page');
-            import("./main.js").then(m => m.handleNavigation(pageId));
-        });
-    });
 
-    const logoutBtn = document.getElementById('nav-logout');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                showModal('successModal', "Du har loggats ut.");
-                import("./main.js").then(m => m.handleNavigation('home'));
-            });
-        });
-    }
-
-    // --- HISTORIK ---
-    const addHistoryBtn = document.getElementById('add-history-btn');
-    if (addHistoryBtn) {
-        addHistoryBtn.addEventListener('click', async () => {
-            const title = document.getElementById('history-title').value;
-            const content = document.getElementById('history-content-editor').innerHTML;
-            const priority = parseInt(document.getElementById('history-priority').value);
-            
-            const historyObj = { title, content, priority };
-            await addOrUpdateDocument('history', editingHistoryId, historyObj, "Historik sparad!");
-            editingHistoryId = null;
-            renderHistory();
-        });
-    }
-
-    // Koppla validering för historik-formuläret
-    const historyTitle = document.getElementById('history-title');
-    if (historyTitle) {
-        historyTitle.addEventListener('input', checkHistoryForm);
-        document.getElementById('history-content-editor').addEventListener('input', checkHistoryForm);
-    }
-
-    // --- KALENDER / EVENTS ---
-    const addEventBtn = document.getElementById('add-event-btn');
-    if (addEventBtn) {
-        addEventBtn.addEventListener('click', async () => {
-            // ... Logik för att hämta fält från event-formuläret och köra addOrUpdateDocument ...
-        });
-    }
-    // Nyheter
-    const addNewsBtn = document.getElementById('add-news-btn');
-    if (addNewsBtn) {
-        addNewsBtn.addEventListener('click', async () => {
-            const title = document.getElementById('news-title').value;
-            const content = document.getElementById('news-content-editor').innerHTML;
-            const newsObject = {
-                title,
-                content,
-                createdAt: editingNewsId ? null : serverTimestamp(),
-                updatedAt: editingNewsId ? serverTimestamp() : null
-            };
-            await addOrUpdateDocument('news', editingNewsId, newsObject, "Nyheten sparad!");
-            editingNewsId = null;
-            renderNews();
-        });
-    }
-
-    // Resultat
-    setupResultFormListeners();
-    const saveResultBtn = document.getElementById('save-result-btn');
-    if (saveResultBtn) {
-        saveResultBtn.addEventListener('click', async () => {
-            const shooterId = document.getElementById('shooter-selector').value;
-            const date = document.getElementById('result-date').value;
-            const { total, best, seriesScores } = calculateTotal();
-            const shotCount = parseInt(document.getElementById('result-shot-count').value);
-
-            const resultData = { shooterId, date, total, bestSeries: best, series: seriesScores, shotCount, createdAt: serverTimestamp() };
-            const success = await addResult(resultData);
-            if (success) {
-                showModal('successModal', "Resultat sparat!");
-                // Trigga konfetti om confetti-biblioteket är laddat
-                if (typeof confetti === 'function') confetti();
-            }
-        });
-    }
-
-    // Bilder & Sponsorer
-    const addImageBtn = document.getElementById('add-image-btn');
-    if (addImageBtn) addImageBtn.addEventListener('click', handleImageUpload);
-    const addSponsorBtn = document.getElementById('add-sponsor-btn');
-    if (addSponsorBtn) addSponsorBtn.addEventListener('click', handleSponsorUpload);
-
-    // Form-validering
-    if (document.getElementById('news-title')) {
-        document.getElementById('news-title').addEventListener('input', checkNewsForm);
-        document.getElementById('news-content-editor').addEventListener('input', checkNewsForm);
-    }
-
-    // Global klick-hanterare (för radering/redigering)
-    document.addEventListener('click', async (e) => {
-        const target = e.target;
-
-        if (target.classList.contains('delete-btn')) {
-            const id = target.dataset.id;
-            const collection = target.dataset.collection;
-            if (confirm("Vill du ta bort detta?")) {
-                await deleteAdminDocument(collection, id);
-                if (collection === 'news') renderNews();
-                if (collection === 'sponsors') renderSponsors();
-            }
-        } // <--- DENNA MÅSVINGE SAKNADES TIDIGARE!
-    });
-
-    console.log("Event listeners initierade.");
-}
     // Mobilmeny-hantering
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
@@ -307,23 +191,6 @@ export function setupEventListeners() {
             }
         });
     }
-        document.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('toggle-member-btn')) {
-            const userId = e.target.dataset.id;
-            const currentStatus = e.target.dataset.status === 'true';
-            
-            if (confirm('Vill du ändra medlemsstatus för denna användare?')) {
-                // Du behöver importera updateDoc och doc från firebase/firestore
-                const userRef = doc(db, 'users', userId);
-                try {
-                    await updateDoc(userRef, { isClubMember: !currentStatus });
-                    // Sidan kommer uppdateras automatiskt via snapshot
-                } catch (err) {
-                    alert("Kunde inte uppdatera: " + err.message);
-                }
-            }
-        }
-    });
 
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {
@@ -861,13 +728,7 @@ if (addShooterForm) {
     if (addSponsorForm) {
         addSponsorForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // Skicka med editingSponsorId till upload-handlern
-            await handleSponsorUpload(e, editingSponsorId); 
-            
-            // Återställ formuläret och ID efter lyckad sparning
-            editingSponsorId = null; 
-            document.getElementById('sponsor-form-title').textContent = 'Lägg till Sponsor';
-            addSponsorBtn.textContent = 'Lägg till Sponsor';
+            await handleSponsorUpload(e);
         });
     }
 
@@ -1736,4 +1597,4 @@ if (addShooterForm) {
             }
         };
     }
-
+}

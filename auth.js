@@ -1,4 +1,4 @@
-console.log("🔐 AUTH.JS LADDAD");
+// auth.js
 import { db, auth } from "./firebase-config.js";
 import { 
     onAuthStateChanged, 
@@ -9,10 +9,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { 
     doc, getDoc, setDoc, serverTimestamp, collection, 
-    query, where, getDocs, writeBatch, arrayRemove, deleteDoc 
+    query, where, getDocs, writeBatch, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initializeDataListeners, setCurrentUserId, refreshAdminViews } from "./data-service.js";
-import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal , setClubStatus, setAdminStatus } from "./ui-handler.js";
+import { initializeDataListeners, setCurrentUserId } from "./data-service.js";
+import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal } from "./ui-handler.js";
 
 // Ver. 3.18 - Återställt alla navigationslänkar och kontohantering
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -21,7 +21,6 @@ onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     
     if (user) {
-        // Sätt användar-ID globalt för tjänster
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
         }
@@ -32,94 +31,45 @@ onAuthStateChanged(auth, async (user) => {
             
             if (docSnap.exists()) {
                 const userData = docSnap.data();
-                
-                // --- VIKTIGT: Spara UID i objektet så att profil-rendering inte kraschar ---
-                userData.id = user.uid; 
                 isAdmin = userData.isAdmin === true;
                 
-                // Uppdatera global status för medlemskap
-                if (typeof setClubStatus === 'function') {
-                    setClubStatus(userData.isClubMember === true);
-                }
-
-                // Din välkomsthälsning på sidan
                 if (profileWelcomeMessage) {
-                    profileWelcomeMessage.textContent = `Välkommen, ${userData.name || userData.email || user.email}!`;
+                    const name = userData.name || userData.email;
+                    profileWelcomeMessage.textContent = `Välkommen, ${name}`;
                 }
-                
-                // Anropa din profil-rendering
-                renderProfileInfo(userData);
-            } else {
-                if (typeof setClubStatus === 'function') setClubStatus(false);
             }
-        } catch (error) {
-            console.error("Fel vid hämtning av användarprofil:", error);
-            if (typeof setClubStatus === 'function') setClubStatus(false);
+            // Rendera profilinfon (viktigt för profilsidan)
+            await renderProfileInfo(user);
+        } catch (err) {
+            console.error("Fel vid hämtning av användarprofil:", err);
         }
-
-        // Din logik för Admin-menyer
-        handleAdminUI(isAdmin);
-        setAdminStatus(isAdmin);
-        toggleProfileUI(true);
-        if (isAdmin) {
-            setTimeout(async () => {
-                const { refreshAdminViews, startAdminListeners } = await import('./data-service.js');
-                
-                // Starta lyssnare först
-                if (startAdminListeners) startAdminListeners();
-                
-                // Vänta lite på data sedan rendera
-                setTimeout(() => {
-                    if (refreshAdminViews) refreshAdminViews();
-                }, 300);
-            }, 100);
-        }
-        
-        // VIKTIGT: Om vi är admin, uppdatera admin-vyerna nu när auth är klart
-        if (isAdmin && typeof refreshAdminViews === 'function') {
-            setTimeout(() => {
-                refreshAdminViews();
-            }, 100);
-        }
-
     } else {
-        // Logik vid utloggning
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }
-        
-        if (typeof setClubStatus === 'function') setClubStatus(false);
-        handleAdminUI(false);
-        setAdminStatus(false); 
-        toggleProfileUI(false);
-        
-        if (profileWelcomeMessage) {
-            profileWelcomeMessage.textContent = '';
-        }
     }
+
+    // Uppdatera UI i rätt ordning
+    handleAdminUI(isAdmin); 
+    initializeDataListeners(); 
+    toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
 });
+
+// --- AUTH FUNKTIONER ---
 
 export async function signUp(email, password) {
     try {
-        console.log("Försöker skapa konto i Auth...");
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        console.log("Konto skapat i Auth! UID:", user.uid);
-
-        console.log("Försöker skriva till Firestore...");
-        // VIKTIGT: Fälten måste matcha dina Firestore Rules exakt!
         await setDoc(doc(db, 'users', user.uid), {
             email: email,
             isAdmin: false,
-            isClubMember: false, // <--- Detta fält krävs av dina regler!
             mailingList: false,
             createdAt: serverTimestamp()
         });
-        
-        console.log("Dokument skrivet till Firestore!");
         return user;
     } catch (error) {
-        console.error("Detta steg misslyckades:", error.code, error.message);
+        console.error("Registreringsfel:", error);
         throw error;
     }
 }
@@ -240,35 +190,3 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 });
-export async function deleteUserAccount() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const confirmFirst = confirm("Är du säker? Din personliga profil raderas direkt.\n\nOBS: Skjutresultat och skyttar sparas för föreningens historik. Vill du ta bort även dessa måste du kontakta admin@bultens.net.");
-    
-    if (confirmFirst) {
-        try {
-            const uid = user.uid;
-            
-            // 1. Radera profildokumentet i Firestore
-            // (Detta tar bort namn, e-post, adress etc.)
-            await deleteDoc(doc(db, 'users', uid));
-            console.log("Firestore-profil raderad.");
-
-            // 2. Radera själva inloggningskontot i Firebase Auth
-            await deleteUser(user);
-            console.log("Auth-konto raderat.");
-            
-            alert("Ditt konto har raderats helt enligt GDPR-förfrågan.");
-            window.location.hash = "#hem";
-            location.reload(); // Ladda om för att rensa alla lokala tillstånd
-        } catch (error) {
-            console.error("Fel vid radering:", error);
-            if (error.code === 'auth/requires-recent-login') {
-                alert("Säkerhetsåtgärd: Du måste logga ut och logga in igen precis innan du raderar ditt konto.");
-            } else {
-                alert("Ett fel uppstod: " + error.message);
-            }
-        }
-    }
-}

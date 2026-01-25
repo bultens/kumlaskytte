@@ -268,17 +268,6 @@ img.img-large {
     margin: 1rem 0;
     border-radius: 0.5rem;
 }
-/* ====== STARTSIDAN – mobil: bild först, text under ====== */
-@media (max-width: 640px) {
-  .home-news-post {
-    flex-direction: column !important;   /* bryt flex-raden */
-  }
-  .home-news-post img {                 /* bilden som ligger i egen div */
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 0 1rem 0 !important;
-  }
-}
 
 /* Fix för att innehåll inte ska "fastna" bredvid flytande bilder om texten är kort */
 .editor-content::after {

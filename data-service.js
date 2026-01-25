@@ -1,7 +1,8 @@
-console.log("📊 DATA-SERVICE.JS LADDAD");
+
+// data-service.js
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin, appState } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin } from "./ui-handler.js";
 import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.6 (storage fix)
@@ -22,72 +23,24 @@ export function setCurrentUserId(id) {
 }
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
-// Funktion för att uppdatera admin-vyer när auth-status ändras
-export function refreshAdminViews() {
-    const uid = auth.currentUser ? auth.currentUser.uid : null;
-    if (!uid || !appState.isAdminLoggedIn) {
-        console.log("❌ refreshAdminViews: Inte admin eller ingen UID");
-        return;
-    }
-    
-    console.log("🔄 Uppdaterar admin-vyer...");
-    
-    // Rendera om alla admin-vyer med korrekt status
-    renderAdminsAndUsers(usersData, true, uid);
-    
-    // VIKTIGT: Rendera shooters om vi har data
-    if (allShootersData.length > 0) {
-        renderShootersAdmin(allShootersData);
-    }
-    
-    // Rendera klasser om vi har data
-    if (competitionClasses.length > 0) {
-        renderClassesAdmin(competitionClasses);
-    }
-    
-    // Visa edit-sektioner om de är dolda
-    const adminSections = [
-        'news-edit-section', 'competition-edit-section', 
-        'calendar-edit-section', 'image-edit-section', 
-        'history-edit-section', 'sponsors-edit-section'
-    ];
-    
-    adminSections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('hidden');
-    });
-    
-    console.log("✅ Admin-vyer uppdaterade");
-}
 
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
-    // VIKTIGT: Bestäm admin-status direkt från datan
-    const determineIfAdmin = () => {
-        const currentUser = usersData.find(u => u.id === uid);
-        return currentUser ? currentUser.isAdmin === true : false;
-    };
-
     if (auth.currentUser) {
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            console.log("📊 Shooters laddade:", allShootersData.length);
-            if (appState.isAdminLoggedIn) {
-                console.log("👤 Renderar shooters som admin");
-                renderShootersAdmin(allShootersData);
-            }
-            
-            if (latestResultsCache.length > 0) {
-                renderHomeAchievements(latestResultsCache, allShootersData);
-                renderTopLists(competitionClasses, latestResultsCache, allShootersData);
-            }
+            if (isAdminLoggedIn) renderShootersAdmin(allShootersData); 
+             if (latestResultsCache.length > 0) {
+                 renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+             }
         });
 
         onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
             competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             competitionClasses.sort((a, b) => a.minAge - b.minAge);
-            if (appState.isAdminLoggedIn) renderClassesAdmin(competitionClasses);
+            if (isAdminLoggedIn) renderClassesAdmin(competitionClasses);
             renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
 
@@ -95,54 +48,24 @@ export function initializeDataListeners() {
             const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             latestResultsCache = allResults; 
             if (allShootersData.length > 0) {
-                renderHomeAchievements(latestResultsCache, allShootersData);
-                renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+                 renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
             }
         });
     }
 
-    onSnapshot(collection(db, 'news'), (snapshot) => { 
-        newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderNews(newsData, appState.isAdminLoggedIn, uid); 
-    });
-    
-    onSnapshot(collection(db, 'events'), (snapshot) => { 
-        eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderEvents(eventsData, appState.isAdminLoggedIn); 
-    });
-    
-    onSnapshot(collection(db, 'competitions'), (snapshot) => { 
-        competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderCompetitions(competitionsData, appState.isAdminLoggedIn); 
-    });
+    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
+    onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
-        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Uppdatera admin-status om vi har en användare
-        const currentUser = usersData.find(u => u.id === uid);
-        if (currentUser && currentUser.isAdmin) {
-            setAdminStatus(true);
-        }
-        
-        // Använd appState.isAdminLoggedIn istället för determineIfAdmin()
-        renderAdminsAndUsers(usersData, appState.isAdminLoggedIn, uid);
+    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
     });
 
-    onSnapshot(collection(db, 'history'), (snapshot) => { 
-        historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderHistory(historyData, appState.isAdminLoggedIn, uid); 
-    });
-    
-    onSnapshot(collection(db, 'images'), (snapshot) => { 
-        imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderImages(imageData, appState.isAdminLoggedIn); 
-    });
-    
-    onSnapshot(collection(db, 'sponsors'), (snapshot) => { 
-        sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderSponsors(sponsorsData, appState.isAdminLoggedIn); 
-    });
+    onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
+    onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
     
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
         const faviconLink = document.getElementById('favicon-link');
@@ -159,73 +82,8 @@ export function initializeDataListeners() {
     });
 }
 
-export function startAdminListeners() {
-    if (!auth.currentUser) {
-        console.log("❌ Ingen användare inloggad, kan inte starta admin-lyssnare");
-        return;
-    }
-    
-    console.log("🎧 Startar admin-lyssnare...");
-    
-   /* // Shooters
-    onSnapshot(collection(db, 'shooters'), (snapshot) => { 
-        allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        console.log("📊 Shooters laddade:", allShootersData.length);
-        
-        if (appState.isAdminLoggedIn) {
-            renderShootersAdmin(allShootersData);
-        }
-    });
-
-    // Competition Classes
-    onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
-        competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        competitionClasses.sort((a, b) => a.minAge - b.minAge);
-        if (appState.isAdminLoggedIn) renderClassesAdmin(competitionClasses);
-    });
-
-    // Results (för achievements/topplistor)
-    onSnapshot(collection(db, 'results'), (snapshot) => {
-        const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        latestResultsCache = allResults; 
-        if (allShootersData.length > 0) {
-            renderHomeAchievements(latestResultsCache, allShootersData);
-            renderTopLists(competitionClasses, latestResultsCache, allShootersData);
-        }
-    });*/
-}
-export async function getUserRole(uid) {
-    try {
-        // Vi letar i kollektionen 'users' efter ett dokument med namnet [uid]
-        const userDocRef = doc(db, "users", uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-            return userDoc.data().role; // Returnerar t.ex. 'admin' eller 'parent'
-        } else {
-            console.warn("Ingen användarprofil hittades i Firestore för UID:", uid);
-            return null;
-        }
-    } catch (error) {
-        console.error("Fel vid hämtning av användarroll:", error);
-        return null;
-    }
-}
-    
-    // Visa edit-sektioner om de är dolda
-    const adminSections = [
-        'news-edit-section', 'competition-edit-section', 
-        'calendar-edit-section', 'image-edit-section', 
-        'history-edit-section', 'sponsors-edit-section'
-    ];
-    
-    adminSections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('hidden');
-    });
-
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
-    if (!appState.isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -247,7 +105,7 @@ export async function deleteDocument(docId, collectionName, seriesId) {
     // Tillåt medlemmar att ta bort sina egna resultat och skyttar
     const userOwnedCollections = ['results', 'shooters'];
     
-    if (!appState.isAdminLoggedIn && !userOwnedCollections.includes(collectionName)) {
+    if (!isAdminLoggedIn && !userOwnedCollections.includes(collectionName)) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -317,7 +175,7 @@ export async function updateProfile(uid, data) {
 }
 
 export async function updateProfileByAdmin(uid, data) {
-    if (!appState.isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -331,7 +189,7 @@ export async function updateProfileByAdmin(uid, data) {
 }
 
 export async function updateSiteSettings(data) {
-    if (!appState.isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -345,7 +203,7 @@ export async function updateSiteSettings(data) {
 }
 
 export async function addAdminFromUser(userId) {
-    if (!appState.isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -359,7 +217,7 @@ export async function addAdminFromUser(userId) {
 }
 
 export async function deleteAdmin(adminId) {
-    if (!appState.isAdminLoggedIn) {
+    if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -465,7 +323,7 @@ export async function updateShooterProfile(shooterId, data) {
 }
 
 export async function linkUserToShooter(shooterId, userId) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'shooters', shooterId), { parentUserIds: arrayUnion(userId) });
         showModal('confirmationModal', "Användaren har kopplats till skytten!");
@@ -476,7 +334,7 @@ export async function linkUserToShooter(shooterId, userId) {
 }
 
 export async function unlinkUserFromShooter(shooterId, userId) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'shooters', shooterId), { 
             parentUserIds: arrayRemove(userId) 
@@ -575,7 +433,7 @@ export async function getFolderContents(folderId = null) {
 
 // Skapa en ny mapp
 export async function createFolder(name, parentId = null) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     try {
         await addDoc(collection(db, 'folders'), {
             name: name,
@@ -591,7 +449,7 @@ export async function createFolder(name, parentId = null) {
 
 // Ladda upp fil till "virtuell" mapp
 export async function uploadAdminDocument(file, folderId = null) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     
     // 1. Ladda upp till Storage
     const storage = getStorage();
@@ -635,7 +493,7 @@ export async function uploadAdminDocument(file, folderId = null) {
 
 // Ta bort en fil (Både från listan och från Storage)
 export async function deleteAdminDocument(docId, storagePath) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     try {
         // 1. Ta bort från Storage
         if (storagePath) {
@@ -655,7 +513,7 @@ export async function deleteAdminDocument(docId, storagePath) {
 
 // Flytta fil till ny mapp
 export async function moveAdminDocument(docId, newFolderId) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'adminDocuments', docId), {
             folderId: newFolderId
@@ -676,7 +534,7 @@ export async function getFolderName(folderId) {
 
 // Ta bort en mapp (Bara om den är tom)
 export async function deleteAdminFolder(folderId) {
-    if (!appState.isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) return;
     
     try {
         // 1. Kolla om mappen innehåller undermappar
@@ -705,53 +563,6 @@ export async function deleteAdminFolder(folderId) {
     } catch (error) {
         console.error("Kunde inte ta bort mapp:", error);
         showModal('errorModal', "Ett fel uppstod vid borttagning.");
-        return false;
-    }
-}
-export async function toggleClubMemberStatus(userId, currentStatus) {
-    if (!appState.isAdminLoggedIn) return;
-    
-    try {
-        const userRef = doc(db, 'users', userId);
-        await updateDoc(userRef, {
-            isClubMember: !currentStatus
-        });
-        return true;
-    } catch (error) {
-        console.error("Kunde inte uppdatera medlemsstatus:", error);
-        return false;
-    }
-}
-export async function addResult(resultData) {
-    try {
-        await addDoc(collection(db, 'results'), resultData);
-        return true;
-    } catch (error) {
-        console.error("Fel vid sparande av resultat:", error);
-        return false;
-    }
-}
-
-/** Hämtar alla skyttar */
-export async function getShooters() {
-    const querySnapshot = await getDocs(collection(db, 'shooters'));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-/** Hämtar alla användare (för att hitta föräldrar) */
-export async function getUsers() {
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-/** Uppdaterar kopplingen mellan skytt och förälder */
-export async function updateShooterParent(shooterId, parentId) {
-    try {
-        const shooterRef = doc(db, 'shooters', shooterId);
-        await updateDoc(shooterRef, { parentId: parentId });
-        return true;
-    } catch (error) {
-        console.error("Fel vid uppdatering av förälder:", error);
         return false;
     }
 }
