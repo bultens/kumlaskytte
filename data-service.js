@@ -194,7 +194,23 @@ export function startAdminListeners() {
         }
     });*/
 }
+export async function getUserRole(uid) {
+    try {
+        // Vi letar i kollektionen 'users' efter ett dokument med namnet [uid]
+        const userDocRef = doc(db, "users", uid);
+        const userDoc = await getDoc(userDocRef);
 
+        if (userDoc.exists()) {
+            return userDoc.data().role; // Returnerar t.ex. 'admin' eller 'parent'
+        } else {
+            console.warn("Ingen användarprofil hittades i Firestore för UID:", uid);
+            return null;
+        }
+    } catch (error) {
+        console.error("Fel vid hämtning av användarroll:", error);
+        return null;
+    }
+}
     
     // Visa edit-sektioner om de är dolda
     const adminSections = [
