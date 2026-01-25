@@ -81,8 +81,8 @@ export function initializeDataListeners() {
         
         // FIX: Använd setAdminStatus istället för direkt tilldelning!
         const currentUser = usersData.find(u => u.id === uid);
-        
-        renderAdminsAndUsers(usersData, determineIfAdmin(), uid);
+        console.log("Admin status vid render:", appState.isAdminLoggedIn, "UID:", uid);
+        renderAdminsAndUsers(usersData, appState.isAdminLoggedIn, uid);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { 
