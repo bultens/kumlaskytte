@@ -26,7 +26,7 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
-    // VIKTIGT: Bestäm admin-status direkt från datan, inte från global variabel
+    // VIKTIGT: Bestäm admin-status direkt från datan
     const determineIfAdmin = () => {
         const currentUser = usersData.find(u => u.id === uid);
         return currentUser ? currentUser.isAdmin === true : false;
@@ -36,7 +36,6 @@ export function initializeDataListeners() {
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
             
-            // Använd determineIfAdmin() istället för isAdminLoggedIn
             if (determineIfAdmin()) renderShootersAdmin(allShootersData);
             
             if (latestResultsCache.length > 0) {
@@ -79,11 +78,12 @@ export function initializeDataListeners() {
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
         usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Uppdatera isAdminLoggedIn globalt också så andra delar av appen vet
-        const currentUser = usersData.find(u => u.id === uid);
-        isAdminLoggedIn = currentUser ? currentUser.isAdmin === true : false;
         
-        renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
+        // FIX: Använd setAdminStatus istället för direkt tilldelning!
+        const currentUser = usersData.find(u => u.id === uid);
+        setAdminStatus(currentUser ? currentUser.isAdmin === true : false);
+        
+        renderAdminsAndUsers(usersData, determineIfAdmin(), uid);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { 
