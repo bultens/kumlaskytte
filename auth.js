@@ -1,4 +1,4 @@
-// auth.js
+console.log("🔐 AUTH.JS LADDAD");
 import { db, auth } from "./firebase-config.js";
 import { 
     onAuthStateChanged, 
