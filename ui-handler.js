@@ -4,7 +4,7 @@ import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebase
 import { getMedalForScore } from "./result-handler.js";
 
 // Ver. 1.7 (Fixad: toggleProfileUI parametrar, renderProfileInfo ID, renderAdminsAndUsers knappar)
-export let isAdminLoggedIn = false;
+export var isAdminLoggedIn = false;
 export let isClubMemberGlobal = false;
 export let loggedInAdminUsername = '';
 
