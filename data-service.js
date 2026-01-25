@@ -176,7 +176,7 @@ export function startAdminListeners() {
             renderShootersAdmin(allShootersData);
         }
     });
-*/
+
     // Competition Classes
     onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
         competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -194,7 +194,7 @@ export function startAdminListeners() {
         }
     });
 }
-
+*/
     
     // Visa edit-sektioner om de är dolda
     const adminSections = [
