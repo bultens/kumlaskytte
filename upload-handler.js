@@ -3,7 +3,7 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { addOrUpdateDocument } from "./data-service.js";
-import { auth } from "./main.js";
+import { auth } from "./firebase-config.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Ver. 1.06
