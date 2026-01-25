@@ -1,7 +1,7 @@
 console.log("📊 DATA-SERVICE.JS LADDAD");
 import { db, auth } from "./firebase-config.js"; 
 import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin, setAdminStatus } from "./ui-handler.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin, appState } from "./ui-handler.js";
 import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // Ver. 1.6 (storage fix)
@@ -81,7 +81,6 @@ export function initializeDataListeners() {
         
         // FIX: Använd setAdminStatus istället för direkt tilldelning!
         const currentUser = usersData.find(u => u.id === uid);
-        //setAdminStatus(currentUser ? currentUser.isAdmin === true : false);
         
         renderAdminsAndUsers(usersData, determineIfAdmin(), uid);
     });
@@ -117,7 +116,7 @@ export function initializeDataListeners() {
 }
 
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
-    if (!isAdminLoggedIn) {
+    if (!appState.isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -139,7 +138,7 @@ export async function deleteDocument(docId, collectionName, seriesId) {
     // Tillåt medlemmar att ta bort sina egna resultat och skyttar
     const userOwnedCollections = ['results', 'shooters'];
     
-    if (!isAdminLoggedIn && !userOwnedCollections.includes(collectionName)) {
+    if (!appState.isAdminLoggedIn && !userOwnedCollections.includes(collectionName)) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -209,7 +208,7 @@ export async function updateProfile(uid, data) {
 }
 
 export async function updateProfileByAdmin(uid, data) {
-    if (!isAdminLoggedIn) {
+    if (!appState.isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -223,7 +222,7 @@ export async function updateProfileByAdmin(uid, data) {
 }
 
 export async function updateSiteSettings(data) {
-    if (!isAdminLoggedIn) {
+    if (!appState.isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -237,7 +236,7 @@ export async function updateSiteSettings(data) {
 }
 
 export async function addAdminFromUser(userId) {
-    if (!isAdminLoggedIn) {
+    if (!appState.isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -251,7 +250,7 @@ export async function addAdminFromUser(userId) {
 }
 
 export async function deleteAdmin(adminId) {
-    if (!isAdminLoggedIn) {
+    if (!appState.isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
@@ -357,7 +356,7 @@ export async function updateShooterProfile(shooterId, data) {
 }
 
 export async function linkUserToShooter(shooterId, userId) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'shooters', shooterId), { parentUserIds: arrayUnion(userId) });
         showModal('confirmationModal', "Användaren har kopplats till skytten!");
@@ -368,7 +367,7 @@ export async function linkUserToShooter(shooterId, userId) {
 }
 
 export async function unlinkUserFromShooter(shooterId, userId) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'shooters', shooterId), { 
             parentUserIds: arrayRemove(userId) 
@@ -467,7 +466,7 @@ export async function getFolderContents(folderId = null) {
 
 // Skapa en ny mapp
 export async function createFolder(name, parentId = null) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     try {
         await addDoc(collection(db, 'folders'), {
             name: name,
@@ -483,7 +482,7 @@ export async function createFolder(name, parentId = null) {
 
 // Ladda upp fil till "virtuell" mapp
 export async function uploadAdminDocument(file, folderId = null) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     
     // 1. Ladda upp till Storage
     const storage = getStorage();
@@ -527,7 +526,7 @@ export async function uploadAdminDocument(file, folderId = null) {
 
 // Ta bort en fil (Både från listan och från Storage)
 export async function deleteAdminDocument(docId, storagePath) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     try {
         // 1. Ta bort från Storage
         if (storagePath) {
@@ -547,7 +546,7 @@ export async function deleteAdminDocument(docId, storagePath) {
 
 // Flytta fil till ny mapp
 export async function moveAdminDocument(docId, newFolderId) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'adminDocuments', docId), {
             folderId: newFolderId
@@ -568,7 +567,7 @@ export async function getFolderName(folderId) {
 
 // Ta bort en mapp (Bara om den är tom)
 export async function deleteAdminFolder(folderId) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     
     try {
         // 1. Kolla om mappen innehåller undermappar
@@ -601,7 +600,7 @@ export async function deleteAdminFolder(folderId) {
     }
 }
 export async function toggleClubMemberStatus(userId, currentStatus) {
-    if (!isAdminLoggedIn) return;
+    if (!appState.isAdminLoggedIn) return;
     
     try {
         const userRef = doc(db, 'users', userId);

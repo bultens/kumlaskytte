@@ -12,7 +12,7 @@ import {
     query, where, getDocs, writeBatch, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initializeDataListeners, setCurrentUserId } from "./data-service.js";
-import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal , setClubStatus} from "./ui-handler.js";
+import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal , setClubStatus, setAdminStatus } from "./ui-handler.js";
 
 // Ver. 3.18 - Återställt alla navigationslänkar och kontohantering
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -59,7 +59,7 @@ onAuthStateChanged(auth, async (user) => {
 
         // Din logik för Admin-menyer
         handleAdminUI(isAdmin);
-        // Din logik för inloggad-knappar
+        setAdminStatus(isAdmin);
         toggleProfileUI(true);
 
     } else {
@@ -70,6 +70,7 @@ onAuthStateChanged(auth, async (user) => {
         
         if (typeof setClubStatus === 'function') setClubStatus(false);
         handleAdminUI(false);
+        setAdminStatus(false); 
         toggleProfileUI(false);
         
         if (profileWelcomeMessage) {

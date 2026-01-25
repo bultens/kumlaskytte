@@ -8,12 +8,18 @@ export var isAdminLoggedIn = false;
 export let isClubMemberGlobal = false;
 export let loggedInAdminUsername = '';
 
+export const appState = {
+    isAdminLoggedIn: false,
+    isClubMemberGlobal: false,
+    loggedInAdminUsername: ''
+};
+
 export function setClubStatus(status) {
-    isClubMemberGlobal = status;
+    appState.isClubMemberGlobal = status;
 }
 
 export function setAdminStatus(isAdmin) {
-    isAdminLoggedIn = isAdmin;
+    appState.isAdminLoggedIn = isAdmin;
 }
 
 export function showModal(modalId, message) {
@@ -280,7 +286,7 @@ export function toggleProfileUI(isLoggedIn, isAdmin = false) {
 }
 
 export function handleAdminUI(isAdmin) {
-    isAdminLoggedIn = isAdmin;
+    appState.isAdminLoggedIn = isAdmin;
     const adminNavLink = document.getElementById('admin-nav-link'); 
     const mobileAdminLink = document.getElementById('mobile-admin-nav-link'); 
     
@@ -1201,7 +1207,7 @@ export function renderTopLists(results, shooters) {
     const container = document.getElementById('top-lists-container');
     if (!container) return;
 
-    if (!isClubMemberGlobal && !isAdminLoggedIn) {
+    if (!appState.isClubMemberGlobal && !appState.isAdminLoggedIn) {
         container.innerHTML = `
             <div class="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-xl">
                 <div class="text-4xl mb-3">🔒</div>
