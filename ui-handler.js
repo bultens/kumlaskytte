@@ -509,7 +509,7 @@ export function renderEvents(eventsData, isAdmin) {
     });
 }
 
-/*export function renderHistory(historyData, isAdmin, currentUserId) {
+export function renderHistory(historyData, isAdmin, currentUserId) {
     const historyContainer = document.getElementById('home-history-container');
     if (!historyContainer) return;
 
@@ -545,7 +545,7 @@ export function renderEvents(eventsData, isAdmin) {
             </div>
         `;
     });
-}*/
+}
 
 export function scrollToNewsIfNeeded() {
     const hash = window.location.hash;
@@ -1453,47 +1453,6 @@ export async function renderGallery() {
         console.error("Gallerifel:", error);
         container.innerHTML = '<p class="text-red-500">Kunde inte ladda bilder.</p>';
     }
-}
-// ui-handler.js
-
-/** Ritar ut föreningens historia */
-export async function renderHistory() {
-    const container = document.getElementById('history-content');
-    if (!container) return;
-    container.innerHTML = '<p>Laddar historik...</p>';
-    
-    const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-    const { db } = await import("./firebase-config.js");
-    
-    const q = query(collection(db, 'history'), orderBy('priority', 'asc'));
-    const querySnapshot = await getDocs(q);
-    container.innerHTML = '';
-    
-    querySnapshot.forEach(doc => {
-        const item = doc.data();
-        const div = document.createElement('div');
-        div.className = "card mb-6";
-        div.innerHTML = `
-            <h3 class="text-xl font-bold mb-2">${item.title}</h3>
-            <div class="markdown-content">${item.content}</div>
-            ${window.isAdminLoggedIn ? `<button class="edit-history-btn text-blue-600 mt-2" data-id="${doc.id}">Redigera</button>` : ''}
-        `;
-        container.appendChild(div);
-    });
-}
-
-/** Ritar ut kalenderhändelser */
-export async function renderEvents() {
-    const container = document.getElementById('event-list');
-    if (!container) return;
-    // ... Logik för att hämta från 'events' kollektionen likt renderHistory ...
-}
-
-/** Ritar ut sponsorer */
-export async function renderSponsors() {
-    const container = document.getElementById('sponsors-container');
-    if (!container) return;
-    // ... Logik för att hämta från 'sponsors' kollektionen ...
 }
 
 /** Ritar ut profil-data för inloggad användare */
