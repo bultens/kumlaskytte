@@ -63,17 +63,15 @@ onAuthStateChanged(auth, async (user) => {
         toggleProfileUI(true);
         if (isAdmin) {
             setTimeout(async () => {
-                const { refreshAdminViews } = await import('./data-service.js');
-                if (refreshAdminViews) refreshAdminViews();
+                const { refreshAdminViews, startAdminListeners } = await import('./data-service.js');
                 
-                // Om skyttar fortfarande inte syns efter 500ms, försök igen
+                // Starta lyssnare först
+                if (startAdminListeners) startAdminListeners();
+                
+                // Vänta lite på data sedan rendera
                 setTimeout(() => {
-                    const shootersList = document.getElementById('admin-shooters-list');
-                    if (shootersList && shootersList.innerHTML === '') {
-                        console.log("🔄 Försöker rendera skyttar igen...");
-                        refreshAdminViews();
-                    }
-                }, 500);
+                    if (refreshAdminViews) refreshAdminViews();
+                }, 300);
             }, 100);
         }
         

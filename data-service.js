@@ -159,6 +159,42 @@ export function initializeDataListeners() {
     });
 }
 
+export function startAdminListeners() {
+    if (!auth.currentUser) {
+        console.log("❌ Ingen användare inloggad, kan inte starta admin-lyssnare");
+        return;
+    }
+    
+    console.log("🎧 Startar admin-lyssnare...");
+    
+    // Shooters
+    onSnapshot(collection(db, 'shooters'), (snapshot) => { 
+        allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        console.log("📊 Shooters laddade:", allShootersData.length);
+        
+        if (appState.isAdminLoggedIn) {
+            renderShootersAdmin(allShootersData);
+        }
+    });
+
+    // Competition Classes
+    onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
+        competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        competitionClasses.sort((a, b) => a.minAge - b.minAge);
+        if (appState.isAdminLoggedIn) renderClassesAdmin(competitionClasses);
+    });
+
+    // Results (för achievements/topplistor)
+    onSnapshot(collection(db, 'results'), (snapshot) => {
+        const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        latestResultsCache = allResults; 
+        if (allShootersData.length > 0) {
+            renderHomeAchievements(latestResultsCache, allShootersData);
+            renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+        }
+    });
+}
+
     
     // Visa edit-sektioner om de är dolda
     const adminSections = [
