@@ -423,90 +423,49 @@ export function renderNews(newsData, isAdmin, currentUserId) {
     scrollToNewsIfNeeded();
 }
 
-export function renderEvents(eventsData, isAdmin) {
-    const calendarContainer = document.getElementById('calendar-container');
-    const homeEventsContainer = document.getElementById('home-events-container');
+export async function renderEvents() {
+    const container = document.getElementById('event-list');
+    if (!container) return;
 
-    if (!calendarContainer || !homeEventsContainer) return;
+    container.innerHTML = '<p class="text-gray-500">Laddar kalendern...</p>';
 
-    calendarContainer.innerHTML = '';
-    homeEventsContainer.innerHTML = '';
-    
-    const today = new Date().toISOString().split('T')[0];
-    const upcomingEvents = eventsData.filter(e => e.date >= today);
-    
-    upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
+    try {
+        const { collection, getDocs, query, orderBy, where } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        const { db } = await import("./firebase-config.js");
 
-    upcomingEvents.slice(0, 2).forEach(item => {
-        const eventDate = new Date(item.date);
-        const day = eventDate.getDate();
-        const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
-        const eventUrl = `#kalender#event-${item.id}`;
+        // Hämta bara framtida events eller alla sorterade efter datum
+        const q = query(collection(db, 'events'), orderBy('date', 'asc'));
+        const querySnapshot = await getDocs(q);
         
-        homeEventsContainer.innerHTML += `
-            <a href="${eventUrl}" class="card flex items-start calendar-post home-calendar-post" data-id="${item.id}">
-                <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                    <p class="text-xl leading-none">${day}</p>
-                    <p class="text-xs uppercase">${month}</p>
-                </div>
-                <div class="flex-grow">
-                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                </div>
-            </a>
-        `;
-    });
+        container.innerHTML = '';
 
-    upcomingEvents.forEach(item => {
-        const eventDate = new Date(item.date);
-        const day = eventDate.getDate();
-        const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
-        
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = item.description;
-        const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
-        const createdAt = item.createdAt?.toDate() || new Date();
-        const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE')} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+        if (querySnapshot.empty) {
+            container.innerHTML = '<p class="text-gray-400 italic">Inga planerade aktiviteter just nu.</p>';
+            return;
+        }
 
-        calendarContainer.innerHTML += `
-            <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
-                <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
-                    <p class="text-xl leading-none">${day}</p>
-                    <p class="text-xs uppercase">${month}</p>
-                </div>
-                <div class="flex-grow">
-                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
-                    <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
-                    <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
-                    <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
-                    ${isAdmin ? `
-                        <div class="flex space-x-2 mt-4">
-                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
-                            <button class="edit-event-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                        </div>
+        querySnapshot.forEach(doc => {
+            const ev = doc.data();
+            const div = document.createElement('div');
+            div.className = "card p-4 border-l-4 border-blue-600 bg-white mb-3 shadow-sm";
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs font-bold text-blue-600 uppercase">${ev.date}</span>
+                        <h3 class="text-lg font-bold text-gray-800">${ev.title}</h3>
+                        <div class="text-gray-600 text-sm mt-1">${ev.description || ''}</div>
+                    </div>
+                    ${window.isAdminLoggedIn ? `
+                        <button class="delete-btn text-red-500 text-sm" data-id="${doc.id}" data-collection="events">Ta bort</button>
                     ` : ''}
                 </div>
-            </div>
-        `;
-    });
-
-    document.querySelectorAll('.calendar-post').forEach(post => {
-        post.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn')) {
-                return;
-            }
-            const isExpanded = post.getAttribute('data-expanded') === 'true';
-            post.setAttribute('data-expanded', !isExpanded);
-            const shortText = post.querySelector('.calendar-post-short');
-            const expandedText = post.querySelector('.calendar-post-expanded');
-            if (isExpanded) {
-                shortText.classList.remove('hidden');
-                expandedText.classList.add('hidden');
-            } else {
-                shortText.classList.add('hidden');
-                expandedText.classList.remove('hidden');
-            }
+            `;
+            container.appendChild(div);
         });
-    });
+    } catch (error) {
+        console.error("Fel vid laddning av events:", error);
+        container.innerHTML = '<p class="text-red-500">Kunde inte ladda kalendern.</p>';
+    }
 }
 
 export function renderHistory(historyData, isAdmin, currentUserId) {
