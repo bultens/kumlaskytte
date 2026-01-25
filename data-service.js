@@ -72,8 +72,11 @@ export function initializeDataListeners() {
     if (auth.currentUser) {
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            
-            if (appState.isAdminLoggedIn) renderShootersAdmin(allShootersData);
+            console.log("📊 Shooters laddade:", allShootersData.length);
+            if (appState.isAdminLoggedIn) {
+                console.log("👤 Renderar shooters som admin");
+                renderShootersAdmin(allShootersData);
+            }
             
             if (latestResultsCache.length > 0) {
                 renderHomeAchievements(latestResultsCache, allShootersData);

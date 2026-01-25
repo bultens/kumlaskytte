@@ -61,6 +61,21 @@ onAuthStateChanged(auth, async (user) => {
         handleAdminUI(isAdmin);
         setAdminStatus(isAdmin);
         toggleProfileUI(true);
+        if (isAdmin) {
+            setTimeout(async () => {
+                const { refreshAdminViews } = await import('./data-service.js');
+                if (refreshAdminViews) refreshAdminViews();
+                
+                // Om skyttar fortfarande inte syns efter 500ms, försök igen
+                setTimeout(() => {
+                    const shootersList = document.getElementById('admin-shooters-list');
+                    if (shootersList && shootersList.innerHTML === '') {
+                        console.log("🔄 Försöker rendera skyttar igen...");
+                        refreshAdminViews();
+                    }
+                }, 500);
+            }, 100);
+        }
         
         // VIKTIGT: Om vi är admin, uppdatera admin-vyerna nu när auth är klart
         if (isAdmin && typeof refreshAdminViews === 'function') {
