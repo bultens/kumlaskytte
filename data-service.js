@@ -34,8 +34,16 @@ export function refreshAdminViews() {
     
     // Rendera om alla admin-vyer med korrekt status
     renderAdminsAndUsers(usersData, true, uid);
-    renderShootersAdmin(allShootersData);
-    renderClassesAdmin(competitionClasses);
+    
+    // VIKTIGT: Rendera shooters om vi har data
+    if (allShootersData.length > 0) {
+        renderShootersAdmin(allShootersData);
+    }
+    
+    // Rendera klasser om vi har data
+    if (competitionClasses.length > 0) {
+        renderClassesAdmin(competitionClasses);
+    }
     
     // Visa edit-sektioner om de är dolda
     const adminSections = [
