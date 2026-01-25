@@ -58,8 +58,11 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
-    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
+        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
+        const currentUser = usersData.find(u => u.id === uid);
+        const isAdmin = currentUser ? currentUser.isAdmin === true : false;
+        renderAdminsAndUsers(usersData, isAdmin, uid);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
