@@ -1320,3 +1320,188 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
         `;
     });
 }
+export async function renderShootersAdminList() {
+    const listContainer = document.getElementById('admin-shooters-list');
+    // Kontrollera att containern finns och att användaren är admin
+    if (!listContainer || !isAdminLoggedIn) return;
+
+    listContainer.innerHTML = '<p class="text-gray-500 p-4">Laddar skyttar och föräldrar...</p>';
+
+    try {
+        // Hämta både skyttar och alla användare samtidigt
+        const [shooters, allUsers] = await Promise.all([
+            getShooters(),
+            getUsers()
+        ]);
+
+        // Filtrera fram användare som har rollen 'parent'
+        const parents = allUsers.filter(u => u.role === 'parent');
+
+        if (shooters.length === 0) {
+            listContainer.innerHTML = '<p class="text-gray-500 italic p-4">Inga skyttar hittades i systemet.</p>';
+            return;
+        }
+
+        listContainer.innerHTML = '';
+
+        shooters.forEach(shooter => {
+            const card = document.createElement('div');
+            card.className = "flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 gap-4";
+
+            // 1. Info om skytten
+            const infoDiv = document.createElement('div');
+            infoDiv.innerHTML = `
+                <h4 class="font-bold text-gray-800">${shooter.name}</h4>
+                <p class="text-xs text-gray-400">ID: ${shooter.id}</p>
+            `;
+
+            // 2. Dropdown för att välja/ändra förälder
+            const selectDiv = document.createElement('div');
+            selectDiv.className = "flex items-center gap-2";
+            
+            let optionsHtml = `<option value="">-- Ingen kopplad förälder --</option>`;
+            parents.forEach(p => {
+                const isSelected = shooter.parentId === p.id ? 'selected' : '';
+                // Visa namn om det finns, annars e-post
+                const displayName = p.displayName || p.email;
+                optionsHtml += `<option value="${p.id}" ${isSelected}>${displayName}</option>`;
+            });
+
+            selectDiv.innerHTML = `
+                <label class="text-sm text-gray-600">Förälder:</label>
+                <select class="parent-selector border rounded p-1 text-sm bg-white" data-shooter-id="${shooter.id}">
+                    ${optionsHtml}
+                </select>
+            `;
+
+            card.appendChild(infoDiv);
+            card.appendChild(selectDiv);
+            listContainer.appendChild(card);
+        });
+
+        // 3. Lägg till event listeners för när man ändrar förälder
+        listContainer.querySelectorAll('.parent-selector').forEach(select => {
+            select.addEventListener('change', async (e) => {
+                const shooterId = e.target.dataset.shooterId;
+                const newParentId = e.target.value;
+                
+                const success = await updateShooterParent(shooterId, newParentId);
+                if (success) {
+                    showModal('successModal', "Skyttens koppling har uppdaterats!");
+                } else {
+                    showModal('errorModal', "Kunde inte uppdatera kopplingen.");
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("Fel vid rendering av skyttelista:", error);
+        listContainer.innerHTML = '<p class="text-red-500 p-4">Ett fel uppstod vid laddning av listan.</p>';
+    }
+    
+}
+// ui-handler.js
+
+/**
+ * Hämtar och ritar ut alla bilder i galleriet
+ */
+export async function renderGallery() {
+    const container = document.getElementById('gallery-grid');
+    if (!container) return;
+
+    container.innerHTML = '<p class="text-gray-500">Laddar galleriet...</p>';
+
+    try {
+        // Vi importerar hämtningsfunktionen härifrån för att hålla ui-handler ren
+        const { getDocs, collection, query, orderBy } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        const { db } = await import("./firebase-config.js");
+
+        const q = query(collection(db, 'images'), orderBy('year', 'desc'), orderBy('month', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        container.innerHTML = '';
+
+        if (querySnapshot.empty) {
+            container.innerHTML = '<p class="text-gray-400 italic">Inga bilder i galleriet än.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((doc) => {
+            const image = doc.data();
+            const div = document.createElement('div');
+            div.className = "card overflow-hidden group relative";
+            
+            // Om användaren är admin lägger vi till en radera-knapp
+            const adminControls = window.isAdminLoggedIn ? `
+                <button class="delete-btn absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg" 
+                        data-id="${doc.id}" data-collection="images">
+                    🗑️
+                </button>
+            ` : '';
+
+            div.innerHTML = `
+                <img src="${image.url}" alt="${image.title}" class="w-full h-48 object-cover rounded-t-lg">
+                <div class="p-3">
+                    <h4 class="font-bold text-gray-800">${image.title}</h4>
+                    <p class="text-xs text-gray-500">${image.year} - ${image.month}</p>
+                </div>
+                ${adminControls}
+            `;
+            container.appendChild(div);
+        });
+    } catch (error) {
+        console.error("Gallerifel:", error);
+        container.innerHTML = '<p class="text-red-500">Kunde inte ladda bilder.</p>';
+    }
+}
+// ui-handler.js
+
+/** Ritar ut föreningens historia */
+export async function renderHistory() {
+    const container = document.getElementById('history-content');
+    if (!container) return;
+    container.innerHTML = '<p>Laddar historik...</p>';
+    
+    const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+    const { db } = await import("./firebase-config.js");
+    
+    const q = query(collection(db, 'history'), orderBy('priority', 'asc'));
+    const querySnapshot = await getDocs(q);
+    container.innerHTML = '';
+    
+    querySnapshot.forEach(doc => {
+        const item = doc.data();
+        const div = document.createElement('div');
+        div.className = "card mb-6";
+        div.innerHTML = `
+            <h3 class="text-xl font-bold mb-2">${item.title}</h3>
+            <div class="markdown-content">${item.content}</div>
+            ${window.isAdminLoggedIn ? `<button class="edit-history-btn text-blue-600 mt-2" data-id="${doc.id}">Redigera</button>` : ''}
+        `;
+        container.appendChild(div);
+    });
+}
+
+/** Ritar ut kalenderhändelser */
+export async function renderEvents() {
+    const container = document.getElementById('event-list');
+    if (!container) return;
+    // ... Logik för att hämta från 'events' kollektionen likt renderHistory ...
+}
+
+/** Ritar ut sponsorer */
+export async function renderSponsors() {
+    const container = document.getElementById('sponsors-container');
+    if (!container) return;
+    // ... Logik för att hämta från 'sponsors' kollektionen ...
+}
+
+/** Ritar ut profil-data för inloggad användare */
+export async function renderProfileData() {
+    const container = document.getElementById('profile-info');
+    if (!container) return;
+    const user = auth.currentUser;
+    if (user) {
+        container.innerHTML = `<p><strong>E-post:</strong> ${user.email}</p>`;
+    }
+}

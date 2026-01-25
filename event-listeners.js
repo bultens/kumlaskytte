@@ -118,6 +118,35 @@ export function setupEventListeners() {
         });
     }
 
+    // --- HISTORIK ---
+    const addHistoryBtn = document.getElementById('add-history-btn');
+    if (addHistoryBtn) {
+        addHistoryBtn.addEventListener('click', async () => {
+            const title = document.getElementById('history-title').value;
+            const content = document.getElementById('history-content-editor').innerHTML;
+            const priority = parseInt(document.getElementById('history-priority').value);
+            
+            const historyObj = { title, content, priority };
+            await addOrUpdateDocument('history', editingHistoryId, historyObj, "Historik sparad!");
+            editingHistoryId = null;
+            renderHistory();
+        });
+    }
+
+    // Koppla validering för historik-formuläret
+    const historyTitle = document.getElementById('history-title');
+    if (historyTitle) {
+        historyTitle.addEventListener('input', checkHistoryForm);
+        document.getElementById('history-content-editor').addEventListener('input', checkHistoryForm);
+    }
+
+    // --- KALENDER / EVENTS ---
+    const addEventBtn = document.getElementById('add-event-btn');
+    if (addEventBtn) {
+        addEventBtn.addEventListener('click', async () => {
+            // ... Logik för att hämta fält från event-formuläret och köra addOrUpdateDocument ...
+        });
+    }
     // Nyheter
     const addNewsBtn = document.getElementById('add-news-btn');
     if (addNewsBtn) {
