@@ -722,3 +722,36 @@ export async function toggleClubMemberStatus(userId, currentStatus) {
         return false;
     }
 }
+export async function addResult(resultData) {
+    try {
+        await addDoc(collection(db, 'results'), resultData);
+        return true;
+    } catch (error) {
+        console.error("Fel vid sparande av resultat:", error);
+        return false;
+    }
+}
+
+/** Hämtar alla skyttar */
+export async function getShooters() {
+    const querySnapshot = await getDocs(collection(db, 'shooters'));
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/** Hämtar alla användare (för att hitta föräldrar) */
+export async function getUsers() {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+/** Uppdaterar kopplingen mellan skytt och förälder */
+export async function updateShooterParent(shooterId, parentId) {
+    try {
+        const shooterRef = doc(db, 'shooters', shooterId);
+        await updateDoc(shooterRef, { parentId: parentId });
+        return true;
+    } catch (error) {
+        console.error("Fel vid uppdatering av förälder:", error);
+        return false;
+    }
+}

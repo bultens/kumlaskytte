@@ -95,11 +95,11 @@ export function setupEventListeners() {
     const addResultForm = document.getElementById('add-result-form');
     const addClassForm = document.getElementById('add-class-form');
     const cancelClassBtn = document.getElementById('cancel-class-btn');
-    const achievementsSection = document.getElementById('achievements-section');
+    const achievementsSection = document.getElementById('achievements-section');}
     
     export function initEventListeners() {
     
-    // --- NAVIGERING & MODALER ---
+    // Navigering
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -118,13 +118,7 @@ export function setupEventListeners() {
         });
     }
 
-    document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.addEventListener('click', () => {
-            btn.closest('.modal').classList.remove('active');
-        });
-    });
-
-    // --- NYHETER ---
+    // Nyheter
     const addNewsBtn = document.getElementById('add-news-btn');
     if (addNewsBtn) {
         addNewsBtn.addEventListener('click', async () => {
@@ -136,121 +130,57 @@ export function setupEventListeners() {
                 createdAt: editingNewsId ? null : serverTimestamp(),
                 updatedAt: editingNewsId ? serverTimestamp() : null
             };
-            const successMsg = editingNewsId ? "Nyheten har uppdaterats!" : "Nyheten har lagts till!";
-            await addOrUpdateDocument('news', editingNewsId, newsObject, successMsg);
-            
-            // Återställ formulär
-            document.getElementById('news-title').value = '';
-            document.getElementById('news-content-editor').innerHTML = '';
+            await addOrUpdateDocument('news', editingNewsId, newsObject, "Nyheten sparad!");
             editingNewsId = null;
             renderNews();
         });
     }
 
-    const newsTitleInput = document.getElementById('news-title');
-    if (newsTitleInput) newsTitleInput.addEventListener('input', checkNewsForm);
-    const newsEditor = document.getElementById('news-content-editor');
-    if (newsEditor) newsEditor.addEventListener('input', checkNewsForm);
-
-    // --- RESULTAT & SKYTTAR ---
+    // Resultat
     setupResultFormListeners();
-
     const saveResultBtn = document.getElementById('save-result-btn');
     if (saveResultBtn) {
         saveResultBtn.addEventListener('click', async () => {
             const shooterId = document.getElementById('shooter-selector').value;
             const date = document.getElementById('result-date').value;
-            const type = document.getElementById('result-type').value;
-            const shotCount = parseInt(document.getElementById('result-shot-count').value);
             const { total, best, seriesScores } = calculateTotal();
+            const shotCount = parseInt(document.getElementById('result-shot-count').value);
 
-            if (!shooterId || !date || seriesScores.length === 0) {
-                showModal('errorModal', "Vänligen fyll i alla fält.");
-                return;
-            }
-
-            const resultData = {
-                shooterId,
-                date,
-                type,
-                shotCount,
-                total,
-                bestSeries: best,
-                series: seriesScores,
-                createdAt: serverTimestamp()
-            };
-
+            const resultData = { shooterId, date, total, bestSeries: best, series: seriesScores, shotCount, createdAt: serverTimestamp() };
             const success = await addResult(resultData);
             if (success) {
-                // Konfetti vid medalj!
-                const medal = getMedalForScore(total / (shotCount / 10));
-                if (medal && typeof confetti === 'function') {
-                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-                }
-                showModal('successModal', "Resultatet har sparats!");
-                document.getElementById('add-result-form').reset();
-                calculateTotal(); 
+                showModal('successModal', "Resultat sparat!");
+                // Trigga konfetti om confetti-biblioteket är laddat
+                if (typeof confetti === 'function') confetti();
             }
         });
     }
 
-    // --- BILDER & SPONSORER ---
+    // Bilder & Sponsorer
     const addImageBtn = document.getElementById('add-image-btn');
     if (addImageBtn) addImageBtn.addEventListener('click', handleImageUpload);
-    
-    const imageTitle = document.getElementById('image-title');
-    if (imageTitle) {
-        ['input', 'change'].forEach(ev => {
-            imageTitle.addEventListener(ev, checkImageForm);
-            document.getElementById('image-year').addEventListener(ev, checkImageForm);
-            document.getElementById('image-month').addEventListener(ev, checkImageForm);
-            document.getElementById('image-upload').addEventListener(ev, checkImageForm);
-            document.getElementById('image-url').addEventListener(ev, checkImageForm);
-        });
-    }
-
     const addSponsorBtn = document.getElementById('add-sponsor-btn');
     if (addSponsorBtn) addSponsorBtn.addEventListener('click', handleSponsorUpload);
 
-    const sponsorName = document.getElementById('sponsor-name');
-    if (sponsorName) {
-        ['input', 'change'].forEach(ev => {
-            sponsorName.addEventListener(ev, checkSponsorForm);
-            document.getElementById('sponsor-priority').addEventListener(ev, checkSponsorForm);
-            document.getElementById('sponsor-logo-upload').addEventListener(ev, checkSponsorForm);
-            document.getElementById('sponsor-logo-url').addEventListener(ev, checkSponsorForm);
-        });
+    // Form-validering
+    if (document.getElementById('news-title')) {
+        document.getElementById('news-title').addEventListener('input', checkNewsForm);
+        document.getElementById('news-content-editor').addEventListener('input', checkNewsForm);
     }
 
-    // --- ÖVRIGA ADMIN-FUNKTIONER (Delegering) ---
+    // Global klick-hanterare (för radering/redigering)
     document.addEventListener('click', async (e) => {
         const target = e.target;
 
-        // Redigera Nyhet
-        if (target.classList.contains('edit-news-btn')) {
-            const id = target.dataset.id;
-            const newsList = JSON.parse(localStorage.getItem('news_data') || '[]');
-            const news = newsList.find(n => n.id === id);
-            if (news) {
-                editingNewsId = id;
-                document.getElementById('news-title').value = news.title;
-                document.getElementById('news-content-editor').innerHTML = news.content;
-                document.getElementById('add-news-btn').textContent = 'Uppdatera Nyhet';
-                window.scrollTo(0, 0);
-            }
-        }
-
-        // Radera dokument (Generell)
         if (target.classList.contains('delete-btn')) {
             const id = target.dataset.id;
             const collection = target.dataset.collection;
-            if (confirm("Är du säker på att du vill ta bort detta?")) {
+            if (confirm("Vill du ta bort detta?")) {
                 await deleteAdminDocument(collection, id);
                 if (collection === 'news') renderNews();
                 if (collection === 'sponsors') renderSponsors();
-                if (collection === 'images') renderGallery();
             }
-        }
+        } // <--- DENNA MÅSVINGE SAKNADES TIDIGARE!
     });
 
     console.log("Event listeners initierade.");
@@ -1777,4 +1707,4 @@ if (addShooterForm) {
             }
         };
     }
-}
+
