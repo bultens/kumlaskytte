@@ -65,6 +65,7 @@ export async function signUp(email, password) {
             email: email,
             isAdmin: false,
             mailingList: false,
+            isClubMember: false,
             createdAt: serverTimestamp()
         });
         return user;
