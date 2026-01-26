@@ -112,6 +112,7 @@ if (confirmDeleteProfileBtn) {
         const userId = user.uid;
 
         try {
+            // 1. Ta bort kopplingar i shooters (samma som förut)
             const shootersRef = collection(db, 'shooters');
             const q = query(shootersRef, where("parentUserIds", "array-contains", userId));
             const querySnapshot = await getDocs(q);
@@ -121,14 +122,27 @@ if (confirmDeleteProfileBtn) {
                 batch.update(docSnap.ref, { parentUserIds: arrayRemove(userId) });
             });
 
+            // 2. Ta bort själva användardokumentet
             batch.delete(doc(db, 'users', userId));
             await batch.commit();
+
+            // 3. Ta bort inloggningen (Det är här det kraschar)
             await deleteUser(user);
+            
             showModal('confirmationModal', "Ditt konto har tagits bort.");
             navigate('#hem');
         } catch (error) {
             console.error("Fel vid borttagning av konto:", error);
-            showModal('errorModal', "Kunde inte ta bort kontot.");
+            
+            // --- NY KOD HÄR FÖR ATT HANTERA FELET ---
+            if (error.code === 'auth/requires-recent-login') {
+                showModal('errorModal', "Av säkerhetsskäl måste du logga ut och logga in igen nyligen för att kunna radera ditt konto. Vänligen logga in på nytt och försök igen.");
+                // Valfritt: Logga ut användaren automatiskt så de tvingas logga in
+                // await signOut(); 
+            } else {
+                showModal('errorModal', "Kunde inte ta bort kontot: " + error.message);
+            }
+            // ----------------------------------------
         }
     });
 }

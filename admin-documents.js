@@ -1,4 +1,5 @@
 // admin-documents.js
+import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, deleteAdminFolder } from "./data-service.js";
 import { db } from "./firebase-config.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -23,6 +24,7 @@ function formatDate(timestamp) {
 }
 
 export async function initFileManager() {
+    if (!isAdminLoggedIn) return; 
     const container = document.getElementById('file-manager-container');
     if (!container) return;
     
