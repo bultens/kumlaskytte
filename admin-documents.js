@@ -2,16 +2,16 @@
 import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, deleteAdminFolder } from "./data-service.js";
 import { db } from "./firebase-config.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-// NYTT: Importera isAdminLoggedIn för att kolla status
 import { isAdminLoggedIn } from "./ui-handler.js"; 
 
 let currentFolderId = null;
 let breadcrumbPath = [{ id: null, name: 'Hem' }];
-
-// NYTT: Variabel för att hålla koll på om vi redan startat filhanteraren
 let isFileManagerInitialized = false;
 
-// Hjälpfunktion: Formatera filstorlek
+// NYTT: Håller koll på valda filer
+let selectedFileIds = new Set();
+let currentFilesList = []; // För att kunna slå upp fil-objekt baserat på ID
+
 function formatBytes(bytes) {
     if (!bytes || bytes === 0) return '0 B';
     const k = 1024;
@@ -20,7 +20,6 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-// Hjälpfunktion: Formatera datum
 function formatDate(timestamp) {
     if (!timestamp) return '-';
     const date = timestamp.toDate();
@@ -28,23 +27,37 @@ function formatDate(timestamp) {
 }
 
 export async function initFileManager() {
-    // NYTT: Säkerhetsspärr - kör inte om man inte är admin
     if (!isAdminLoggedIn) return;
 
     const container = document.getElementById('file-manager-container');
     if (!container) return;
 
-    // NYTT: Om vi redan har initierat en gång, ladda bara om mappen och avsluta
-    // så vi slipper dubbla event-listeners.
+    // --- NYTT: INJECTA BULK-VERKTYGSRAD OM DEN SAKNAS ---
+    if (!document.getElementById('bulk-toolbar')) {
+        const toolbarHTML = `
+            <div id="bulk-toolbar" class="hidden flex items-center gap-4 bg-blue-50 p-3 mb-4 rounded border border-blue-200 sticky top-0 z-10">
+                <span id="selected-count" class="font-bold text-blue-800">0 valda</span>
+                <div class="flex gap-2">
+                    <button id="bulk-download-btn" class="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-100 text-sm">⬇️ Ladda ner</button>
+                    <button id="bulk-move-btn" class="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-100 text-sm">↪ Flytta</button>
+                    <button id="bulk-delete-btn" class="px-3 py-1 bg-red-100 border border-red-300 text-red-700 rounded hover:bg-red-200 text-sm">🗑️ Ta bort</button>
+                </div>
+                <button id="bulk-cancel-btn" class="ml-auto text-gray-500 hover:text-gray-800 text-sm underline">Avbryt</button>
+            </div>
+        `;
+        // Lägg in toolbaren precis innan fil-listan
+        const fileListEl = document.getElementById('file-list');
+        if (fileListEl) {
+            fileListEl.insertAdjacentHTML('beforebegin', toolbarHTML);
+        }
+    }
+
     if (isFileManagerInitialized) {
-        await loadFolder(null); // Eller currentFolderId om du vill minnas var man var
+        await loadFolder(null);
         return;
     }
     
-    // Markera att vi kört initieringen
     isFileManagerInitialized = true;
-
-    // Ladda rot-mappen vid start
     await loadFolder(null);
 
     // --- EVENT LISTENERS ---
@@ -59,42 +72,39 @@ export async function initFileManager() {
         }
     });
 
-    // 2. Ladda upp fil (UPPDATERAD FÖR FLERA FILER)
-        const uploadInput = document.getElementById('upload-doc-input');
-        if(uploadInput) {
-            // Tvinga input-fältet att tillåta flera filer
-            uploadInput.setAttribute('multiple', 'multiple');
-
-            uploadInput.addEventListener('change', async (e) => {
-                // Hämta alla filer, inte bara den första
-                const files = Array.from(e.target.files); 
+    // 2. Ladda upp filer (Multiple)
+    const uploadInput = document.getElementById('upload-doc-input');
+    if(uploadInput) {
+        uploadInput.setAttribute('multiple', 'multiple');
+        uploadInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                const listContainer = document.getElementById('file-list');
+                if(listContainer) listContainer.innerHTML = `<p class="text-blue-600 p-4 font-bold">Laddar upp ${files.length} filer...</p>`;
                 
-                if (files.length > 0) {
-                    // Visa laddningsmeddelande så man vet att något händer
-                    const container = document.getElementById('file-list');
-                    if(container) {
-                        container.innerHTML = `<p class="text-blue-600 p-4 font-bold">Laddar upp ${files.length} filer... Vänligen vänta.</p>`;
-                    }
-
-                    try {
-                        // Ladda upp alla filer samtidigt (Promise.all körs parallellt)
-                        const uploadPromises = files.map(file => uploadAdminDocument(file, currentFolderId));
-                        await Promise.all(uploadPromises);
-                    } catch (error) {
-                        console.error("Fel vid uppladdning:", error);
-                        alert("Ett fel uppstod. Vissa filer kanske inte laddades upp.");
-                    }
-
-                    // Uppdatera listan när allt är klart
-                    await loadFolder(currentFolderId);
-                    e.target.value = ''; // Nollställ input så man kan ladda upp samma filer igen om man vill
+                try {
+                    const uploadPromises = files.map(file => uploadAdminDocument(file, currentFolderId));
+                    await Promise.all(uploadPromises);
+                } catch (error) {
+                    console.error("Fel vid uppladdning:", error);
+                    alert("Ett fel uppstod vid uppladdning.");
                 }
-            });
-        }
+                await loadFolder(currentFolderId);
+                e.target.value = ''; 
+            }
+        });
+    }
 
-    // 3. Hantera klick i fil-listan
+    // 3. Hantera klick i fil-listan (Delegering)
     const fileList = document.getElementById('file-list');
     if(fileList) fileList.addEventListener('click', async (e) => {
+        // Om man klickar på en checkbox - hantera markering
+        if (e.target.type === 'checkbox' && e.target.dataset.type === 'file-select') {
+            handleFileSelection(e.target.dataset.id, e.target.checked);
+            e.stopPropagation();
+            return;
+        }
+
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
@@ -111,10 +121,13 @@ export async function initFileManager() {
         }
         else if (action === 'delete-file') {
             const storagePath = target.dataset.storagePath;
-            await deleteFile(id, storagePath);
+            if (confirm("Är du säker på att du vill ta bort filen?")) {
+                await deleteAdminDocument(id, storagePath);
+                await loadFolder(currentFolderId);
+            }
         }
         else if (action === 'move-file') {
-            await moveFile(id);
+            await moveSingleFile(id);
         }
         else if (action === 'delete-folder') {
             if(confirm("Vill du ta bort mappen?")) {
@@ -124,29 +137,113 @@ export async function initFileManager() {
         }
     });
 
-    // 4. Hantera klick i brödsmulorna
+    // 4. Brödsmulor
     const breadcrumbs = document.getElementById('breadcrumbs');
     if(breadcrumbs) breadcrumbs.addEventListener('click', async (e) => {
         const target = e.target.closest('[data-action="open-folder"]');
         if (target) {
-            const id = target.dataset.id;
-            const name = target.dataset.name;
-            await openFolder(id === 'null' ? null : id, name);
+            await openFolder(target.dataset.id === 'null' ? null : target.dataset.id, target.dataset.name);
         }
     });
 
-    // 5. Stäng menyer om man klickar utanför
+    // 5. Stäng menyer
     document.addEventListener('click', (e) => {
         if (!e.target.closest('[data-action="toggle-menu"]')) {
             document.querySelectorAll('[id^="file-menu-"]').forEach(el => el.classList.add('hidden'));
         }
     });
+
+    // --- NYTT: BULK ACTION LISTENERS ---
+    
+    document.getElementById('bulk-cancel-btn')?.addEventListener('click', () => {
+        clearSelection();
+    });
+
+    document.getElementById('bulk-delete-btn')?.addEventListener('click', async () => {
+        if (!confirm(`Är du säker på att du vill ta bort ${selectedFileIds.size} filer?`)) return;
+        
+        const filesToDelete = currentFilesList.filter(f => selectedFileIds.has(f.id));
+        
+        // Visa laddar-text
+        document.getElementById('file-list').innerHTML = `<p class="text-red-600 p-4 font-bold">Raderar ${filesToDelete.length} filer...</p>`;
+
+        try {
+            const promises = filesToDelete.map(file => deleteAdminDocument(file.id, file.storagePath));
+            await Promise.all(promises);
+            clearSelection();
+            await loadFolder(currentFolderId);
+        } catch (err) {
+            alert("Ett fel uppstod vid radering.");
+            await loadFolder(currentFolderId);
+        }
+    });
+
+    document.getElementById('bulk-move-btn')?.addEventListener('click', async () => {
+        const targetFolderId = await promptForDestinationFolder();
+        if (targetFolderId === undefined) return; // Avbrutet
+
+        document.getElementById('file-list').innerHTML = `<p class="text-blue-600 p-4 font-bold">Flyttar ${selectedFileIds.size} filer...</p>`;
+        
+        try {
+            const promises = Array.from(selectedFileIds).map(docId => moveAdminDocument(docId, targetFolderId));
+            await Promise.all(promises);
+            clearSelection();
+            await loadFolder(currentFolderId);
+        } catch (err) {
+            alert("Ett fel uppstod vid flytt.");
+            await loadFolder(currentFolderId);
+        }
+    });
+
+    document.getElementById('bulk-download-btn')?.addEventListener('click', () => {
+        const filesToDownload = currentFilesList.filter(f => selectedFileIds.has(f.id));
+        
+        if (filesToDownload.length > 5 && !confirm(`Du är på väg att ladda ner ${filesToDownload.length} filer. Detta öppnar många flikar. Vill du fortsätta?`)) {
+            return;
+        }
+
+        filesToDownload.forEach(file => {
+            // Öppna i ny flik. Webbläsare kan blockera om det är för många.
+            window.open(file.url, '_blank');
+        });
+        clearSelection();
+    });
 }
 
-// Logik för att öppna mapp och uppdatera brödsmulor
+// --- LOGIK FÖR VAL AV FILER ---
+
+function handleFileSelection(id, isSelected) {
+    if (isSelected) {
+        selectedFileIds.add(id);
+    } else {
+        selectedFileIds.delete(id);
+    }
+    updateBulkToolbar();
+}
+
+function clearSelection() {
+    selectedFileIds.clear();
+    updateBulkToolbar();
+    // Avmarkera alla checkboxar visuellt
+    document.querySelectorAll('input[data-type="file-select"]').forEach(cb => cb.checked = false);
+}
+
+function updateBulkToolbar() {
+    const toolbar = document.getElementById('bulk-toolbar');
+    const countSpan = document.getElementById('selected-count');
+    
+    if (selectedFileIds.size > 0) {
+        toolbar.classList.remove('hidden');
+        countSpan.textContent = `${selectedFileIds.size} vald${selectedFileIds.size === 1 ? '' : 'a'}`;
+    } else {
+        toolbar.classList.add('hidden');
+    }
+}
+
+// --- STANDARD LOGIK ---
+
 async function openFolder(id, name) {
     const targetId = id === 'null' ? null : id;
-    
     const existingIndex = breadcrumbPath.findIndex(b => b.id === targetId);
     if (existingIndex === -1 && targetId !== null) {
         breadcrumbPath.push({ id: targetId, name: name });
@@ -155,22 +252,22 @@ async function openFolder(id, name) {
     } else {
          breadcrumbPath = breadcrumbPath.slice(0, existingIndex + 1);
     }
-
     await loadFolder(targetId);
 }
 
-// Huvudfunktion för att rita UI
 async function loadFolder(folderId) {
     currentFolderId = folderId;
+    clearSelection(); // Nollställ val när man byter mapp eller laddar om
+
     const container = document.getElementById('file-list');
-    if (!container) return; // Säkerhetscheck
+    if (!container) return;
 
     container.innerHTML = '<p class="text-gray-500 p-4">Laddar...</p>';
-
     updateBreadcrumbs();
 
     try {
         const { folders, files } = await getFolderContents(folderId);
+        currentFilesList = files; // Spara referens till filerna i nuvarande mapp
         container.innerHTML = '';
 
         if (folders.length === 0 && files.length === 0) {
@@ -178,15 +275,13 @@ async function loadFolder(folderId) {
             return;
         }
 
-        // 1. Rita mappar
+        // 1. Rita mappar (Ingen checkbox för mappar just nu för enkelhetens skull)
         folders.forEach(folder => {
             const div = document.createElement('div');
-            div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b transition group";
-            
+            div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b transition group pl-2";
             div.innerHTML = `
                 <div class="flex items-center gap-3 flex-grow cursor-pointer" data-action="open-folder" data-id="${folder.id}" data-name="${folder.name}">
-                    <span class="text-2xl">📁</span>
-                    <span class="font-semibold text-gray-700">${folder.name}</span>
+                    <span class="text-2xl ml-8">📁</span> <span class="font-semibold text-gray-700">${folder.name}</span>
                 </div>
                 <button class="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Ta bort mapp" data-action="delete-folder" data-id="${folder.id}">
                     🗑️
@@ -195,7 +290,7 @@ async function loadFolder(folderId) {
             container.appendChild(div);
         });
 
-        // 2. Rita filer
+        // 2. Rita filer (MED CHECKBOX)
         files.forEach(file => {
             const div = document.createElement('div');
             div.className = "flex justify-between items-center p-3 hover:bg-gray-50 border-b transition relative";
@@ -209,7 +304,9 @@ async function loadFolder(folderId) {
 
             div.innerHTML = `
                 <div class="flex items-center gap-3 flex-grow min-w-0">
-                    <a href="${file.url}" target="_blank" class="flex items-center gap-3 hover:text-blue-600 truncate">
+                    <input type="checkbox" data-type="file-select" data-id="${file.id}" class="w-5 h-5 cursor-pointer accent-blue-600">
+                    
+                    <a href="${file.url}" target="_blank" class="flex items-center gap-3 hover:text-blue-600 truncate ml-2">
                         <span class="text-xl flex-shrink-0">${icon}</span>
                         <span class="text-gray-700 font-medium truncate">${file.name}</span>
                     </a>
@@ -244,18 +341,15 @@ async function loadFolder(folderId) {
         });
     } catch (error) {
         console.error("Fel vid laddning av mapp:", error);
-        container.innerHTML = '<p class="text-red-500 p-4">Kunde inte ladda innehåll. (Rättighetsproblem eller nätverksfel)</p>';
     }
 }
 
 function updateBreadcrumbs() {
     const el = document.getElementById('breadcrumbs');
-    if (!el) return;
-    
+    if(!el) return;
     el.innerHTML = breadcrumbPath.map((crumb, index) => {
         const isLast = index === breadcrumbPath.length - 1;
         if (isLast) return `<span class="font-bold text-gray-800">${crumb.name}</span>`;
-        
         return `<span class="text-blue-600 cursor-pointer hover:underline" 
             data-action="open-folder" data-id="${crumb.id !== null ? crumb.id : 'null'}" data-name="${crumb.name}">
             ${crumb.name}
@@ -271,19 +365,11 @@ function toggleFileMenu(fileId) {
     if(menu) menu.classList.toggle('hidden');
 }
 
-async function deleteFile(id, storagePath) {
-    if (confirm("Är du säker på att du vill ta bort filen?")) {
-        await deleteAdminDocument(id, storagePath);
-        await loadFolder(currentFolderId);
-    }
-}
-
-async function moveFile(docId) {
+// Återanvändbar prompt för att välja mapp (används av både singel och bulk)
+async function promptForDestinationFolder() {
     const allFoldersSnap = await getDocs(collection(db, 'folders'));
     let folderListText = "0: Hem (Roten)\n";
     const folders = allFoldersSnap.docs.map(d => ({id: d.id, ...d.data()}));
-    
-    // Sortera mappar för listan
     folders.sort((a,b) => a.name.localeCompare(b.name));
     
     folders.forEach((f, i) => {
@@ -294,15 +380,22 @@ async function moveFile(docId) {
     
     if (selection !== null) {
         const index = parseInt(selection);
-        let targetFolderId = null;
-        
         if (index > 0 && index <= folders.length) {
-            targetFolderId = folders[index - 1].id;
-        } else if (index !== 0) {
+            return folders[index - 1].id;
+        } else if (index === 0) {
+            return null; // Roten
+        } else {
             alert("Ogiltigt val.");
-            return;
+            return undefined;
         }
-        
+    }
+    return undefined;
+}
+
+// Flytta EN fil (från menyn)
+async function moveSingleFile(docId) {
+    const targetFolderId = await promptForDestinationFolder();
+    if (targetFolderId !== undefined) {
         await moveAdminDocument(docId, targetFolderId);
         await loadFolder(currentFolderId);
     }
