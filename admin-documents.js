@@ -1,11 +1,15 @@
 // admin-documents.js
-import { showModal, isAdminLoggedIn } from "./ui-handler.js";
 import { getFolderContents, createFolder, uploadAdminDocument, deleteAdminDocument, moveAdminDocument, deleteAdminFolder } from "./data-service.js";
 import { db } from "./firebase-config.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// NYTT: Importera isAdminLoggedIn för att kolla status
+import { isAdminLoggedIn } from "./ui-handler.js"; 
 
 let currentFolderId = null;
 let breadcrumbPath = [{ id: null, name: 'Hem' }];
+
+// NYTT: Variabel för att hålla koll på om vi redan startat filhanteraren
+let isFileManagerInitialized = false;
 
 // Hjälpfunktion: Formatera filstorlek
 function formatBytes(bytes) {
@@ -24,10 +28,22 @@ function formatDate(timestamp) {
 }
 
 export async function initFileManager() {
-    if (!isAdminLoggedIn) return; 
+    // NYTT: Säkerhetsspärr - kör inte om man inte är admin
+    if (!isAdminLoggedIn) return;
+
     const container = document.getElementById('file-manager-container');
     if (!container) return;
+
+    // NYTT: Om vi redan har initierat en gång, ladda bara om mappen och avsluta
+    // så vi slipper dubbla event-listeners.
+    if (isFileManagerInitialized) {
+        await loadFolder(null); // Eller currentFolderId om du vill minnas var man var
+        return;
+    }
     
+    // Markera att vi kört initieringen
+    isFileManagerInitialized = true;
+
     // Ladda rot-mappen vid start
     await loadFolder(null);
 
@@ -79,7 +95,6 @@ export async function initFileManager() {
             await moveFile(id);
         }
         else if (action === 'delete-folder') {
-            // NYTT: Radera mapp
             if(confirm("Vill du ta bort mappen?")) {
                 const success = await deleteAdminFolder(id);
                 if (success) await loadFolder(currentFolderId);
@@ -126,88 +141,95 @@ async function openFolder(id, name) {
 async function loadFolder(folderId) {
     currentFolderId = folderId;
     const container = document.getElementById('file-list');
+    if (!container) return; // Säkerhetscheck
+
     container.innerHTML = '<p class="text-gray-500 p-4">Laddar...</p>';
 
     updateBreadcrumbs();
 
-    const { folders, files } = await getFolderContents(folderId);
-    container.innerHTML = '';
+    try {
+        const { folders, files } = await getFolderContents(folderId);
+        container.innerHTML = '';
 
-    if (folders.length === 0 && files.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 italic p-4">Mappen är tom.</p>';
-        return;
-    }
+        if (folders.length === 0 && files.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 italic p-4">Mappen är tom.</p>';
+            return;
+        }
 
-    // 1. Rita mappar
-    folders.forEach(folder => {
-        const div = document.createElement('div');
-        div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b transition group";
-        
-        // Vi lägger till en delete-knapp för mappar som syns vid hover (eller alltid på mobil)
-        div.innerHTML = `
-            <div class="flex items-center gap-3 flex-grow cursor-pointer" data-action="open-folder" data-id="${folder.id}" data-name="${folder.name}">
-                <span class="text-2xl">📁</span>
-                <span class="font-semibold text-gray-700">${folder.name}</span>
-            </div>
-            <button class="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Ta bort mapp" data-action="delete-folder" data-id="${folder.id}">
-                🗑️
-            </button>
-        `;
-        container.appendChild(div);
-    });
-
-    // 2. Rita filer (Nu med mer info)
-    files.forEach(file => {
-        const div = document.createElement('div');
-        div.className = "flex justify-between items-center p-3 hover:bg-gray-50 border-b transition relative";
-        
-        let icon = '📄';
-        if (file.mimeType && file.mimeType.includes('pdf')) icon = '📕';
-        if (file.mimeType && file.mimeType.includes('image')) icon = '🖼️';
-
-        // Formatera data
-        const dateStr = formatDate(file.createdAt);
-        const sizeStr = formatBytes(file.size);
-
-        div.innerHTML = `
-            <div class="flex items-center gap-3 flex-grow min-w-0">
-                <a href="${file.url}" target="_blank" class="flex items-center gap-3 hover:text-blue-600 truncate">
-                    <span class="text-xl flex-shrink-0">${icon}</span>
-                    <span class="text-gray-700 font-medium truncate">${file.name}</span>
-                </a>
-            </div>
+        // 1. Rita mappar
+        folders.forEach(folder => {
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center p-3 hover:bg-gray-100 border-b transition group";
             
-            <div class="flex items-center gap-4 flex-shrink-0">
-                <div class="hidden sm:flex flex-col items-end text-xs text-gray-400">
-                    <span>${dateStr}</span>
-                    <span>${sizeStr}</span>
+            div.innerHTML = `
+                <div class="flex items-center gap-3 flex-grow cursor-pointer" data-action="open-folder" data-id="${folder.id}" data-name="${folder.name}">
+                    <span class="text-2xl">📁</span>
+                    <span class="font-semibold text-gray-700">${folder.name}</span>
                 </div>
+                <button class="text-gray-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Ta bort mapp" data-action="delete-folder" data-id="${folder.id}">
+                    🗑️
+                </button>
+            `;
+            container.appendChild(div);
+        });
 
-                <div class="relative">
-                    <button class="p-2 text-gray-500 hover:text-gray-800 font-bold rounded-full hover:bg-gray-200" 
-                        data-action="toggle-menu" data-id="${file.id}">
-                        ⋮
-                    </button>
-                    
-                    <div id="file-menu-${file.id}" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-xl z-50">
-                        <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" 
-                            data-action="move-file" data-id="${file.id}">
-                            ↪ Flytta...
+        // 2. Rita filer
+        files.forEach(file => {
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center p-3 hover:bg-gray-50 border-b transition relative";
+            
+            let icon = '📄';
+            if (file.mimeType && file.mimeType.includes('pdf')) icon = '📕';
+            if (file.mimeType && file.mimeType.includes('image')) icon = '🖼️';
+
+            const dateStr = formatDate(file.createdAt);
+            const sizeStr = formatBytes(file.size);
+
+            div.innerHTML = `
+                <div class="flex items-center gap-3 flex-grow min-w-0">
+                    <a href="${file.url}" target="_blank" class="flex items-center gap-3 hover:text-blue-600 truncate">
+                        <span class="text-xl flex-shrink-0">${icon}</span>
+                        <span class="text-gray-700 font-medium truncate">${file.name}</span>
+                    </a>
+                </div>
+                
+                <div class="flex items-center gap-4 flex-shrink-0">
+                    <div class="hidden sm:flex flex-col items-end text-xs text-gray-400">
+                        <span>${dateStr}</span>
+                        <span>${sizeStr}</span>
+                    </div>
+
+                    <div class="relative">
+                        <button class="p-2 text-gray-500 hover:text-gray-800 font-bold rounded-full hover:bg-gray-200" 
+                            data-action="toggle-menu" data-id="${file.id}">
+                            ⋮
                         </button>
-                        <button class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm font-bold border-t" 
-                            data-action="delete-file" data-id="${file.id}" data-storage-path="${file.storagePath}">
-                            🗑️ Ta bort fil
-                        </button>
+                        
+                        <div id="file-menu-${file.id}" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded shadow-xl z-50">
+                            <button class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm" 
+                                data-action="move-file" data-id="${file.id}">
+                                ↪ Flytta...
+                            </button>
+                            <button class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm font-bold border-t" 
+                                data-action="delete-file" data-id="${file.id}" data-storage-path="${file.storagePath}">
+                                🗑️ Ta bort fil
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
-        container.appendChild(div);
-    });
+            `;
+            container.appendChild(div);
+        });
+    } catch (error) {
+        console.error("Fel vid laddning av mapp:", error);
+        container.innerHTML = '<p class="text-red-500 p-4">Kunde inte ladda innehåll. (Rättighetsproblem eller nätverksfel)</p>';
+    }
 }
 
 function updateBreadcrumbs() {
     const el = document.getElementById('breadcrumbs');
+    if (!el) return;
+    
     el.innerHTML = breadcrumbPath.map((crumb, index) => {
         const isLast = index === breadcrumbPath.length - 1;
         if (isLast) return `<span class="font-bold text-gray-800">${crumb.name}</span>`;

@@ -1,6 +1,7 @@
 // ui-handler.js
 import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
 
 // Ver. 1.6 (Fixad await i renderProfileInfo)
@@ -278,6 +279,7 @@ export function handleAdminUI(isAdmin) {
     const adminUserInfo = document.getElementById('admin-user-info'); // Återställd referens
     
     if (isAdmin) {
+        initFileManager();
         if (adminNavLink) adminNavLink.classList.remove('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
         
