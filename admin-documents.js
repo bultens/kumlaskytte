@@ -59,16 +59,38 @@ export async function initFileManager() {
         }
     });
 
-    // 2. Ladda upp fil
-    const uploadInput = document.getElementById('upload-doc-input');
-    if(uploadInput) uploadInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            await uploadAdminDocument(file, currentFolderId);
-            await loadFolder(currentFolderId);
-            e.target.value = ''; 
+    // 2. Ladda upp fil (UPPDATERAD FÖR FLERA FILER)
+        const uploadInput = document.getElementById('upload-doc-input');
+        if(uploadInput) {
+            // Tvinga input-fältet att tillåta flera filer
+            uploadInput.setAttribute('multiple', 'multiple');
+
+            uploadInput.addEventListener('change', async (e) => {
+                // Hämta alla filer, inte bara den första
+                const files = Array.from(e.target.files); 
+                
+                if (files.length > 0) {
+                    // Visa laddningsmeddelande så man vet att något händer
+                    const container = document.getElementById('file-list');
+                    if(container) {
+                        container.innerHTML = `<p class="text-blue-600 p-4 font-bold">Laddar upp ${files.length} filer... Vänligen vänta.</p>`;
+                    }
+
+                    try {
+                        // Ladda upp alla filer samtidigt (Promise.all körs parallellt)
+                        const uploadPromises = files.map(file => uploadAdminDocument(file, currentFolderId));
+                        await Promise.all(uploadPromises);
+                    } catch (error) {
+                        console.error("Fel vid uppladdning:", error);
+                        alert("Ett fel uppstod. Vissa filer kanske inte laddades upp.");
+                    }
+
+                    // Uppdatera listan när allt är klart
+                    await loadFolder(currentFolderId);
+                    e.target.value = ''; // Nollställ input så man kan ladda upp samma filer igen om man vill
+                }
+            });
         }
-    });
 
     // 3. Hantera klick i fil-listan
     const fileList = document.getElementById('file-list');
