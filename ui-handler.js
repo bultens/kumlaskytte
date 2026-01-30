@@ -254,21 +254,18 @@ export function renderCompetitions(data, isAdminLoggedIn) {
     }
 }
 
-export function handleAdminUI(isAdmin) {
+export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
     isAdminLoggedIn = isAdmin;
 
-    // 1. Hantera generella admin-element (Samma som förut)
+    // --- 1. ADMIN-LOGIK (Din gamla kod) ---
     const adminElements = document.querySelectorAll('.admin-only');
     adminElements.forEach(el => {
         isAdmin ? el.classList.remove('hidden') : el.classList.add('hidden');
     });
 
-    // 2. Referenser
-    // OBS: admin-indicator hanteras nu i toggleProfileUI, så den behövs inte här.
     const adminNavLink = document.getElementById('admin-nav-link'); 
     const mobileAdminLink = document.getElementById('mobile-admin-nav-link'); 
     
-    // 3. Sektioner som ska visas/döljas (Samma som förut)
     const adminSections = [
         'news-edit-section', 'competition-edit-section', 
         'calendar-edit-section', 'image-edit-section', 
@@ -276,10 +273,12 @@ export function handleAdminUI(isAdmin) {
     ];
     
     const adminLoginPanel = document.getElementById('admin-login-panel');
-    const adminUserInfo = document.getElementById('admin-user-info'); // Återställd referens
+    const adminUserInfo = document.getElementById('admin-user-info');
     
     if (isAdmin) {
-        initFileManager();
+        // Initiera filhanteraren bara om man är admin
+        import('./admin-documents.js').then(module => module.initFileManager());
+        
         if (adminNavLink) adminNavLink.classList.remove('hidden');
         if (mobileAdminLink) mobileAdminLink.classList.remove('hidden');
         
@@ -290,7 +289,6 @@ export function handleAdminUI(isAdmin) {
 
         if (adminLoginPanel) adminLoginPanel.classList.add('hidden');
         
-        // ÅTERSTÄLLD: Visa vem som är inloggad
         if (adminUserInfo && auth.currentUser) {
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Inloggad som administratör: ${loggedInAdminUsername}`;
@@ -306,6 +304,22 @@ export function handleAdminUI(isAdmin) {
         });
         
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
+    }
+
+    // --- 2. NYTT: MEDLEMS-LOGIK (Topplistor) ---
+    const toplistNav = document.querySelector('a[href="#topplistor"]');
+    
+    // Man får se topplistor om man är Medlem ELLER Admin
+    if (isMember || isAdmin) { 
+        if (toplistNav) toplistNav.parentElement.classList.remove('hidden');
+    } else {
+        // Dölj länken
+        if (toplistNav) toplistNav.parentElement.classList.add('hidden');
+        
+        // Om användaren redan står på sidan #topplistor, skicka hem dem
+        if (window.location.hash === '#topplistor') {
+            window.location.hash = '#hem';
+        }
     }
 }
 
@@ -692,40 +706,82 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
 }
 
-export function renderAdminsAndUsers(usersData, isAdminLoggedIn, currentUserId) {
-    const adminListEl = document.getElementById('admin-list');
-    const allUsersContainer = document.getElementById('all-users-container');
-    if (!adminListEl || !allUsersContainer) return;
+export function renderAdminsAndUsers(users, toggleStatusCallback) {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
 
-    adminListEl.innerHTML = '';
-    allUsersContainer.innerHTML = '';
+    container.innerHTML = '';
+
+    if (users.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 italic">Inga användare hittades.</p>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = "min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden";
     
-    usersData.forEach(user => {
-        const isUserAdmin = user.isAdmin || false;
-        const userEl = document.createElement('div');
-        userEl.className = 'flex items-center justify-between p-2 bg-gray-100 rounded-lg';
+    table.innerHTML = `
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="py-2 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase">E-post / Namn</th>
+                <th class="py-2 px-4 border-b text-center text-xs font-semibold text-gray-600 uppercase">Admin</th>
+                <th class="py-2 px-4 border-b text-center text-xs font-semibold text-gray-600 uppercase">Medlem</th>
+                <th class="py-2 px-4 border-b text-center text-xs font-semibold text-gray-600 uppercase">Åtgärd</th>
+            </tr>
+        </thead>
+        <tbody id="user-table-body"></tbody>
+    `;
+
+    const tbody = table.querySelector('#user-table-body');
+
+    users.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50";
         
-        if (isUserAdmin) {
-            userEl.innerHTML = `
-                <span class="font-semibold">${user.email} (Admin)</span>
-                <div class="flex space-x-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
-                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn && usersData.filter(u => u.isAdmin).length > 1 && user.id !== auth.currentUser.uid ? `<button class="delete-admin-btn text-red-500 hover:text-red-700 transition duration-300 text-sm" data-id="${user.id}">Ta bort</button>` : ''}
+        // Färgkodning för status
+        const memberColor = user.isClubMember ? 'text-green-600 bg-green-100' : 'text-gray-400 bg-gray-100';
+        const memberText = user.isClubMember ? 'Ja' : 'Nej';
+
+        tr.innerHTML = `
+            <td class="py-3 px-4 border-b">
+                <div class="flex flex-col">
+                    <span class="font-medium text-gray-800">${user.email}</span>
+                    <span class="text-xs text-gray-500">${user.name || 'Inget namn'}</span>
                 </div>
-            `;
-            adminListEl.appendChild(userEl);
-        } else {
-            userEl.innerHTML = `
-                <span class="font-semibold">${user.email}</span>
-                <div class="flex space-x-2">
-                    <button class="show-user-info-btn px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full hover:bg-blue-600 transition duration-300" data-id="${user.id}">Visa info</button>
-                    ${isAdminLoggedIn ? `<button class="edit-user-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-user-id="${user.id}">Redigera</button>` : ''}
-                    ${isAdminLoggedIn ? `<button class="add-admin-btn px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full hover:bg-green-600 transition duration-300" data-id="${user.id}">Lägg till som Admin</button>` : ''}
-                </div>
-            `;
-            allUsersContainer.appendChild(userEl);
-        }
+            </td>
+            <td class="py-3 px-4 border-b text-center">
+                ${user.isAdmin ? '<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Admin</span>' : ''}
+            </td>
+            <td class="py-3 px-4 border-b text-center">
+                 <button class="member-toggle-btn px-2 py-1 rounded-full text-xs font-bold ${memberColor} hover:opacity-80 transition" 
+                    data-id="${user.id}" data-status="${user.isClubMember}">
+                    ${memberText}
+                </button>
+            </td>
+            <td class="py-3 px-4 border-b text-center">
+                ${!user.isAdmin ? `
+                    <button class="text-red-600 hover:text-red-800 text-sm font-medium delete-user-btn" data-id="${user.id}">
+                        Ta bort
+                    </button>
+                ` : '<span class="text-gray-400 text-xs">-</span>'}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    container.appendChild(table);
+
+    // Koppla event listeners
+    tbody.querySelectorAll('.member-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const uid = btn.dataset.id;
+            const currentStatus = btn.dataset.status === 'true';
+            
+            // Anropa funktionen vi fick skickad till oss
+            if (typeof toggleStatusCallback === 'function') {
+                await toggleStatusCallback(uid, currentStatus);
+            }
+        });
     });
 }
 

@@ -421,6 +421,16 @@ if (addShooterForm) {
         addResultForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const shareCheckbox = document.getElementById('result-share-checkbox');
+            const currentUser = usersData.find(u => u.id === auth.currentUser?.uid);
+
+            // Om man försöker dela med klubben, men inte är medlem (och inte admin)
+            if (shareCheckbox.checked && currentUser && !currentUser.isClubMember && !currentUser.isAdmin) {
+                showModal('errorModal', "Endast klubbmedlemmar kan spara resultat till topplistan. Kontakta styrelsen för att bli medlem, eller spara resultatet privat.");
+                return; // AVBRYT, koden nedanför körs inte
+            }
+            // -------------------------------------------
+
             const shooterId = document.getElementById('shooter-selector').value;
             if (!shooterId) {
                 showModal('errorModal', "Du måste välja eller skapa en skytt först!");

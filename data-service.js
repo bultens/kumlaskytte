@@ -60,7 +60,8 @@ export function initializeDataListeners() {
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
     usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderAdminsAndUsers(usersData, isAdminLoggedIn, uid);
+
+    renderAdminsAndUsers(usersData, toggleClubMemberStatus);
     });
 
     onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
@@ -280,6 +281,19 @@ export async function saveResult(resultData) {
     } catch (error) {
         console.error("Fel vid sparande av resultat:", error);
         showModal('errorModal', "Kunde inte spara resultatet.");
+    }
+}
+
+export async function toggleClubMemberStatus(userId, currentStatus) {
+    if (!isAdminLoggedIn) return;
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            isClubMember: !currentStatus
+        });
+    } catch (error) {
+        console.error("Kunde inte ändra medlemsstatus:", error);
+        alert("Ett fel uppstod: " + error.message);
     }
 }
 

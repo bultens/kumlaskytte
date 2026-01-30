@@ -19,7 +19,8 @@ const profileWelcomeMessage = document.getElementById('profile-welcome-message')
 
 onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
-    
+    let isMember = false;
+
     if (user) {
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(user.uid);
@@ -32,6 +33,7 @@ onAuthStateChanged(auth, async (user) => {
             if (docSnap.exists()) {
                 const userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
+                isMember = userData.isClubMember === true;
                 
                 if (profileWelcomeMessage) {
                     const name = userData.name || userData.email;
@@ -50,7 +52,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // Uppdatera UI i rätt ordning
-    handleAdminUI(isAdmin); 
+    handleAdminUI(isAdmin, isMember); 
     initializeDataListeners(); 
     toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
 });
