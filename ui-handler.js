@@ -730,14 +730,32 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
     `;
 
     const tbody = table.querySelector('#user-table-body');
+    const currentUserId = auth.currentUser ? auth.currentUser.uid : null;
 
     users.forEach(user => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-gray-50";
         
-        // Färgkodning för status
+        // Medlemsstatus
         const memberColor = user.isClubMember ? 'text-green-600 bg-green-100' : 'text-gray-400 bg-gray-100';
         const memberText = user.isClubMember ? 'Ja' : 'Nej';
+
+        // Admin-kontroller
+        let adminControls = '';
+        if (user.isAdmin) {
+            adminControls = `
+                <div class="flex flex-col items-center gap-1">
+                    <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Admin</span>
+                    ${user.id !== currentUserId ? 
+                        `<button class="delete-admin-btn text-xs text-red-600 hover:underline" data-id="${user.id}">Ta bort behörighet</button>` 
+                        : '<span class="text-[10px] text-gray-400">(Du)</span>'}
+                </div>`;
+        } else {
+            adminControls = `
+                <button class="add-admin-btn text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2 py-1 rounded hover:bg-blue-100 transition" data-id="${user.id}">
+                    Gör till admin
+                </button>`;
+        }
 
         tr.innerHTML = `
             <td class="py-3 px-4 border-b">
@@ -747,7 +765,7 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
                 </div>
             </td>
             <td class="py-3 px-4 border-b text-center">
-                ${user.isAdmin ? '<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Admin</span>' : ''}
+                ${adminControls}
             </td>
             <td class="py-3 px-4 border-b text-center">
                  <button class="member-toggle-btn px-2 py-1 rounded-full text-xs font-bold ${memberColor} hover:opacity-80 transition" 
@@ -757,7 +775,7 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
             </td>
             <td class="py-3 px-4 border-b text-center">
                 ${!user.isAdmin ? `
-                    <button class="text-red-600 hover:text-red-800 text-sm font-medium delete-user-btn" data-id="${user.id}">
+                    <button class="delete-user-btn text-red-600 hover:text-red-800 text-sm font-medium" data-id="${user.id}">
                         Ta bort
                     </button>
                 ` : '<span class="text-gray-400 text-xs">-</span>'}
@@ -768,13 +786,11 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
 
     container.appendChild(table);
 
-    // Koppla event listeners
+    // Koppla event listeners för Medlems-knappen (Admin och Delete hanteras globalt i event-listeners.js)
     tbody.querySelectorAll('.member-toggle-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const uid = btn.dataset.id;
             const currentStatus = btn.dataset.status === 'true';
-            
-            // Anropa funktionen vi fick skickad till oss
             if (typeof toggleStatusCallback === 'function') {
                 await toggleStatusCallback(uid, currentStatus);
             }

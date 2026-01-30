@@ -1608,3 +1608,35 @@ if (addShooterForm) {
         };
     }
 }
+// --- NY KOD FÖR ATT HANTERA BORRTAGNING AV ANVÄNDARE ---
+    
+    // 1. Lyssna på klick i listan ("Ta bort"-knappen)
+    document.addEventListener('click', (e) => {
+        const deleteUserBtn = e.target.closest('.delete-user-btn');
+        if (deleteUserBtn) {
+            const userId = deleteUserBtn.dataset.id;
+            // Spara ID:t på bekräftelseknappen i modalen så vi vet vem vi ska ta bort
+            const confirmBtn = document.getElementById('confirm-delete-user-btn');
+            if (confirmBtn) confirmBtn.dataset.targetId = userId; 
+            
+            // Visa modalen (importerad från ui-handler.js)
+            showDeleteUserModal(); 
+        }
+    });
+
+    // 2. Lyssna på bekräftelse i modalen ("Ja, ta bort")
+    const confirmDeleteUserBtn = document.getElementById('confirm-delete-user-btn');
+    if (confirmDeleteUserBtn) {
+        // Ta bort gamla listeners (kloning) för att undvika dubbelklick
+        const newBtn = confirmDeleteUserBtn.cloneNode(true);
+        confirmDeleteUserBtn.parentNode.replaceChild(newBtn, confirmDeleteUserBtn);
+        
+        newBtn.addEventListener('click', async () => {
+            const userId = newBtn.dataset.targetId;
+            if (userId) {
+                // Anropa deleteDocument för 'users'-kollektionen
+                await deleteDocument(userId, 'users');
+                hideModal('deleteUserModal');
+            }
+        });
+    }
