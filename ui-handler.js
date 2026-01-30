@@ -1005,18 +1005,67 @@ export function updateToolbarButtons(editor) {
 }
 
 export function navigate(hash) {
-    // Dölj alla sektioner
+    // 1. Hantera om hash är tom (gå till hem)
+    if (!hash) hash = '#hem';
+
+    // 2. Dela upp hashen för att hantera djuplänkar (t.ex. #nyheter#news-123)
+    // split('#') på "#nyheter#news-123" ger arrayen: ["", "nyheter", "news-123"]
+    const parts = hash.split('#');
+    
+    // Del 1 (index 1) är sidans ID (t.ex. "nyheter")
+    const pageId = parts[1] || 'hem'; 
+    
+    // Del 2 (index 2) är det specifika inläggets ID (t.ex. "news-123"), kan vara undefined
+    const subId = parts[2];           
+
+    // 3. Dölj alla sidor
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => page.classList.remove('active'));
 
-    // Ta bort # och hitta rätt ID, standard till hem
-    const id = hash.replace('#', '') || 'hem';
-    const targetPage = document.getElementById(id);
-
+    // 4. Hitta och visa rätt huvudsida
+    const targetPage = document.getElementById(pageId);
+    
     if (targetPage) {
         targetPage.classList.add('active');
-        // Scrolla till toppen vid sidbyte
+        
+        // Scrolla alltid till toppen först
         window.scrollTo(0, 0);
+
+        // 5. Om vi har en djuplänk (subId), försök scrolla till den
+        if (subId) {
+            // Vi väntar lite så att Firebase hinner ladda innehållet (nyheter/kalender)
+            setTimeout(() => {
+                const targetElement = document.getElementById(subId);
+                if (targetElement) {
+                    // Scrolla dit mjukt
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Valfritt: Highlighta elementet temporärt så man ser vad som menas
+                    targetElement.style.transition = "background-color 0.5s";
+                    const originalBg = targetElement.style.backgroundColor;
+                    targetElement.style.backgroundColor = "#fffbeb"; // Ljusgul highlight
+                    
+                    // Om det är en kalenderpost, expandera den
+                    if (targetElement.classList.contains('calendar-post')) {
+                        const shortText = targetElement.querySelector('.calendar-post-short');
+                        const expandedText = targetElement.querySelector('.calendar-post-expanded');
+                        if (shortText && expandedText) {
+                            targetElement.setAttribute('data-expanded', 'true');
+                            shortText.classList.add('hidden');
+                            expandedText.classList.remove('hidden');
+                        }
+                    }
+
+                    setTimeout(() => {
+                        targetElement.style.backgroundColor = originalBg;
+                    }, 2000);
+                }
+            }, 600); // 600ms fördröjning för att säkerställa att listan laddats
+        }
+    } else {
+        // Om ID:t är ogiltigt, skicka till startsidan
+        const hemPage = document.getElementById('hem');
+        if (hemPage) hemPage.classList.add('active');
     }
 }
 
