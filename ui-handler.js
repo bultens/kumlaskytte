@@ -307,14 +307,11 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
     }
 
     // --- 2. NYTT: MEDLEMS-LOGIK (Topplistor) ---
-    const toplistNav = document.querySelector('a[href="#topplistor"]');
-    
-    // Man får se topplistor om man är Medlem ELLER Admin
-    if (isMember || isAdmin) { 
-        if (toplistNav) toplistNav.parentElement.classList.remove('hidden');
-    } else {
-        // Dölj länken
-        if (toplistNav) toplistNav.parentElement.classList.add('hidden');
+    const toplistItem = document.getElementById('nav-toplist-item'); // Hitta via ID
+        if (isMember || isAdmin) { 
+            if (toplistItem) toplistItem.classList.remove('hidden');
+        } else {
+    if (toplistItem) toplistItem.classList.add('hidden');
         
         // Om användaren redan står på sidan #topplistor, skicka hem dem
         if (window.location.hash === '#topplistor') {
