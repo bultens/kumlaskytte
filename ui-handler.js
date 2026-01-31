@@ -908,19 +908,29 @@ export function renderContactInfo() {
 export function renderSiteSettings(data) {
     if (!data) return;
 
+    // Hjälpfunktion för att sätta värde säkert
     const setVal = (id, value) => {
         const el = document.getElementById(id);
-        if (el) el.value = value || '';
+        if (el) {
+            el.value = value || '';
+        } else {
+            console.warn(`Varning: Hittade inte input-fältet med id: ${id}`);
+        }
     };
 
-    // Här använder vi DINA ID:n från bilden/koden du visade
+    // 1. Logo och Färg
     setVal('logo-url-input', data.logoUrl);
     setVal('header-color-input', data.headerColor);
-    setVal('contact-address-input', data.address);       // DB-fält: address
-    setVal('contact-location-input', data.location);     // DB-fält: location
-    setVal('contact-phone-input', data.phone);           // DB-fält: phone
-    setVal('contact-email-input', data.email);           // DB-fält: email
-    
+
+    // 2. Kontaktuppgifter (Här var felet förut - nu matchar det index.html)
+    setVal('contact-address-input', data.address);
+    setVal('contact-location-input', data.location);
+    setVal('contact-phone-input', data.phone);
+    setVal('contact-email-input', data.email);
+
+    // 3. Sponsor-checkbox
+    const sponsorCheck = document.getElementById('show-sponsors-checkbox');
+    if (sponsorCheck) sponsorCheck.checked = data.showSponsors === true;
 }
 
 export async function renderProfileInfo(user) {
