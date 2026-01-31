@@ -905,18 +905,22 @@ export function renderContactInfo() {
     });
 }
 
-export async function renderSiteSettings() {
-    const siteSettingsDoc = await getFirestoreDoc(doc(db, 'settings', 'siteSettings'));
-    if (siteSettingsDoc.exists()) {
-        const data = siteSettingsDoc.data();
-        document.getElementById('logo-url-input').value = data.logoUrl || '';
-        document.getElementById('header-color-input').value = data.headerColor || '#1e40af';
-        document.getElementById('show-sponsors-checkbox').checked = data.showSponsors || false;
-        document.getElementById('contact-address-input').value = data.contactAddress || '';
-        document.getElementById('contact-location-input').value = data.contactLocation || '';
-        document.getElementById('contact-phone-input').value = data.contactPhone || '';
-        document.getElementById('contact-email-input').value = data.contactEmail || '';
-    }
+export function renderSiteSettings(data) {
+    if (!data) return;
+
+    const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value || '';
+    };
+
+    // Här använder vi DINA ID:n från bilden/koden du visade
+    setVal('logo-url-input', data.logoUrl);
+    setVal('header-color-input', data.headerColor);
+    setVal('contact-address-input', data.address);       // DB-fält: address
+    setVal('contact-location-input', data.location);     // DB-fält: location
+    setVal('contact-phone-input', data.phone);           // DB-fält: phone
+    setVal('contact-email-input', data.email);           // DB-fält: email
+    
 }
 
 export async function renderProfileInfo(user) {
