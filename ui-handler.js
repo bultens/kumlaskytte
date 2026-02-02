@@ -914,7 +914,8 @@ export function renderSiteSettings(data) {
         if (el) {
             el.value = value || '';
         } else {
-            console.warn(`Varning: Hittade inte input-fältet med id: ${id}`);
+            // Bra för felsökning, kan tas bort senare
+            // console.warn(`Varning: Hittade inte input-fältet med id: ${id}`);
         }
     };
 
@@ -922,15 +923,12 @@ export function renderSiteSettings(data) {
     setVal('logo-url-input', data.logoUrl);
     setVal('header-color-input', data.headerColor);
 
-    // 2. Kontaktuppgifter (Här var felet förut - nu matchar det index.html)
-    setVal('contact-address-input', data.address);
-    setVal('contact-location-input', data.location);
-    setVal('contact-phone-input', data.phone);
-    setVal('contact-email-input', data.email);
-
-    // 3. Sponsor-checkbox
-    const sponsorCheck = document.getElementById('show-sponsors-checkbox');
-    if (sponsorCheck) sponsorCheck.checked = data.showSponsors === true;
+    // 2. Kontaktuppgifter (HÄR VAR FELET)
+    // Vi ändrar från data.address -> data.contactAddress osv.
+    setVal('contact-address-input', data.contactAddress);
+    setVal('contact-location-input', data.contactLocation);
+    setVal('contact-phone-input', data.contactPhone);
+    setVal('contact-email-input', data.contactEmail);
 }
 
 export async function renderProfileInfo(user) {
