@@ -473,7 +473,7 @@
             </div>
         </section>
 
-        <section id="admin" class="page">
+      <section id="admin" class="page">
             <div id="admin-login-panel" class="card max-w-md mx-auto hidden">
                 <h1 class="text-2xl font-bold mb-4">Admininloggning</h1>
                 <p class="text-gray-600 mb-4">Logga in med ditt befintliga konto. Om du är administratör får du tillgång till panelen.</p>
@@ -1069,9 +1069,9 @@
         </div>
     </footer>
 
-    <div id="user-login-panel" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+<div id="user-login-panel" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md relative">
-        <button onclick="document.getElementById('user-login-panel').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        <button id="close-login-panel" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
         <h2 class="text-2xl font-bold mb-6 text-center text-blue-900">Logga in</h2>
         <form id="user-login-form" class="space-y-4">
             <div>
@@ -1092,7 +1092,7 @@
 
 <div id="register-panel" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md relative">
-        <button onclick="document.getElementById('register-panel').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        <button id="close-register-panel" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
         <h2 class="text-2xl font-bold mb-6 text-center text-green-700">Skapa konto</h2>
         <form id="register-form" class="space-y-4">
             <div>
@@ -1108,17 +1108,15 @@
         <p class="mt-4 text-center text-sm">
             Har du redan konto? <a href="#" id="show-login-link-from-reg" class="text-blue-600 hover:underline">Logga in istället</a>
         </p>
-        
-			<hr class="my-6 border-gray-200">
-            <div class="bg-gray-100 p-4 rounded-lg text-sm text-gray-700 mt-4 border border-gray-200">
-                <h4 class="font-bold mb-2 uppercase text-xs">Information om personuppgifter (GDPR)</h4>
-                <p class="mb-2">Genom att skapa ett konto godkänner du att Kumla Skytteförening lagrar din e-postadress och de profiluppgifter du anger för att kunna hantera ditt medlemskap och dina resultat.</p>
-                <ul class="list-disc ml-4 mb-2">
-                    <li><strong>Vid radering:</strong> Din profil (namn, adress, e-post) raderas omedelbart.</li>
-                    <li><strong>Resultat:</strong> Skjutresultat och skyttars namn sparas för historik och statistik.</li>
-                </ul>
-                <p class="italic text-xs">För att radera specifika skyttar eller resultat efter att kontot avslutats, kontakta <a href="mailto:admin@bultens.net" class="underline">admin@bultens.net</a>.</p>
-            </div>
+        <hr class="my-6 border-gray-200">
+        <div class="bg-gray-100 p-4 rounded-lg text-sm text-gray-700 mt-4 border border-gray-200">
+            <h4 class="font-bold mb-2 uppercase text-xs">Information om personuppgifter (GDPR)</h4>
+            <p class="mb-2">Genom att skapa ett konto godkänner du att Kumla Skytteförening lagrar din e-postadress och de profiluppgifter du anger...</p>
+            <ul class="list-disc ml-4 mb-2">
+                <li><strong>Vid radering:</strong> Din profil (namn, adress, e-post) raderas omedelbart.</li>
+                <li><strong>Resultat:</strong> Skjutresultat sparas för historik och statistik.</li>
+            </ul>
+        </div>
     </div>
 </div>
 
