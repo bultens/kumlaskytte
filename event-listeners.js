@@ -1115,14 +1115,7 @@ if (addShooterForm) {
         }
     });
 
-    // ... (Kvarvarande listeners från tidigare är oförändrade, säkerställ att hela filen klistras in korrekt)
-    // För att spara plats har jag inte inkluderat alla listeners igen om de inte ändrats,
-    // men eftersom du bad om hela filen för enkelhetens skull, klistra in ALLT ovan.
-    // Det viktigaste är att addEventForm och editEventBtn logiken är fixad.
-    // Följande listeners är samma som tidigare (likeBtn, shareBtn, imageUpload etc.)
-    
-    // ... [Samma kod som förut för resten av filen] ...
-    // För säkerhets skull, här är resten av filen igen:
+
 
     const inputElements = [
         newsTitleInput, newsContentEditor,
@@ -1167,8 +1160,13 @@ if (addShooterForm) {
         const shareBtn = e.target.closest('.share-btn');
         if (shareBtn) {
             const docId = shareBtn.getAttribute('data-id');
+            const docType = shareBtn.getAttribute('data-type'); // news eller competitions
             const title = shareBtn.getAttribute('data-title');
-            const url = `${window.location.href.split('#')[0]}#nyheter#news-${docId}`;
+            
+            // Skapa länk baserat på typ
+            const pageHash = (docType === 'news') ? '#nyheter#news-' : '#tavlingar#comp-';
+            const url = `${window.location.href.split('#')[0]}${pageHash}${docId}`;
+            
             showShareModal(title, url);
         }
     });

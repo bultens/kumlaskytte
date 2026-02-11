@@ -56,7 +56,10 @@ export function initializeDataListeners() {
 
     onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
     onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
-    onSnapshot(collection(db, 'competitions'), (snapshot) => { competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderCompetitions(competitionsData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'competitions'), (snapshot) => { 
+    competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+    renderCompetitions(competitionsData, isAdminLoggedIn, uid); // uid tillagt här
+});
     
     onSnapshot(collection(db, 'users'), (snapshot) => {
     usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
