@@ -84,7 +84,7 @@ export function showDeleteProfileModal() {
                     <br><br>
                     Om du även vill att dina tidigare resultat ska raderas eller anonymiseras måste du kontakta administratören manuellt på:
                     <br>
-                    👉 <a href="mailto:webadmin@kumlaskytteforening.se" class="underline font-bold hover:text-blue-700">Webadmin</a>
+                    👉 <a href="mailto:${email}" class="underline font-bold hover:text-blue-700">${email}</a>
                 </div>
             `;
         }
@@ -175,8 +175,11 @@ export function toggleSponsorsNavLink(isVisible) {
     }
 }
 
-export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // Lagt till currentUserId
+export function renderCompetitions(data, isAdminLoggedIn) {
+    // 1. Hantera huvudlistan (sidan Tävlingar)
     const container = document.getElementById('competitions-container');
+    
+    // Sortera: Nyast datum först
     data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     if (container) {
@@ -184,11 +187,6 @@ export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // La
         data.forEach(item => {
             const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
             
-            // Logik för likes (samma som i renderNews)
-            const likes = item.likes || {};
-            const likeCount = Object.keys(likes).length;
-            const userHasLiked = currentUserId && likes[currentUserId];
-
             let pdfButton = '';
             if (item.pdfUrl) {
                 pdfButton = `
@@ -200,7 +198,7 @@ export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // La
             }
 
             container.innerHTML += `
-                <div class="card" id="comp-${item.id}">
+                <div class="card">
                     <div class="flex justify-between items-start">
                         <div>
                             <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
@@ -211,30 +209,17 @@ export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // La
                     <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
                     ${pdfButton}
 
-                    <div class="flex items-center space-x-2 mt-4 pt-4 border-t border-gray-50">
-                        <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" 
-                            data-id="${item.id}" data-type="competitions" data-liked="${userHasLiked}">
-                            👍 <span class="like-count">${likeCount}</span>
-                        </button>
-                        <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" 
-                            data-id="${item.id}" data-type="competitions" data-title="${item.title}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
-                            </svg>
-                            <span class="ml-1 hidden sm:inline">Dela</span>
-                        </button>
-
-                        ${isAdminLoggedIn ? `
-                            <div class="flex space-x-2 ml-auto">
-                                <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
-                                <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                            </div>
-                        ` : ''}
-                    </div>
+                    ${isAdminLoggedIn ? `
+                        <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
+                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
+                            <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         });
     }
+
     // 2. Hantera startsidan (Senaste tävlingarna)
     const homeContainer = document.getElementById('home-competitions-container');
     if (homeContainer) {
