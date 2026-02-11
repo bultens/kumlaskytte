@@ -1,190 +1,324 @@
-// ui-handler.js
-import { auth, db } from "./firebase-config.js";
-import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initFileManager } from "./admin-documents.js";
-import { getMedalForScore } from "./result-handler.js";
+import { toggleLike } from "./data-service.js";
 
-// Ver. 1.6 (Fixad await i renderProfileInfo)
-export let isAdminLoggedIn = false;
-export let loggedInAdminUsername = '';
+// Ver 2.11 - Mobilanpassad
+export const isAdminLoggedIn = () => {
+    const adminIndicator = document.getElementById('admin-indicator');
+    return adminIndicator && !adminIndicator.classList.contains('hidden');
+};
 
-export function showModal(modalId, message) {
-    const modal = document.getElementById(modalId);
-    if (!modal) return;
+export function navigate(hash) {
+    const pages = document.querySelectorAll('.page');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
     
-    const messageEl = modal.querySelector('p');
-    if (messageEl) {
-        messageEl.innerHTML = message;
+    let targetId = hash.replace('#', '') || 'hem';
+    let subTarget = null;
+
+    if (targetId.includes('#')) {
+        [targetId, subTarget] = targetId.split('#');
     }
-    
-    modal.classList.add('active');
-    
-    if (modalId === 'errorModal' || modalId === 'confirmationModal') {
-        setTimeout(() => hideModal(modalId), 4000);
+
+    pages.forEach(page => {
+        page.classList.remove('active');
+        if (page.id === targetId) {
+            page.classList.add('active');
+        }
+    });
+
+    if (subTarget) {
+        setTimeout(() => {
+            const element = document.getElementById(subTarget);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300);
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+export function showModal(modalId, message = "") {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        if (message) {
+            const msgEl = modal.querySelector('p') || modal.querySelector('#error-message') || modal.querySelector('#confirmation-message');
+            if (msgEl) msgEl.innerHTML = message;
+        }
+        modal.classList.add('active');
     }
 }
 
 export function hideModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (!modal) return;
-    modal.classList.remove('active');
+    if (modal) modal.classList.remove('active');
 }
 
-
-export function showUserInfoModal(user) {
-    const modal = document.getElementById('userInfoModal');
-    if (!modal) return;
+export function renderNews(data, isAdminLoggedIn, currentUserId) {
+    const container = document.getElementById('all-news-container');
+    const homeContainer = document.getElementById('home-news-container');
     
-    const content = `
-        <h3 class="text-xl font-bold mb-4">Användarinformation</h3>
-        <p><strong>E-post:</strong> ${user.email}</p>
-        <p><strong>Namn:</strong> ${user.name || 'Ej angivet'}</p>
-        <p><strong>Adress:</strong> ${user.address || 'Ej angivet'}</p>
-        <p><strong>Telefon:</strong> ${user.phone || 'Ej angivet'}</p>
-        <p><strong>Födelseår:</strong> ${user.birthyear || 'Ej angivet'}</p>
-        <p><strong>Vill ha utskick:</strong> ${user.mailingList ? 'Ja' : 'Nej'}</p>
-        <p class="text-sm text-gray-500 mt-4">ID: ${user.id}</p>
-    `;
-
-    const messageEl = modal.querySelector('.modal-content p');
-    if (messageEl) {
-        messageEl.innerHTML = content;
-    }
-
-    modal.classList.add('active');
-    
-    const closeBtn = modal.querySelector('.modal-close-btn');
-    if (closeBtn) {
-        closeBtn.onclick = () => hideModal('userInfoModal');
-    }
-
-    modal.onclick = (e) => {
-        if (e.target === modal) hideModal('userInfoModal');
-    };
-}
-
-export function showDeleteProfileModal() {
-    const modal = document.getElementById('deleteProfileModal');
-    if (modal) {
-        // Hämta kontaktmail från sidfoten
-        const emailEl = document.getElementById('contact-email');
-        const email = emailEl && emailEl.textContent ? emailEl.textContent.trim() : 'styrelsen';
-
-        const messageEl = document.getElementById('delete-profile-message');
-        if (messageEl) {
-            messageEl.innerHTML = `
-                <span class="block mb-2 font-bold text-lg">Är du säker på att du vill ta bort ditt konto?</span>
-                <span class="block mb-4 text-sm text-gray-700">
-                    Denna åtgärd tar bort din inloggning och profil omedelbart. Det går inte att ångra.
-                </span>
-                
-                <div class="text-left text-sm bg-blue-50 p-4 rounded-lg border border-blue-200 text-blue-900 mt-2">
-                    <strong class="block mb-1 text-blue-800">⚠️ Viktigt om dina resultat:</strong>
-                    All data under "Mina Resultat" sparas i föreningens databas för statistik och historik, även om du tar bort ditt konto.
-                    <br><br>
-                    Om du även vill att dina tidigare resultat ska raderas eller anonymiseras måste du kontakta administratören manuellt på:
-                    <br>
-                    👉 <a href="mailto:webadmin@kumlaskytteforening.se" class="underline font-bold hover:text-blue-700">Webadmin</a>
-                </div>
-            `;
-        }
-
-        modal.classList.add('active');
-        
-        const cancelButton = document.getElementById('cancel-delete-profile-btn');
-        if (cancelButton) {
-            cancelButton.onclick = () => hideModal('deleteProfileModal');
-        }
-    }
-}
-
-export function showDeleteUserModal() {
-    const modal = document.getElementById('deleteUserModal');
-    if (modal) {
-        modal.classList.add('active');
-        const cancelButton = document.getElementById('cancel-delete-user-btn');
-        if (cancelButton) {
-            cancelButton.onclick = () => hideModal('deleteUserModal');
-        }
-    }
-}
-
-export function showEditUserModal(user) {
-    const modal = document.getElementById('editUserModal');
-    if (!modal) return;
-    
-    document.getElementById('edit-user-id').value = user.id;
-    document.getElementById('edit-user-name').value = user.name || '';
-    document.getElementById('edit-user-address').value = user.address || '';
-    document.getElementById('edit-user-phone').value = user.phone || '';
-    document.getElementById('edit-user-birthyear').value = user.birthyear || '';
-    document.getElementById('edit-user-mailing-list').checked = user.mailingList || false;
-
-    modal.classList.add('active');
-}
-
-export function showShareModal(title, url) {
-    const modal = document.getElementById('shareModal');
-    if (!modal) return;
-
-    const messageTitleEl = document.getElementById('share-message-title');
-    if (messageTitleEl) {
-        messageTitleEl.textContent = `Dela nyheten: "${title}"`;
-    }
-
-    const shareFacebookBtn = document.getElementById('share-facebook-btn');
-    if (shareFacebookBtn) {
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        shareFacebookBtn.onclick = () => {
-            window.open(facebookUrl, '_blank');
-            hideModal('shareModal');
-        };
-    }
-    
-    const copyLinkBtn = document.getElementById('copy-link-btn');
-    if (copyLinkBtn) {
-        copyLinkBtn.onclick = () => {
-            navigator.clipboard.writeText(url)
-                .then(() => {
-                    showModal('confirmationModal', 'Länken har kopierats till urklipp!');
-                    hideModal('shareModal');
-                })
-                .catch(err => showModal('errorModal', 'Kunde inte kopiera länken.'));
-        };
-    }
-    
-    modal.classList.add('active');
-}
-
-export function updateHeaderColor(color) {
-    const header = document.getElementById('site-header');
-    if (header) {
-        header.classList.remove('bg-blue-800');
-        header.style.backgroundColor = color;
-    }
-}
-
-export function toggleSponsorsNavLink(isVisible) {
-    const sponsorsLink = document.getElementById('sponsors-nav-link');
-    if (sponsorsLink) {
-        if (isVisible) {
-            sponsorsLink.classList.remove('hidden');
-        } else {
-            sponsorsLink.classList.add('hidden');
-        }
-    }
-}
-
-export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // Lagt till currentUserId
-    const container = document.getElementById('competitions-container');
     data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     if (container) {
         container.innerHTML = '';
         data.forEach(item => {
-            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+            const likes = item.likes || {};
+            const likeCount = Object.keys(likes).length;
+            const userHasLiked = currentUserId && likes[currentUserId];
+
+            container.innerHTML += `
+                <div class="card bg-white rounded-xl shadow-md overflow-hidden mb-6" id="news-${item.id}">
+                    <div class="flex flex-col md:flex-row">
+                        ${item.imageUrl ? `
+                            <div class="md:w-1/3 h-48 md:h-auto overflow-hidden">
+                                <img src="${item.imageUrl}" class="w-full h-full object-cover" alt="${item.title}">
+                            </div>
+                        ` : ''}
+                        <div class="p-4 md:p-6 flex-grow">
+                            <h3 class="text-2xl font-bold text-blue-900 mb-2">${item.title}</h3>
+                            <p class="text-xs text-gray-400 mb-4">${item.date}</p>
+                            <div class="text-gray-700 leading-relaxed mb-6">${item.content}</div>
+                            
+                            <div class="flex items-center space-x-3 border-t pt-4">
+                                <button class="like-btn flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition ${userHasLiked ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}" data-id="${item.id}" data-type="news">
+                                    <span>${userHasLiked ? '👍' : '👍'}</span>
+                                    <span class="font-bold">${likeCount}</span>
+                                </button>
+                                <button class="share-btn flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition" data-id="${item.id}" data-type="news" data-title="${item.title}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                    <span class="text-sm">Dela</span>
+                                </button>
+                                ${isAdminLoggedIn ? `
+                                    <div class="ml-auto flex space-x-1">
+                                        <button class="edit-news-btn p-2 text-blue-600 hover:bg-blue-50 rounded-full" data-id="${item.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                                        <button class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-full" data-id="${item.id}" data-type="news"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    if (homeContainer) {
+        homeContainer.innerHTML = '';
+        data.slice(0, 4).forEach(item => {
+            homeContainer.innerHTML += `
+                <div class="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition cursor-pointer border-t-4 border-blue-900 flex gap-4" onclick="window.location.hash='#nyheter#news-${item.id}'">
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-blue-900 line-clamp-1">${item.title}</h4>
+                        <p class="text-[10px] text-gray-400 mb-2">${item.date}</p>
+                        <div class="text-sm text-gray-600 line-clamp-2">${item.content.replace(/<[^>]*>/g, '')}</div>
+                    </div>
+                    ${item.imageUrl ? `
+                        <div class="hidden md:block w-20 h-20 flex-shrink-0">
+                            <img src="${item.imageUrl}" class="w-full h-full object-cover rounded-lg shadow-inner">
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+    }
+}
+
+export function renderEvents(data, isAdminLoggedIn) {
+    const container = document.getElementById('calendar-container');
+    const homeContainer = document.getElementById('home-events-container');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const upcomingEvents = data.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+
+    if (container) {
+        container.innerHTML = upcomingEvents.length ? '' : '<p class="text-gray-500 italic">Inga kommande händelser.</p>';
+        upcomingEvents.forEach(item => {
+            container.innerHTML += `
+                <div class="card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded mb-1">${item.date}</span>
+                        <h3 class="text-xl font-bold text-gray-800">${item.title}</h3>
+                        <div class="text-gray-600 text-sm mt-1">${item.description}</div>
+                    </div>
+                    ${isAdminLoggedIn ? `
+                        <div class="flex space-x-2 w-full sm:w-auto">
+                            <button class="edit-event-btn flex-1 sm:flex-none px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm" data-id="${item.id}">Ändra</button>
+                            <button class="delete-btn flex-1 sm:flex-none px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+    }
+
+    if (homeContainer) {
+        homeContainer.innerHTML = '';
+        upcomingEvents.slice(0, 4).forEach(item => {
+            homeContainer.innerHTML += `
+                <div class="bg-blue-50 p-4 rounded-xl border-l-4 border-blue-600 shadow-sm">
+                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">${item.date}</span>
+                    <h4 class="font-bold text-gray-800">${item.title}</h4>
+                    <div class="text-xs text-gray-600 line-clamp-1 mt-1">${item.description.replace(/<[^>]*>/g, '')}</div>
+                </div>
+            `;
+        });
+    }
+}
+
+export function renderHistory(data, isAdminLoggedIn) {
+    const container = document.getElementById('home-history-container');
+    if (container) {
+        container.innerHTML = '';
+        data.sort((a, b) => (a.priority || 10) - (b.priority || 10)).forEach(item => {
+            container.innerHTML += `
+                <div class="card p-4 md:p-6 mb-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl font-bold text-blue-900">${item.title}</h3>
+                        ${isAdminLoggedIn ? `
+                            <div class="flex space-x-2">
+                                <button class="edit-history-btn p-2 text-blue-600 hover:bg-blue-50 rounded-full" data-id="${item.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                                <button class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-full" data-id="${item.id}" data-type="history"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="text-gray-700 leading-relaxed">${item.content}</div>
+                </div>
+            `;
+        });
+    }
+}
+
+export function renderImages(data, isAdminLoggedIn) {
+    const container = document.getElementById('gallery-container');
+    if (container) {
+        container.innerHTML = '';
+        const years = [...new Set(data.map(img => img.year))].sort((a, b) => b - a);
+        years.forEach(year => {
+            const yearSection = document.createElement('div');
+            yearSection.className = 'mb-12';
+            yearSection.innerHTML = `<h2 class="text-3xl font-bold mb-6 pb-2 border-b-2 border-blue-900 text-blue-900">${year}</h2>`;
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
             
-            // Logik för likes (samma som i renderNews)
+            data.filter(img => img.year === year)
+                .sort((a, b) => b.month - a.month || (a.priority || 10) - (b.priority || 10))
+                .forEach(img => {
+                    grid.innerHTML += `
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden group">
+                            <div class="relative h-64 overflow-hidden">
+                                <img src="${img.url}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" alt="${img.title}" loading="lazy">
+                                ${isAdminLoggedIn ? `
+                                    <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button class="edit-image-btn p-2 bg-white/90 text-blue-600 rounded-full shadow-lg" data-id="${img.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                                        <button class="delete-btn p-2 bg-white/90 text-red-600 rounded-full shadow-lg" data-id="${img.id}" data-type="images"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="p-3">
+                                <p class="font-bold text-gray-800 text-sm line-clamp-1">${img.title}</p>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest mt-1">${new Date(2000, img.month-1).toLocaleString('sv-SE', {month: 'long'})}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            yearSection.appendChild(grid);
+            container.appendChild(yearSection);
+        });
+    }
+}
+
+export function renderSponsors(data, isAdminLoggedIn) {
+    const containers = {
+        '1/1': document.getElementById('sponsors-by-1'),
+        '1/2': document.getElementById('sponsors-by-2'),
+        '1/4': document.getElementById('sponsors-by-4')
+    };
+
+    Object.values(containers).forEach(c => { if (c) { c.innerHTML = ''; c.parentElement.classList.add('hidden'); } });
+
+    data.sort((a, b) => (a.priority || 10) - (b.priority || 10)).forEach(item => {
+        const size = item.size || '1/4';
+        const container = containers[size];
+        if (container) {
+            container.parentElement.classList.remove('hidden');
+            const card = document.createElement('div');
+            card.className = "bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition group relative flex flex-col items-center text-center";
+            card.innerHTML = `
+                <a href="${item.url}" target="_blank" class="block w-full">
+                    <div class="h-24 w-full flex items-center justify-center mb-3">
+                        <img src="${item.logoUrl}" class="max-h-full max-w-full object-contain filter grayscale group-hover:grayscale-0 transition duration-500" alt="${item.name}">
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+                    ${item.extraText ? `<p class="text-[10px] text-gray-500 mt-1">${item.extraText}</p>` : ''}
+                </a>
+                ${isAdminLoggedIn ? `
+                    <div class="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="edit-sponsor-btn p-1.5 bg-gray-100 text-blue-600 rounded-full" data-id="${item.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                        <button class="delete-btn p-1.5 bg-gray-100 text-red-600 rounded-full" data-id="${item.id}" data-type="sponsors"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    </div>
+                ` : ''}
+            `;
+            container.appendChild(card);
+        }
+    });
+}
+
+export function renderAdminsAndUsers(data, toggleClubMemberStatus) {
+    const adminContainer = document.getElementById('admin-users-list');
+    const mailingListContainer = document.getElementById('mailing-list-report');
+    
+    if (adminContainer) {
+        adminContainer.innerHTML = '';
+        const sortedData = [...data].sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+        
+        sortedData.forEach(user => {
+            const isAdmin = user.isAdmin === true;
+            const isMember = user.isClubMember === true;
+            
+            adminContainer.innerHTML += `
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-gray-50 rounded-lg border gap-3">
+                    <div class="min-w-0 flex-grow">
+                        <p class="font-bold text-gray-800 truncate">${user.name || 'Inget namn'}</p>
+                        <p class="text-xs text-gray-500 truncate">${user.email}</p>
+                        <div class="flex gap-2 mt-1">
+                            ${isAdmin ? '<span class="px-1.5 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded uppercase">Admin</span>' : ''}
+                            ${isMember ? '<span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">Medlem</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <button class="edit-user-btn text-xs bg-white border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 transition flex-1 sm:flex-none" data-user-id="${user.id}">Redigera</button>
+                        <button onclick="(${toggleClubMemberStatus})('${user.id}', ${isMember})" class="text-xs ${isMember ? 'bg-gray-500' : 'bg-green-600'} text-white px-3 py-1.5 rounded hover:opacity-90 transition flex-1 sm:flex-none">
+                            ${isMember ? 'Ta bort Medlem' : 'Gör till Medlem'}
+                        </button>
+                        ${isAdmin ? 
+                            `<button class="delete-admin-btn text-xs bg-red-500 text-white px-3 py-1.5 rounded hover:bg-red-600 transition flex-1 sm:flex-none" data-id="${user.id}">Ta bort Admin</button>` : 
+                            `<button class="add-admin-btn text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition flex-1 sm:flex-none" data-id="${user.id}">Gör till Admin</button>`
+                        }
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    if (mailingListContainer) {
+        const mailingListUsers = data.filter(u => u.mailingList).sort((a, b) => (a.email).localeCompare(b.email));
+        mailingListContainer.innerHTML = mailingListUsers.length ? '' : '<p class="text-gray-500 text-xs italic">Inga prenumeranter än.</p>';
+        mailingListUsers.forEach(user => {
+            mailingListContainer.innerHTML += `<div class="text-xs p-1 border-b border-gray-100 text-gray-600">${user.email} (${user.name || '-'})</div>`;
+        });
+    }
+}
+
+export function renderCompetitions(data, isAdminLoggedIn, currentUserId) {
+    const container = document.getElementById('competitions-container');
+    const homeContainer = document.getElementById('home-competitions-container');
+    
+    data.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (container) {
+        container.innerHTML = '';
+        data.forEach(item => {
+            const date = new Date(item.date).toLocaleDateString('sv-SE');
             const likes = item.likes || {};
             const likeCount = Object.keys(likes).length;
             const userHasLiked = currentUserId && likes[currentUserId];
@@ -192,7 +326,7 @@ export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // La
             let pdfButton = '';
             if (item.pdfUrl) {
                 pdfButton = `
-                    <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4">
+                    <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4 no-underline text-sm font-bold">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                         Resultatlista (PDF)
                     </a>
@@ -200,34 +334,30 @@ export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // La
             }
 
             container.innerHTML += `
-                <div class="card" id="comp-${item.id}">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
-                            <p class="text-sm text-gray-500 mb-2">Datum: ${date} | Ort: ${item.location}</p>
-                        </div>
+                <div class="card bg-white p-4 md:p-6 rounded-xl shadow-md mb-6" id="comp-${item.id}">
+                    <div class="mb-4">
+                        <h3 class="text-2xl font-bold text-blue-900">${item.title}</h3>
+                        <p class="text-sm text-gray-500">${date} | ${item.location}</p>
                     </div>
                     
-                    <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
+                    <div class="text-gray-700 leading-relaxed mb-4 markdown-content">${item.content}</div>
                     ${pdfButton}
 
-                    <div class="flex items-center space-x-2 mt-4 pt-4 border-t border-gray-50">
-                        <button class="like-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300 ${userHasLiked ? 'text-blue-500' : ''}" 
-                            data-id="${item.id}" data-type="competitions" data-liked="${userHasLiked}">
-                            👍 <span class="like-count">${likeCount}</span>
+                    <div class="flex items-center space-x-2 mt-6 pt-4 border-t border-gray-100">
+                        <button class="like-btn flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition ${userHasLiked ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}" data-id="${item.id}" data-type="competitions">
+                            <span>👍</span>
+                            <span class="font-bold">${likeCount}</span>
                         </button>
-                        <button class="share-btn px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-300" 
-                            data-id="${item.id}" data-type="competitions" data-title="${item.title}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.314l4.94 2.47a3 3 0 10.96.168.25.25 0 01.192.327l-.07.292-.195.071c-.563.205-.96.721-.96 1.302a.25.25 0 00.327.192l.292-.07-.07-.195c.581.042 1.139-.247 1.302-.96l.07-.292-.195-.071a3 3 0 00-.765-.365l-4.94-2.47c-1.091.523-2.265.249-3.033-.519l-1.705-1.705c-.768-.768-1.042-1.942-.519-3.033l1.378-1.378z"/>
-                            </svg>
-                            <span class="ml-1 hidden sm:inline">Dela</span>
+                        
+                        <button class="share-btn flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition" data-id="${item.id}" data-type="competitions" data-title="${item.title}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                            <span class="text-sm">Dela</span>
                         </button>
 
                         ${isAdminLoggedIn ? `
-                            <div class="flex space-x-2 ml-auto">
-                                <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
-                                <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                            <div class="ml-auto flex space-x-1">
+                                <button class="edit-comp-btn p-2 text-blue-600 hover:bg-blue-50 rounded-full transition" data-id="${item.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                                <button class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-full transition" data-id="${item.id}" data-type="competitions"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                             </div>
                         ` : ''}
                     </div>
@@ -235,35 +365,17 @@ export function renderCompetitions(data, isAdminLoggedIn, currentUserId) { // La
             `;
         });
     }
-    // 2. Hantera startsidan (Senaste tävlingarna)
-    const homeContainer = document.getElementById('home-competitions-container');
+
     if (homeContainer) {
         homeContainer.innerHTML = '';
-
-        const getFirstLineText = (htmlContent) => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-            const firstChild = tempDiv.firstElementChild;
-            if (firstChild && firstChild.tagName === 'P') {
-                return firstChild.textContent;
-            }
-            return tempDiv.textContent.split('\n')[0].trim();
-        };
-
-        // Ta de 2 senaste
-        data.slice(0, 2).forEach(item => {
-            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-            const rawText = getFirstLineText(item.content);
-            const shortContent = rawText.length > 150 ? rawText.substring(0, 150) + '...' : rawText;
-            const compUrl = '#tavlingar';
-
+        data.slice(0, 4).forEach(item => {
+            const date = new Date(item.date).toLocaleDateString('sv-SE');
             homeContainer.innerHTML += `
-                <a href="${compUrl}" class="card flex flex-col items-start hover:shadow-md transition duration-300">
-                    <h3 class="text-2xl font-semibold mb-1 text-blue-900">${item.title}</h3>
-                    <p class="text-sm text-gray-500 mb-2">${date} | ${item.location}</p>
-                    <div class="text-gray-700 markdown-content">${shortContent}</div>
-                    <span class="text-blue-600 text-sm mt-4 font-semibold">Läs hela rapporten &rarr;</span>
-                </a>
+                <div class="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border-l-4 border-blue-900" onclick="window.location.hash='#tavlingar#comp-${item.id}'">
+                    <h4 class="font-bold text-blue-900 line-clamp-1">${item.title}</h4>
+                    <p class="text-[10px] text-gray-500 mb-2">${date} | ${item.location}</p>
+                    <div class="text-sm text-gray-600 line-clamp-2">${item.content.replace(/<[^>]*>/g, '')}</div>
+                </div>
             `;
         });
     }

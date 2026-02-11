@@ -309,3 +309,29 @@ img.img-large {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Förhindra horisontell scroll på hela sidan */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Gör alla bilder responsiva som standard */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Snyggare spacing för containern i mobilen */
+@media (max-width: 640px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .card {
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+        border-radius: 0.5rem;
+    }
+}
