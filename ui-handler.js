@@ -84,7 +84,7 @@ export function showDeleteProfileModal() {
                     <br><br>
                     Om du även vill att dina tidigare resultat ska raderas eller anonymiseras måste du kontakta administratören manuellt på:
                     <br>
-                    👉 <a href="mailto:${email}" class="underline font-bold hover:text-blue-700">${email}</a>
+                    👉 <a href="mailto:webadmin@kumlaskytteforening.se" class="underline font-bold hover:text-blue-700">Webadmin</a>
                 </div>
             `;
         }
