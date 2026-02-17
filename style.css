@@ -1,29 +1,33 @@
 
-/* style.css * Ver 1.01*/
+/* style.css * Ver 2.0 - Förbättrad mobilanpassning */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: #f3f4f6;
     color: #1f2937;
 }
+
 .page {
-    display: none; /* Gömmer alla sidor som standard */
+    display: none;
 }
 
 .page.active {
-    display: block; /* Visar bara den som har klassen 'active' */
-    animation: fadeIn 0.3s ease-in-out; /* Valfritt: mjuk in-toning */
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
 }
+
 .card {
     background-color: #ffffff;
     border-radius: 0.75rem;
@@ -31,15 +35,17 @@ body {
     padding: 1rem;
     margin-bottom: 1.5rem;
 }
-/* Justerad padding för att minska menyns höjd */
+
 .nav-link {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
 }
+
 .nav-link.active {
     border-bottom: 2px solid #1e40af;
 }
-/* Modal-styling för felmeddelanden och bekräftelse */
+
+/* Modal-styling */
 .modal {
     position: fixed;
     z-index: 1000;
@@ -56,44 +62,56 @@ body {
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
+
 .modal.active {
     opacity: 1;
     visibility: visible;
 }
+
 .modal-content {
     background-color: #fefefe;
     padding: 20px;
     border: 1px solid #888;
     border-radius: 0.75rem;
-    width: 80%;
+    width: 90%;
     max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
     text-align: center;
 }
+
 .modal-close-btn {
     float: right;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
 }
+
 .modal-close-btn:hover,
 .modal-close-btn:focus {
     color: #000;
     text-decoration: none;
     cursor: pointer;
 }
-/* Style för den enkla redigeraren */
+
+/* Editor-styling */
 .editor-toolbar {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
-    flex-wrap: wrap; /* Gör att knapparna kan radbrytas på små skärmar */
+    flex-wrap: wrap;
 }
+
 .editor-toolbar button {
     transition: background-color 0.2s;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
 }
+
 .editor-toolbar .active {
-    background-color: #cbd5e1; /* Tailwind 'slate-300' för aktiv knapp */
+    background-color: #cbd5e1;
 }
+
 .editor-content {
     min-height: 150px;
     border: 1px solid #d1d5db;
@@ -102,14 +120,17 @@ body {
     background-color: #f9fafb;
     outline: none;
 }
-/* Stilar för Markdown-innehåll */
+
+/* Markdown-innehåll */
 .markdown-content p {
     margin-bottom: 1rem;
 }
+
 .markdown-content a {
     color: #2563eb;
     text-decoration: underline;
 }
+
 .markdown-content img {
     max-width: 100%;
     height: auto;
@@ -118,25 +139,30 @@ body {
     margin-top: 1rem;
     margin-bottom: 1rem;
 }
-/* Kalenderpost-styling för klickbarhet */
+
+/* Kalenderpost-styling */
 .calendar-post {
     cursor: pointer;
 }
+
 .calendar-post-expanded {
     display: block;
 }
+
 .gallery-image {
     width: 100%;
     height: auto;
     object-fit: cover;
     border-radius: 0.5rem;
 }
-/* Specialklass för större logo-storlek */
+
+/* Logo-storlek */
 .logo-large {
     height: 150px;
     width: 150px;
 }
-/* Flex-box-layout för sponsorer */
+
+/* Sponsorer grid */
 .sponsors-grid-container {
     display: flex;
     flex-wrap: wrap;
@@ -144,6 +170,7 @@ body {
     justify-content: flex-start;
     margin-bottom: 24px;
 }
+
 .sponsors-grid-container > div {
     display: flex;
     flex-direction: column;
@@ -181,68 +208,28 @@ body {
 .sponsor-card-1-1 .sponsor-logo {
     max-height: 150px;
 }
+
 .sponsor-card-1-2 .sponsor-logo {
     max-height: 120px;
 }
+
 .sponsor-card-1-4 .sponsor-logo {
     max-height: 90px;
 }
-/* Åtgärdat färg-input */
+
+/* Färg-input fix */
 #header-color-input::-webkit-color-swatch-wrapper {
     padding: 0;
 }
+
 #header-color-input::-webkit-color-swatch {
     border: none;
 }
+
 #header-color-input {
-    height: 48px; /* Standardstorlek för input-fält */
+    height: 48px;
 }
 
-/* Responsiv design */
-@media (max-width: 768px) {
-    .sponsor-card-1-2, .sponsor-card-1-4 {
-        width: 100%;
-        flex: 1 0 100%;
-        max-width: none;
-    }
-    .logo-large {
-        height: 75px;
-        width: 75px;
-    }
-    .page h1, .page h2 {
-        font-size: 1.5rem;
-    }
-    .nav-link {
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 640px) {
-    .header-content {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-    #site-logo-link {
-        margin-right: 0;
-        margin-bottom: 0.5rem;
-    }
-    #site-title-display {
-        font-size: 2rem;
-    }
-    #admin-indicator {
-        top: 0.5rem;
-        right: 0.5rem;
-    }
-    /* Gör nav-menyn scrollbar på små skärmar */
-    nav {
-        overflow-x: auto;
-    }
-    nav ul {
-        display: inline-flex;
-        white-space: nowrap;
-    }
-}
 /* Bildstorlekar för Nyheter/Editor */
 img.img-small {
     width: 30%;
@@ -257,7 +244,7 @@ img.img-small {
 img.img-medium {
     display: block;
     width: 70%;
-    margin: 1rem auto; /* Centrera */
+    margin: 1rem auto;
     border-radius: 0.5rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
@@ -269,12 +256,12 @@ img.img-large {
     border-radius: 0.5rem;
 }
 
-/* Fix för att innehåll inte ska "fastna" bredvid flytande bilder om texten är kort */
 .editor-content::after {
     content: "";
     display: table;
     clear: both;
 }
+
 /* Bildväljaren */
 .gallery-selection-item {
     cursor: pointer;
@@ -287,13 +274,13 @@ img.img-large {
 
 .gallery-selection-item:hover {
     transform: scale(1.05);
-    border-color: #2563eb; /* Blue-600 */
+    border-color: #2563eb;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .gallery-selection-item img {
     width: 100%;
-    height: 100px; /* Fast höjd för snyggt rutnät */
+    height: 100px;
     object-fit: cover;
 }
 
@@ -310,28 +297,597 @@ img.img-large {
     text-overflow: ellipsis;
 }
 
-/* Förhindra horisontell scroll på hela sidan */
+/* Förhindra horisontell scroll */
 html, body {
     max-width: 100%;
     overflow-x: hidden;
 }
 
-/* Gör alla bilder responsiva som standard */
 img {
     max-width: 100%;
     height: auto;
 }
 
-/* Snyggare spacing för containern i mobilen */
-@media (max-width: 640px) {
+/* ============================================
+   MOBILANPASSNING - FÖRBÄTTRINGAR
+   ============================================ */
+
+/* Tablet och mindre (max 768px) */
+@media (max-width: 768px) {
     .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding: 1rem;
     }
     
     .card {
-        margin-left: -0.5rem;
-        margin-right: -0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
         border-radius: 0.5rem;
+    }
+    
+    /* Mindre rubriker på mobil */
+    .page h1 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .page h2 {
+        font-size: 1.25rem;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .page h3 {
+        font-size: 1.1rem;
+    }
+    
+    /* Sponsor-kort i full bredd */
+    .sponsor-card-1-2, .sponsor-card-1-4 {
+        width: 100%;
+        flex: 1 0 100%;
+        max-width: none;
+        padding: 1rem;
+    }
+    
+    .sponsor-card-1-1 {
+        padding: 1rem;
+    }
+    
+    .sponsor-logo {
+        max-height: 80px;
+    }
+    
+    .sponsor-card-1-1 .sponsor-logo {
+        max-height: 100px;
+    }
+    
+    .sponsor-card-1-2 .sponsor-logo {
+        max-height: 80px;
+    }
+    
+    .sponsor-card-1-4 .sponsor-logo {
+        max-height: 60px;
+    }
+    
+    .logo-large {
+        height: 75px;
+        width: 75px;
+    }
+    
+    /* Mindre text i navigeringslänkar */
+    .nav-link {
+        font-size: 0.9rem;
+    }
+    
+    /* Mobilanpassad header */
+    #site-header .container {
+        padding: 0.5rem 1rem;
+    }
+    
+    #site-logo {
+        height: 40px;
+    }
+    
+    #site-header span.text-lg {
+        font-size: 0.9rem;
+    }
+    
+    /* Mindre knappar i header */
+    #show-login-link {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Mobil meny styling */
+    #mobile-menu {
+        background-color: rgba(30, 58, 138, 0.98);
+        border-radius: 0 0 0.5rem 0.5rem;
+        margin-top: 0.5rem;
+        padding: 1rem;
+    }
+    
+    #mobile-menu nav {
+        gap: 0.5rem;
+    }
+    
+    #mobile-menu a {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        font-size: 1rem;
+    }
+    
+    #mobile-menu a:last-child {
+        border-bottom: none;
+    }
+    
+    /* Formulär på mobil */
+    input, select, textarea {
+        font-size: 16px !important; /* Förhindra zoom på iOS */
+        padding: 0.75rem;
+    }
+    
+    .editor-toolbar button {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Tabeller - horisontell scroll */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 0.85rem;
+    }
+    
+    th, td {
+        padding: 0.5rem;
+    }
+    
+    /* Bildgalleri - 2 kolumner på tablet */
+    #gallery-container .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    /* Nyheter kort */
+    .home-news-post {
+        flex-direction: column;
+    }
+    
+    .home-news-post img {
+        width: 100%;
+        height: auto;
+        margin-right: 0;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Kalender kort */
+    .home-calendar-post {
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .home-calendar-post .flex-shrink-0 {
+        padding: 0.75rem;
+    }
+    
+    /* Resultat-formulär */
+    #series-inputs-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Shot-count knappar */
+    .shot-count-btn {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Live total display */
+    #live-total-display {
+        font-size: 2rem;
+    }
+    
+    /* Modal på mobil */
+    .modal-content {
+        width: 95%;
+        padding: 1rem;
+        margin: 1rem;
+    }
+    
+    /* Admin panel */
+    #admin-panel .card {
+        padding: 1rem;
+    }
+    
+    /* Topplistor */
+    #top-lists-container {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Prestationer sektion */
+    #achievements-list {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Bilder i editor */
+    img.img-small, img.img-medium {
+        width: 100%;
+        float: none;
+        margin-right: 0;
+    }
+}
+
+/* Mindre mobil (max 640px) */
+@media (max-width: 640px) {
+    .container {
+        padding: 0.75rem;
+    }
+    
+    .card {
+        padding: 0.875rem;
+        margin-left: 0;
+        margin-right: 0;
+        border-radius: 0.5rem;
+    }
+    
+    /* Ännu mindre rubriker */
+    .page h1 {
+        font-size: 1.35rem;
+    }
+    
+    .page h2 {
+        font-size: 1.15rem;
+    }
+    
+    /* Header justeringar */
+    #site-header .flex.justify-between {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    #site-header a.flex.items-center {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    #site-header span.font-bold {
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+    }
+    
+    /* Mindre logga */
+    #site-logo {
+        height: 36px;
+    }
+    
+    /* Hamburgermeny knapp */
+    #mobile-menu-btn {
+        padding: 0.25rem;
+    }
+    
+    #mobile-menu-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Bildgalleri - 1 kolumn på små skärmar */
+    #gallery-container .grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Resultat formulär */
+    #series-inputs-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    
+    #series-inputs-container input {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    /* Grid layouts */
+    .grid.grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .grid.grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .grid.grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Shot count väljare */
+    .shot-count-btn {
+        font-size: 0.8rem;
+        padding: 0.4rem;
+    }
+    
+    /* Live display */
+    .bg-gray-900.text-white.p-5 {
+        padding: 1rem;
+    }
+    
+    #live-total-display {
+        font-size: 1.75rem;
+    }
+    
+    #live-best-series {
+        font-size: 1.25rem;
+    }
+    
+    /* Formulär grid */
+    .grid.grid-cols-1.md\\:grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Kalender post */
+    .calendar-post {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .calendar-post .flex-shrink-0 {
+        margin-right: 0;
+        margin-bottom: 0.75rem;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .calendar-post .flex-shrink-0 p:first-child {
+        font-size: 1.25rem;
+    }
+    
+    .calendar-post .flex-shrink-0 p:last-child {
+        font-size: 0.875rem;
+    }
+    
+    /* Nyheter på startsidan */
+    #home-news-container .card,
+    #home-events-container .card,
+    #home-competitions-container .card {
+        padding: 1rem;
+    }
+    
+    /* Välkomstsektion */
+    #hem .bg-blue-100 {
+        padding: 1.5rem 1rem;
+    }
+    
+    #hem .bg-blue-100 h1 {
+        font-size: 1.35rem;
+    }
+    
+    #hem .bg-blue-100 p {
+        font-size: 0.9rem;
+    }
+    
+    /* Editor toolbar */
+    .editor-toolbar {
+        gap: 0.25rem;
+    }
+    
+    .editor-toolbar button {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Kartvisning */
+    iframe {
+        height: 200px;
+    }
+    
+    /* Admin tabeller */
+    #admin-users-list table,
+    #admin-shooters-list .flex {
+        font-size: 0.8rem;
+    }
+    
+    #admin-users-list button,
+    #admin-shooters-list button {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    /* Pagination */
+    .prev-page-btn, .next-page-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Resultat historik kort */
+    #results-history-container .card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    #results-history-container .card .flex.items-center.space-x-2 {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    /* Checkbox och labels */
+    input[type="checkbox"] {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    /* Select dropdowns */
+    select {
+        padding: 0.625rem;
+    }
+    
+    /* Knappar */
+    button, .btn {
+        min-height: 44px; /* Tillgänglighet - minst 44px */
+    }
+    
+    /* File upload */
+    input[type="file"] + label,
+    .file-upload-label {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Progress bar */
+    progress {
+        height: 8px;
+    }
+    
+    /* Sponsorer sektion */
+    #sponsorer .bg-blue-50 {
+        padding: 1rem;
+    }
+    
+    #sponsorer .bg-blue-50 h2 {
+        font-size: 1.1rem;
+    }
+    
+    #sponsorer .flex-wrap.justify-center.gap-4 span {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Extra små skärmar (max 480px) */
+@media (max-width: 480px) {
+    .container {
+        padding: 0.5rem;
+    }
+    
+    .card {
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+    }
+    
+    .page h1 {
+        font-size: 1.25rem;
+    }
+    
+    .page h2 {
+        font-size: 1.1rem;
+    }
+    
+    /* Header */
+    #site-header span.font-bold {
+        max-width: 120px;
+        font-size: 0.8rem;
+    }
+    
+    #site-logo {
+        height: 32px;
+    }
+    
+    /* Logga in knapp */
+    #show-login-link {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Resultat formulär - serier */
+    #series-inputs-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Mindre padding i formulär */
+    form .mb-6 {
+        margin-bottom: 1rem;
+    }
+    
+    /* Topplistor */
+    #top-lists-container .bg-white {
+        padding: 0.75rem;
+    }
+    
+    /* Prestationer */
+    #achievements-list .flex.flex-col {
+        padding: 0.75rem;
+    }
+    
+    /* Chart container */
+    .relative.h-64 {
+        height: 200px;
+    }
+    
+    /* Mobil meny */
+    #mobile-menu a {
+        font-size: 0.9rem;
+        padding: 0.625rem 0;
+    }
+    
+    /* Admin indicator */
+    #admin-indicator {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.4rem;
+    }
+}
+
+/* Landskapsläge på mobil */
+@media (max-height: 500px) and (orientation: landscape) {
+    #site-header {
+        position: relative;
+    }
+    
+    .modal-content {
+        max-height: 80vh;
+    }
+}
+
+/* Touch-enheter - större klickytor */
+@media (pointer: coarse) {
+    button, 
+    a,
+    input[type="checkbox"],
+    input[type="radio"],
+    select {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .nav-link,
+    .mobile-nav-link {
+        padding: 0.75rem;
+    }
+    
+    .editor-toolbar button {
+        min-height: 36px;
+        min-width: 36px;
+    }
+}
+
+/* Högupplösta skärmar */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    img {
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+
+/* Utskriftsstilar */
+@media print {
+    #site-header,
+    #mobile-menu-btn,
+    .editor-toolbar,
+    .delete-btn,
+    .edit-btn,
+    .admin-only {
+        display: none !important;
+    }
+    
+    .page {
+        display: block !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #ccc;
     }
 }
