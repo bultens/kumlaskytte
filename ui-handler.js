@@ -4,7 +4,6 @@ import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebase
 import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
 import { getVisitorStats } from "./data-service.js";
-import { getVisitorStats } from "./data-service.js";
 
 // Ver. 1.6 (Fixad await i renderProfileInfo)
 export let isAdminLoggedIn = false;
