@@ -1,4 +1,4 @@
-// data-service.js - Ver. 1.9 (Återställd struktur & optimerad)
+// data-service.js - Ver. 1.10 (Uppgraderad Tävlingsrapportering)
 import { db, auth } from "./firebase-config.js"; 
 import { 
     onSnapshot, collection, doc, updateDoc, query, where, getDocs, 
@@ -102,7 +102,7 @@ export function initializeDataListeners() {
         renderEvents(eventsData, isAdminLoggedIn);
     });
 
-    // Tävlingsinfo
+    // Tävlingsinfo (Uppdaterad för att stödja gilla/dela)
     onSnapshot(collection(db, 'competitions'), (snapshot) => { 
         competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
         renderCompetitions(competitionsData, isAdminLoggedIn, uid);
@@ -197,8 +197,9 @@ export async function deleteDocument(docId, collectionName, seriesId) {
             await batch.commit();
             showModal('confirmationModal', "Hela serien har raderats.");
         } else {
-            // Rensa filer från Storage vid radering av bilder eller sponsorer
-            if (collectionName === 'images' || collectionName === 'sponsors') {
+            // Rensa filer från Storage vid radering av bilder, sponsorer, nyheter eller TÄVLINGAR
+            const storageLinkedCollections = ['images', 'sponsors', 'news', 'competitions'];
+            if (storageLinkedCollections.includes(collectionName)) {
                 const docSnap = await getFirestoreDoc(doc(db, collectionName, docId));
                 if (docSnap.exists() && docSnap.data().storagePath) {
                     const storage = getStorage();
