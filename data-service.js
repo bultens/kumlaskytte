@@ -1,24 +1,11 @@
-// data-service.js - Ver. 1.10 (Uppgraderad Tävlingsrapportering)
+
+// data-service.js
 import { db, auth } from "./firebase-config.js"; 
-import { 
-    onSnapshot, collection, doc, updateDoc, query, where, getDocs, 
-    writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, 
-    getDoc as getFirestoreDoc, arrayUnion, arrayRemove 
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { onSnapshot, collection, doc, updateDoc, query, where, getDocs, writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, getDoc as getFirestoreDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { renderNews, renderEvents, renderHistory, renderImages, renderSponsors, renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, renderSiteSettings, renderCompetitions, renderHomeAchievements, renderClassesAdmin, renderTopLists, renderShootersAdmin } from "./ui-handler.js";
+import { getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-import { 
-    renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
-    renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, 
-    toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, 
-    renderSiteSettings, renderCompetitions, renderHomeAchievements, 
-    renderClassesAdmin, renderTopLists, renderShootersAdmin 
-} from "./ui-handler.js";
-
-import { 
-    getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL 
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-
-// --- GLOBALA DATALAGER ---
+// Ver. 1.6 (storage fix)
 export let newsData = [];
 export let eventsData = [];
 export let competitionsData = [];
@@ -37,143 +24,81 @@ export function setCurrentUserId(id) {
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 
-/**
- * INITIERA DATALYSSNARE
- * Sköter realtidsuppdatering av hemsidan när databasen ändras.
- */
 export function initializeDataListeners() {
     const uid = auth.currentUser ? auth.currentUser.uid : null;
 
-    // 1. INLOGGADE ANVÄNDARE - SPECIFIK DATA
     if (auth.currentUser) {
-        // Skyttar (Klubbens medlemmar)
         onSnapshot(collection(db, 'shooters'), (snapshot) => { 
             allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            if (isAdminLoggedIn) {
-                renderShootersAdmin(allShootersData);
-            }
-            refreshMultiDependentViews();
+            if (isAdminLoggedIn) renderShootersAdmin(allShootersData); 
+             if (latestResultsCache.length > 0) {
+                 renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+             }
         });
 
-        // Tävlingsklasser (Junior, Senior, etc)
         onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
             competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             competitionClasses.sort((a, b) => a.minAge - b.minAge);
-            if (isAdminLoggedIn) {
-                renderClassesAdmin(competitionClasses);
-            }
-            refreshMultiDependentViews();
+            if (isAdminLoggedIn) renderClassesAdmin(competitionClasses);
+            renderTopLists(competitionClasses, latestResultsCache, allShootersData);
         });
 
-        // Resultat (Alla sparade resultat)
         onSnapshot(collection(db, 'results'), (snapshot) => {
-            latestResultsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            refreshMultiDependentViews();
+            const allResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            latestResultsCache = allResults; 
+            if (allShootersData.length > 0) {
+                 renderHomeAchievements(latestResultsCache, allShootersData);
+                 renderTopLists(competitionClasses, latestResultsCache, allShootersData);
+            }
         });
-
-        // Besöksstatistik (Realtid för Admin)
-        if (isAdminLoggedIn) {
-            onSnapshot(doc(db, 'statistics', 'visitors'), (docSnap) => {
-                const todayEl = document.getElementById('visitor-count-today');
-                const totalEl = document.getElementById('visitor-count-total');
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const today = getTodayString();
-                    const isNewDay = data.lastVisitDate !== today;
-                    
-                    if (todayEl) todayEl.textContent = (isNewDay ? 0 : (data.todayUniqueSessions || 0)).toLocaleString('sv-SE');
-                    if (totalEl) totalEl.textContent = (data.totalVisits || 0).toLocaleString('sv-SE');
-                }
-            });
-        }
     }
 
-    // 2. PUBLIK DATA (ALLTID TILLGÄNGLIG)
-    
-    // Nyheter
-    onSnapshot(collection(db, 'news'), (snapshot) => {
-        newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderNews(newsData, isAdminLoggedIn, uid);
-    });
-
-    // Kalenderhändelser
-    onSnapshot(collection(db, 'events'), (snapshot) => {
-        eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEvents(eventsData, isAdminLoggedIn);
-    });
-
-    // Tävlingsinfo (Uppdaterad för att stödja gilla/dela)
+    onSnapshot(collection(db, 'news'), (snapshot) => { newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderNews(newsData, isAdminLoggedIn, uid); });
+    onSnapshot(collection(db, 'events'), (snapshot) => { eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderEvents(eventsData, isAdminLoggedIn); });
     onSnapshot(collection(db, 'competitions'), (snapshot) => { 
-        competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-        renderCompetitions(competitionsData, isAdminLoggedIn, uid);
-    });
+    competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+    renderCompetitions(competitionsData, isAdminLoggedIn, uid); // uid tillagt här
+});
     
-    // Användarlistan (för admin)
     onSnapshot(collection(db, 'users'), (snapshot) => {
-        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderAdminsAndUsers(usersData, toggleClubMemberStatus);
+    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    renderAdminsAndUsers(usersData, toggleClubMemberStatus);
     });
 
-    // Föreningens Historia
-    onSnapshot(collection(db, 'history'), (snapshot) => {
-        historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderHistory(historyData, isAdminLoggedIn, uid);
-    });
-
-    // Bildgalleri
-    onSnapshot(collection(db, 'images'), (snapshot) => {
-        imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderImages(imageData, isAdminLoggedIn);
-    });
-
-    // Sponsorer
-    onSnapshot(collection(db, 'sponsors'), (snapshot) => {
-        sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderSponsors(sponsorsData, isAdminLoggedIn);
-    });
+    onSnapshot(collection(db, 'history'), (snapshot) => { historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderHistory(historyData, isAdminLoggedIn, uid); });
+    onSnapshot(collection(db, 'images'), (snapshot) => { imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderImages(imageData, isAdminLoggedIn); });
+    onSnapshot(collection(db, 'sponsors'), (snapshot) => { sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderSponsors(sponsorsData, isAdminLoggedIn); });
     
-    // Webbplatsinställningar (Färg, Logo, Kontaktinfo)
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
+        const faviconLink = document.getElementById('favicon-link');
+        const siteLogoElement = document.getElementById('site-logo');
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const siteLogoElement = document.getElementById('site-logo');
-            const faviconLink = document.getElementById('favicon-link');
-            
             if (siteLogoElement) siteLogoElement.src = data.logoUrl || "logo.png";
             if (faviconLink) faviconLink.href = data.logoUrl || "logo.png";
-            
             renderContactInfo();
             updateHeaderColor(data.headerColor);
             toggleSponsorsNavLink(data.showSponsors);
-            renderSiteSettings(data);
+            renderSiteSettings();
         }
     });
 }
 
-/**
- * Hjälpfunktion för att uppdatera vyer som kräver data från flera olika samlingar
- */
-function refreshMultiDependentViews() {
-    if (allShootersData.length > 0 && latestResultsCache.length > 0) {
-        renderHomeAchievements(latestResultsCache, allShootersData);
-        renderTopLists(competitionClasses, latestResultsCache, allShootersData);
-    }
-}
-
-// --- CRUD OPERATIONER (SKAPA, LÄSA, UPPDATERA, RADERA) ---
-
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
     if (!isAdminLoggedIn) {
-        showModal('errorModal', "Du har inte behörighet.");
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
     try {
         if (docId) {
             await updateDoc(doc(db, collectionName, docId), data);
+            showModal('confirmationModal', successMessage);
         } else {
             await addDoc(collection(db, collectionName), data);
+            showModal('confirmationModal', successMessage);
         }
-        showModal('confirmationModal', successMessage);
     } catch (error) {
         console.error(`Fel vid hantering av ${collectionName}:`, error);
         showModal('errorModal', errorMessage);
@@ -181,42 +106,41 @@ export async function addOrUpdateDocument(collectionName, docId, data, successMe
 }
 
 export async function deleteDocument(docId, collectionName, seriesId) {
+    // Tillåt medlemmar att ta bort sina egna resultat och skyttar
     const userOwnedCollections = ['results', 'shooters'];
+    
     if (!isAdminLoggedIn && !userOwnedCollections.includes(collectionName)) {
-        showModal('errorModal', "Behörighet saknas.");
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
-
+    
     try {   
-        // Specialhantering för återkommande händelser i kalendern
         if (collectionName === 'events' && seriesId) {
             const q = query(collection(db, collectionName), where("seriesId", "==", seriesId));
             const querySnapshot = await getDocs(q);
             const batch = writeBatch(db);
-            querySnapshot.forEach((doc) => { batch.delete(doc.ref); });
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
             await batch.commit();
-            showModal('confirmationModal', "Hela serien har raderats.");
+            showModal('confirmationModal', "Hela evenemangs-serien har tagits bort.");
         } else {
-            // Rensa filer från Storage vid radering av bilder, sponsorer, nyheter eller TÄVLINGAR
-            const storageLinkedCollections = ['images', 'sponsors', 'news', 'competitions'];
-            if (storageLinkedCollections.includes(collectionName)) {
+            if (collectionName === 'images' || collectionName === 'sponsors') {
                 const docSnap = await getFirestoreDoc(doc(db, collectionName, docId));
                 if (docSnap.exists() && docSnap.data().storagePath) {
                     const storage = getStorage();
                     const fileRef = ref(storage, docSnap.data().storagePath);
-                    try { await deleteObject(fileRef); } catch (e) { console.warn("Filen fanns inte i Storage."); }
+                    try { await deleteObject(fileRef); } catch (error) { console.warn("Kunde inte ta bort filen från Storage:", error); }
                 }
             }
             await deleteDoc(doc(db, collectionName, docId));
-            showModal('confirmationModal', "Posten har raderats.");
+            showModal('confirmationModal', `Posten har tagits bort från ${collectionName}.`);
         }
     } catch (error) {
-        console.error("Fel vid borttagning:", error);
-        showModal('errorModal', "Ett fel uppstod.");
+        console.error("Fel vid borttagning av post:", error);
+        showModal('errorModal', "Ett fel uppstod när posten skulle tas bort.");
     }
 }
-
-// --- MEDLEMS- OCH PROFILFUNKTIONER ---
 
 export async function toggleLike(docId, docType, userId) {
     try {
@@ -225,89 +149,117 @@ export async function toggleLike(docId, docType, userId) {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const likes = data.likes || {};
+            let updatedLikes;
             if (likes[userId]) {
-                delete likes[userId];
+                updatedLikes = { ...likes };
+                delete updatedLikes[userId];
             } else {
-                likes[userId] = true;
+                updatedLikes = { ...likes, [userId]: true };
             }
-            await updateDoc(docRef, { likes: likes });
+            await updateDoc(docRef, { likes: updatedLikes });
         }
     } catch (error) {
-        console.error("Fel vid gilla-markering:", error);
+        console.error("Fel vid hantering av like:", error);
+        showModal('errorModal', "Kunde inte spara din gillamarkering.");
     }
 }
 
 export async function updateProfile(uid, data) {
-    if (!auth.currentUser || auth.currentUser.uid !== uid) return;
+    if (!auth.currentUser || auth.currentUser.uid !== uid) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
     try {
         await updateDoc(doc(db, 'users', uid), data);
-        showModal('confirmationModal', "Profilen har uppdaterats!");
+        showModal('confirmationModal', "Din profil har sparats!");
     } catch (error) {
-        showModal('errorModal', "Kunde inte spara profilen.");
+        console.error("Fel vid sparande av profil:", error);
+        showModal('errorModal', "Ett fel uppstod när din profil skulle sparas.");
     }
 }
 
 export async function updateProfileByAdmin(uid, data) {
-    if (!isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
     try {
         await updateDoc(doc(db, 'users', uid), data);
-        showModal('confirmationModal', "Användarens profil har sparats.");
+        showModal('confirmationModal', "Användarens profil har sparats!");
     } catch (error) {
-        showModal('errorModal', "Fel vid uppdatering.");
+        console.error("Fel vid sparande av användarprofil:", error);
+        showModal('errorModal', "Ett fel uppstod när användarens profil skulle sparas.");
     }
 }
 
 export async function updateSiteSettings(data) {
-    if (!isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
     try {
         await setDoc(doc(db, 'settings', 'siteSettings'), data);
-        showModal('confirmationModal', "Inställningarna sparade!");
+        showModal('confirmationModal', "Inställningarna har sparats!");
     } catch (error) {
-        showModal('errorModal', "Kunde inte spara inställningar.");
+        console.error("Fel vid sparande av inställningar:", error);
+        showModal('errorModal', "Ett fel uppstod när inställningarna skulle sparas.");
     }
 }
 
 export async function addAdminFromUser(userId) {
-    if (!isAdminLoggedIn) return;
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
     try {
         await updateDoc(doc(db, 'users', userId), { isAdmin: true });
-        showModal('confirmationModal', "Ny administratör tillagd.");
-    } catch (error) { console.error(error); }
+        showModal('confirmationModal', "Användaren har nu administratörsrättigheter!");
+    } catch (error) {
+        console.error("Fel vid tillägg av admin:", error);
+        showModal('errorModal', "Ett fel uppstod när användaren skulle läggas till som admin.");
+    }
 }
 
 export async function deleteAdmin(adminId) {
-    if (!isAdminLoggedIn || adminId === auth.currentUser.uid) return;
+    if (!isAdminLoggedIn) {
+        showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
+        return;
+    }
     if (usersData.filter(u => u.isAdmin).length <= 1) {
-        showModal('errorModal', "Kan inte ta bort den sista admin.");
+        showModal('errorModal', "Kan inte ta bort den sista administratören.");
+        return;
+    }
+    if (adminId === auth.currentUser.uid) {
+        showModal('errorModal', "Du kan inte ta bort dig själv.");
         return;
     }
     try {
         await updateDoc(doc(db, 'users', adminId), { isAdmin: false });
-        showModal('confirmationModal', "Admin-rättigheter borttagna.");
-    } catch (error) { console.error(error); }
+        showModal('confirmationModal', "Admin har tagits bort.");
+    } catch (error) {
+        console.error("Fel vid borttagning av admin:", error);
+        showModal('errorModal', "Ett fel uppstod när admin skulle tas bort.");
+    }
 }
-
-export async function toggleClubMemberStatus(userId, currentStatus) {
-    if (!isAdminLoggedIn) return;
-    try {
-        await updateDoc(doc(db, 'users', userId), { isClubMember: !currentStatus });
-    } catch (error) { console.error(error); }
-}
-
-// --- RESULTAT OCH SKYTTAR ---
 
 export async function createShooterProfile(userId, name, birthyear) {
     if (!userId) return;
     try {
         await addDoc(collection(db, 'shooters'), {
             name: name,
-            birthyear: parseInt(birthyear),
-            parentUserIds: [userId],
-            settings: { trackMedals: true, defaultShareResults: false },
+            birthyear: parseInt(birthyear), // Sparas som siffra i DB
+            parentUserIds: [userId],        // Kopplas till din inloggning
+            settings: { 
+                trackMedals: true, 
+                defaultShareResults: false 
+            },
             createdAt: serverTimestamp()
         });
-        showModal('confirmationModal', `Skytten ${name} har lagts till.`);
-    } catch (error) { console.error(error); }
+        showModal('confirmationModal', `Profil för ${name} skapad!`);
+    } catch (error) {
+        console.error("Fel vid skapande av skytt:", error);
+        showModal('errorModal', "Kunde inte skapa profil.");
+    }
 }
 
 export async function getMyShooters(userId) {
@@ -316,62 +268,113 @@ export async function getMyShooters(userId) {
         const q = query(collection(db, 'shooters'), where('parentUserIds', 'array-contains', userId));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Fel vid hämtning av skyttar:", error);
+        return [];
+    }
 }
 
-export async function saveResult(data) {
+export async function saveResult(resultData) {
     try {
-        await addDoc(collection(db, 'results'), { ...data, createdAt: serverTimestamp() });
-        showModal('confirmationModal', "Resultatet har registrerats!");
-    } catch (error) { showModal('errorModal', "Kunde inte spara."); }
+        await addDoc(collection(db, 'results'), {
+            ...resultData,
+            createdAt: serverTimestamp()
+        });
+        showModal('confirmationModal', "Resultat sparat!");
+    } catch (error) {
+        console.error("Fel vid sparande av resultat:", error);
+        showModal('errorModal', "Kunde inte spara resultatet.");
+    }
+}
+
+export async function toggleClubMemberStatus(userId, currentStatus) {
+    if (!isAdminLoggedIn) return;
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            isClubMember: !currentStatus
+        });
+    } catch (error) {
+        console.error("Kunde inte ändra medlemsstatus:", error);
+        alert("Ett fel uppstod: " + error.message);
+    }
 }
 
 export async function getShooterResults(shooterId) {
     try {
-        const q = query(collection(db, 'results'), where('shooterId', '==', shooterId), where('registeredBy', '==', auth.currentUser.uid));
+        const q = query(
+            collection(db, 'results'), 
+            where('shooterId', '==', shooterId),
+            where('registeredBy', '==', auth.currentUser.uid)
+        );
         const snapshot = await getDocs(q);
         let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return results.sort((a, b) => new Date(b.date) - new Date(a.date));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Fel vid hämtning av resultat:", error);
+        return [];
+    }
 }
 
-export async function updateUserResult(id, data) {
+export async function updateUserResult(resultId, data) {
+    if (!auth.currentUser) return;
     try {
-        await updateDoc(doc(db, 'results', id), { ...data, updatedAt: serverTimestamp() });
-        showModal('confirmationModal', "Resultatet är uppdaterat.");
-    } catch (error) { showModal('errorModal', "Kunde inte uppdatera."); }
+        const docRef = doc(db, 'results', resultId);
+        await updateDoc(docRef, { ...data, updatedAt: serverTimestamp() });
+        showModal('confirmationModal', "Resultatet har uppdaterats!");
+    } catch (error) {
+        console.error("Fel vid uppdatering av resultat:", error);
+        showModal('errorModal', "Kunde inte uppdatera resultatet.");
+    }
 }
 
-export async function updateShooterProfile(id, data) {
+export async function updateShooterProfile(shooterId, data) {
+    if (!auth.currentUser) return;
     try {
-        await updateDoc(doc(db, 'shooters', id), data);
-        showModal('confirmationModal', "Profilen är uppdaterad.");
-    } catch (error) { showModal('errorModal', "Kunde inte spara."); }
+        await updateDoc(doc(db, 'shooters', shooterId), data);
+        showModal('confirmationModal', "Skyttprofilen uppdaterad!");
+    } catch (error) {
+        console.error("Fel vid uppdatering av skytt:", error);
+        showModal('errorModal', "Kunde inte spara. Kontrollera att du har rättigheter.");
+    }
 }
 
 export async function linkUserToShooter(shooterId, userId) {
     if (!isAdminLoggedIn) return;
     try {
         await updateDoc(doc(db, 'shooters', shooterId), { parentUserIds: arrayUnion(userId) });
-        showModal('confirmationModal', "Användaren har kopplats.");
-    } catch (error) { console.error(error); }
+        showModal('confirmationModal', "Användaren har kopplats till skytten!");
+    } catch (error) {
+        console.error("Fel vid koppling:", error);
+        showModal('errorModal', "Kunde inte koppla användaren.");
+    }
 }
 
 export async function unlinkUserFromShooter(shooterId, userId) {
     if (!isAdminLoggedIn) return;
     try {
-        await updateDoc(doc(db, 'shooters', shooterId), { parentUserIds: arrayRemove(userId) });
-        showModal('confirmationModal', "Kopplingen har tagits bort.");
-    } catch (error) { console.error(error); }
+        await updateDoc(doc(db, 'shooters', shooterId), { 
+            parentUserIds: arrayRemove(userId) 
+        });
+        showModal('confirmationModal', "Kopplingen har tagits bort!");
+    } catch (error) {
+        console.error("Fel vid bortkoppling:", error);
+        showModal('errorModal', "Kunde inte ta bort kopplingen.");
+    }
 }
 
-// --- STATISTIKBERÄKNINGAR ---
 
+// UPPATERAD STATISTIKFUNKTION (100 skott + TargetYear support)
+// Parametern 'year' styr vilket år som räknas som "Årsbästa". Default är innevarande år.
 export function calculateShooterStats(results, targetYear = new Date().getFullYear()) {
+    
     const stats = {
         year: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 },
         allTime: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 },
-        medals: { 'Guld 3': 0, 'Guld 2': 0, 'Guld 1': 0, 'Guld': 0, 'Silver': 0, 'Brons': 0 }
+        medals: {
+            'Guld 3': 0, 'Guld 2': 0, 'Guld 1': 0,
+            'Guld': 0, 'Silver': 0, 'Brons': 0
+        }
     };
 
     results.forEach(res => {
@@ -381,150 +384,269 @@ export function calculateShooterStats(results, targetYear = new Date().getFullYe
         const bestSeries = parseFloat(res.bestSeries) || 0;
         const count = parseInt(res.shotCount);
 
+        // All Time Series
         if (bestSeries > stats.allTime.series) stats.allTime.series = bestSeries;
+        // Target Year Series
         if (isTargetYear && bestSeries > stats.year.series) stats.year.series = bestSeries;
 
-        const countKey = `s${count}`;
-        if (stats.allTime[countKey] !== undefined) {
-            if (total > stats.allTime[countKey]) stats.allTime[countKey] = total;
-            if (isTargetYear && total > stats.year[countKey]) stats.year[countKey] = total;
+        if (count === 20) {
+            if (total > stats.allTime.s20) stats.allTime.s20 = total;
+            if (isTargetYear && total > stats.year.s20) stats.year.s20 = total;
+        } else if (count === 40) {
+            if (total > stats.allTime.s40) stats.allTime.s40 = total;
+            if (isTargetYear && total > stats.year.s40) stats.year.s40 = total;
+        } else if (count === 60) {
+            if (total > stats.allTime.s60) stats.allTime.s60 = total;
+            if (isTargetYear && total > stats.year.s60) stats.year.s60 = total;
+        } else if (count === 100) {
+            if (total > stats.allTime.s100) stats.allTime.s100 = total;
+            if (isTargetYear && total > stats.year.s100) stats.year.s100 = total;
         }
 
-        if (res.seriesMedals) {
-            res.seriesMedals.forEach(m => { if (stats.medals[m] !== undefined) stats.medals[m]++; });
+        if (res.seriesMedals && Array.isArray(res.seriesMedals)) {
+            res.seriesMedals.forEach(medalName => {
+                if (medalName && stats.medals[medalName] !== undefined) {
+                    stats.medals[medalName]++;
+                }
+            });
         }
     });
+
     return stats;
 }
+// --- DOKUMENTHANTERING (VIRTUELLT FILSYSTEM) ---
 
-// --- DOKUMENTARKIV (FILE MANAGER) ---
-
+// Hämta innehåll (mappar och filer) för en specifik mapp
 export async function getFolderContents(folderId = null) {
     try {
-        const fQ = query(collection(db, 'folders'), where('parentId', '==', folderId));
-        const dQ = query(collection(db, 'adminDocuments'), where('folderId', '==', folderId));
-        const [fSnap, dSnap] = await Promise.all([getDocs(fQ), getDocs(dQ)]);
+        // Hämta mappar
+        const folderQ = query(
+            collection(db, 'folders'), 
+            where('parentId', '==', folderId)
+        );
+        const folderSnap = await getDocs(folderQ);
+        const folders = folderSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'folder' }));
         
-        return {
-            folders: fSnap.docs.map(d => ({ id: d.id, ...d.data(), type: 'folder' })).sort((a,b) => a.name.localeCompare(b.name)),
-            files: dSnap.docs.map(d => ({ id: d.id, ...d.data(), type: 'file' })).sort((a,b) => a.name.localeCompare(b.name))
-        };
-    } catch (error) { return { folders: [], files: [] }; }
+        // Sortera mappar A-Ö
+        folders.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Hämta filer
+        const fileQ = query(
+            collection(db, 'adminDocuments'), 
+            where('folderId', '==', folderId)
+        );
+        const fileSnap = await getDocs(fileQ);
+        const files = fileSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'file' }));
+        
+        // Sortera filer A-Ö
+        files.sort((a, b) => a.name.localeCompare(b.name));
+
+        return { folders, files };
+    } catch (error) {
+        console.error("Fel vid hämtning av mappinnehåll:", error);
+        return { folders: [], files: [] };
+    }
 }
 
+// Skapa en ny mapp
 export async function createFolder(name, parentId = null) {
     if (!isAdminLoggedIn) return;
     try {
-        await addDoc(collection(db, 'folders'), { name, parentId, createdAt: serverTimestamp() });
-        showModal('confirmationModal', "Mappen skapad.");
-    } catch (error) { console.error(error); }
+        await addDoc(collection(db, 'folders'), {
+            name: name,
+            parentId: parentId,
+            createdAt: serverTimestamp()
+        });
+        showModal('confirmationModal', `Mappen "${name}" har skapats.`);
+    } catch (error) {
+        console.error("Kunde inte skapa mapp:", error);
+        showModal('errorModal', "Kunde inte skapa mapp.");
+    }
 }
 
+// Ladda upp fil till "virtuell" mapp
 export async function uploadAdminDocument(file, folderId = null) {
     if (!isAdminLoggedIn) return;
+    
+    // 1. Ladda upp till Storage
     const storage = getStorage();
-    const path = `admin_docs/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, path);
+    const storagePath = `admin_docs/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, storagePath);
+    
     try {
         const uploadTask = uploadBytesResumable(storageRef, file);
-        await uploadTask;
-        const url = await getDownloadURL(uploadTask.snapshot.ref);
-        await addDoc(collection(db, 'adminDocuments'), { 
-            name: file.name, folderId, storagePath: path, url, size: file.size, 
-            mimeType: file.type, uploadedBy: auth.currentUser.uid, createdAt: serverTimestamp() 
+        
+        // Vi väntar på att uppladdningen ska bli klar
+        await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    // Här kan man lägga till progress bar logik om man vill
+                }, 
+                (error) => reject(error), 
+                () => resolve()
+            );
         });
-        showModal('confirmationModal', "Dokumentet har laddats upp.");
-    } catch (error) { console.error(error); }
+
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+        // 2. Skapa referens i Firestore (adminDocuments)
+        await addDoc(collection(db, 'adminDocuments'), {
+            name: file.name,
+            folderId: folderId, // Kopplingen till den virtuella mappen
+            storagePath: storagePath,
+            url: downloadURL,
+            size: file.size,
+            mimeType: file.type,
+            uploadedBy: auth.currentUser.uid,
+            createdAt: serverTimestamp()
+        });
+
+        showModal('confirmationModal', "Filen uppladdad!");
+    } catch (error) {
+        console.error("Fel vid uppladdning:", error);
+        showModal('errorModal', "Uppladdning misslyckades.");
+    }
 }
 
+// Ta bort en fil (Både från listan och från Storage)
 export async function deleteAdminDocument(docId, storagePath) {
     if (!isAdminLoggedIn) return;
     try {
+        // 1. Ta bort från Storage
         if (storagePath) {
             const storage = getStorage();
-            await deleteObject(ref(storage, storagePath)).catch(() => {});
+            const fileRef = ref(storage, storagePath);
+            await deleteObject(fileRef).catch(err => console.warn("Filen fanns inte i storage:", err));
         }
+
+        // 2. Ta bort från Firestore
         await deleteDoc(doc(db, 'adminDocuments', docId));
         showModal('confirmationModal', "Filen har raderats.");
-    } catch (error) { console.error(error); }
+    } catch (error) {
+        console.error("Kunde inte ta bort fil:", error);
+        showModal('errorModal', "Fel vid borttagning av fil.");
+    }
 }
 
+// Flytta fil till ny mapp
 export async function moveAdminDocument(docId, newFolderId) {
     if (!isAdminLoggedIn) return;
     try {
-        await updateDoc(doc(db, 'adminDocuments', docId), { folderId: newFolderId });
+        await updateDoc(doc(db, 'adminDocuments', docId), {
+            folderId: newFolderId
+        });
         showModal('confirmationModal', "Filen har flyttats.");
-    } catch (error) { console.error(error); }
+    } catch (error) {
+        console.error("Kunde inte flytta fil:", error);
+        showModal('errorModal', "Kunde inte flytta filen.");
+    }
 }
 
+// Hämta namnet på en mapp (för brödsmulor)
+export async function getFolderName(folderId) {
+    if (!folderId) return "Hem";
+    const docSnap = await getFirestoreDoc(doc(db, 'folders', folderId));
+    return docSnap.exists() ? docSnap.data().name : "Okänd mapp";
+}
+
+// Ta bort en mapp (Bara om den är tom)
 export async function deleteAdminFolder(folderId) {
-    if (!isAdminLoggedIn) return false;
+    if (!isAdminLoggedIn) return;
+    
     try {
-        const [f, d] = await Promise.all([
-            getDocs(query(collection(db, 'folders'), where('parentId', '==', folderId))),
-            getDocs(query(collection(db, 'adminDocuments'), where('folderId', '==', folderId)))
-        ]);
-        if (!f.empty || !d.empty) {
-            showModal('errorModal', "Mappen är inte tom.");
+        // 1. Kolla om mappen innehåller undermappar
+        const subFoldersQ = query(collection(db, 'folders'), where('parentId', '==', folderId));
+        const subFoldersSnap = await getDocs(subFoldersQ);
+        
+        if (!subFoldersSnap.empty) {
+            showModal('errorModal', "Mappen är inte tom. Den innehåller andra mappar.");
             return false;
         }
+
+        // 2. Kolla om mappen innehåller filer
+        const filesQ = query(collection(db, 'adminDocuments'), where('folderId', '==', folderId));
+        const filesSnap = await getDocs(filesQ);
+        
+        if (!filesSnap.empty) {
+            showModal('errorModal', "Mappen är inte tom. Ta bort eller flytta filerna först.");
+            return false;
+        }
+
+        // 3. Om tom -> Radera
         await deleteDoc(doc(db, 'folders', folderId));
+        showModal('confirmationModal', "Mappen har raderats.");
         return true;
-    } catch (error) { return false; }
-}
 
-// --- BESÖKSSTATISTIK LOGIK ---
-
-function getTodayString() { 
-    return new Date().toISOString().split('T')[0]; 
-}
-
-function getSessionId() {
-    let id = sessionStorage.getItem('visitorSessionId');
-    if (!id) {
-        id = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem('visitorSessionId', id);
+    } catch (error) {
+        console.error("Kunde inte ta bort mapp:", error);
+        showModal('errorModal', "Ett fel uppstod vid borttagning.");
+        return false;
     }
-    return id;
+}
+// ============================================
+// BESÖKSRÄKNARE (Visitor Counter)
+// ============================================
+
+// Hämta dagens datum som sträng (YYYY-MM-DD)
+function getTodayString() {
+    return new Date().toISOString().split('T')[0];
 }
 
+// Generera en unik session ID (baserat på timestamp + random)
+function getSessionId() {
+    let sessionId = sessionStorage.getItem('visitorSessionId');
+    if (!sessionId) {
+        sessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('visitorSessionId', sessionId);
+    }
+    return sessionId;
+}
+
+// Räkna upp besökaren i databasen
 export async function trackVisitor() {
     try {
         const today = getTodayString();
         const sessionId = getSessionId();
-        const sessionKey = `v_${today}_${sessionId}`;
-        
-        if (sessionStorage.getItem(sessionKey)) return;
-        sessionStorage.setItem(sessionKey, 'true');
-
         const visitorRef = doc(db, 'statistics', 'visitors');
-        const snap = await getFirestoreDoc(visitorRef);
         
-        if (snap.exists()) {
-            const data = snap.data();
-            if (data.lastVisitDate !== today) {
-                // Ny dag - arkivera gårdagens siffror och nollställ
+        // Kolla om vi redan räknat denna session idag
+        const sessionKey = `session_${today}_${sessionId}`;
+        if (sessionStorage.getItem(sessionKey)) {
+            return; // Redan räknad idag
+        }
+        
+        // Markera som räknad
+        sessionStorage.setItem(sessionKey, 'true');
+        
+        const docSnap = await getFirestoreDoc(visitorRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const lastVisit = data.lastVisitDate || '';
+            
+            // Om det är en ny dag, spara gårdagens unika besökare
+            if (lastVisit !== today && data.todayUniqueSessions) {
                 await updateDoc(visitorRef, {
-                    [`dailyStats.${data.lastVisitDate}`]: data.todayUniqueSessions || 0,
+                    [`dailyStats.${lastVisit}`]: data.todayUniqueSessions || 0,
                     todayUniqueSessions: 1,
                     lastVisitDate: today,
                     totalVisits: (data.totalVisits || 0) + 1
                 });
             } else {
-                // Samma dag - öka räknaren
+                // Samma dag - öka räknarna
                 await updateDoc(visitorRef, {
                     todayUniqueSessions: (data.todayUniqueSessions || 0) + 1,
                     totalVisits: (data.totalVisits || 0) + 1
                 });
             }
         } else {
-            // Första besöket någonsin (skapa dokumentet)
-            await setDoc(visitorRef, { 
-                totalVisits: 1, 
-                todayUniqueSessions: 1, 
-                lastVisitDate: today, 
-                dailyStats: {}, 
-                createdAt: serverTimestamp() 
+            // Första gången - skapa dokumentet
+            await setDoc(visitorRef, {
+                totalVisits: 1,
+                todayUniqueSessions: 1,
+                lastVisitDate: today,
+                dailyStats: {},
+                createdAt: serverTimestamp()
             });
         }
     } catch (error) {
@@ -532,19 +654,44 @@ export async function trackVisitor() {
     }
 }
 
+// Hämta besöksstatistik för adminsidan
 export async function getVisitorStats() {
     try {
-        const snap = await getFirestoreDoc(doc(db, 'statistics', 'visitors'));
-        if (!snap.exists()) return { totalVisits: 0, todayVisits: 0 };
+        const visitorRef = doc(db, 'statistics', 'visitors');
+        const docSnap = await getFirestoreDoc(visitorRef);
         
-        const data = snap.data();
-        const isNewDay = data.lastVisitDate !== getTodayString();
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const today = getTodayString();
+            
+            // Om det är en ny dag men dokumentet inte uppdaterats än
+            if (data.lastVisitDate !== today) {
+                return {
+                    totalVisits: data.totalVisits || 0,
+                    todayVisits: 0,
+                    lastVisitDate: data.lastVisitDate || 'Okänt'
+                };
+            }
+            
+            return {
+                totalVisits: data.totalVisits || 0,
+                todayVisits: data.todayUniqueSessions || 0,
+                lastVisitDate: data.lastVisitDate
+            };
+        }
         
-        return { 
-            totalVisits: data.totalVisits || 0, 
-            todayVisits: isNewDay ? 0 : (data.todayUniqueSessions || 0) 
+        return {
+            totalVisits: 0,
+            todayVisits: 0,
+            lastVisitDate: null
         };
-    } catch (error) { 
-        return { totalVisits: 0, todayVisits: 0, error: true }; 
+    } catch (error) {
+        console.error("Fel vid hämtning av besöksstatistik:", error);
+        return {
+            totalVisits: 0,
+            todayVisits: 0,
+            lastVisitDate: null,
+            error: true
+        };
     }
 }
