@@ -3,6 +3,8 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
+import { getVisitorStats } from "./data-service.js";
+import { getVisitorStats } from "./data-service.js";
 
 // Ver. 1.6 (Fixad await i renderProfileInfo)
 export let isAdminLoggedIn = false;
@@ -175,50 +177,87 @@ export function toggleSponsorsNavLink(isVisible) {
     }
 }
 
-export function renderCompetitions(data, isAdminLoggedIn) {
-    // 1. Hantera huvudlistan (sidan Tävlingar)
+export function renderCompetitions(data, isAdminLoggedIn, currentUserId) {
     const container = document.getElementById('competitions-container');
+    if (!container) return;
     
-    // Sortera: Nyast datum först
+    container.innerHTML = '';
+    // Sortera med nyaste först
     data.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    if (container) {
-        container.innerHTML = '';
-        data.forEach(item => {
-            const date = new Date(item.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-            
-            let pdfButton = '';
-            if (item.pdfUrl) {
-                pdfButton = `
-                    <a href="${item.pdfUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition mt-4">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        Resultatlista (PDF)
-                    </a>
-                `;
-            }
-
-            container.innerHTML += `
-                <div class="card">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-2xl font-bold mb-1">${item.title}</h3>
-                            <p class="text-sm text-gray-500 mb-2">Datum: ${date} | Ort: ${item.location}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="text-gray-700 markdown-content mt-2">${item.content}</div>
-                    ${pdfButton}
-
-                    ${isAdminLoggedIn ? `
-                        <div class="mt-4 pt-4 border-t border-gray-100 flex space-x-2">
-                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="competitions">Ta bort</button>
-                            <button class="edit-comp-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
+    data.forEach(item => {
+        const dateStr = new Date(item.date).toLocaleDateString('sv-SE', { 
+            day: 'numeric', month: 'long', year: 'numeric' 
         });
-    }
+        
+        // Gilla-logik
+        const likes = item.likes || {};
+        const likeCount = Object.keys(likes).length;
+        const isLiked = currentUserId && likes[currentUserId];
+        const likeIcon = isLiked ? '❤️' : '🤍';
+
+        // Bild-logik
+        const imageHtml = item.imageUrl ? `
+            <div class=\"mb-4 overflow-hidden rounded-lg\">
+                <img src=\"${item.imageUrl}\" alt=\"${item.title}\" class=\"w-full h-auto object-cover hover:scale-105 transition-transform duration-500\">
+            </div>
+        ` : '';
+
+        // PDF-logik
+        const pdfButton = item.pdfUrl ? `
+            <a href=\"${item.pdfUrl}\" target=\"_blank\" class=\"inline-flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-bold\">
+                Öppna Resultatlista (PDF)
+            </a>
+        ` : '';
+
+        // Dela-URL (Hem-sidan med hash)
+        const shareUrl = `${window.location.origin}${window.location.pathname}#tavlingar`;
+
+        container.innerHTML += `
+            <div class=\"card p-5 sm:p-6 mb-6\">
+                ${imageHtml}
+                <div class=\"flex justify-between items-start mb-2\">
+                    <h3 class=\"text-2xl font-bold text-blue-900\">${item.title}</h3>
+                    <div class=\"text-right\">
+                        <p class=\"text-xs font-bold text-gray-400 uppercase\">${dateStr}</p>
+                        <p class=\"text-xs text-blue-600 font-medium\">${item.location || ''}</p>
+                    </div>
+                </div>
+                
+                <div class=\"markdown-content text-gray-700 leading-relaxed mb-6\">
+                    ${item.content}
+                </div>
+                
+                <div class=\"flex flex-wrap gap-3 items-center pt-4 border-t border-gray-100\">
+                    ${pdfButton}
+                    
+                    <div class=\"flex items-center space-x-2 ml-auto\">
+                        <button class=\"like-btn flex items-center space-x-1 px-3 py-1.5 rounded-full border transition ${isLiked ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}\" 
+                                data-id=\"${item.id}\" data-type=\"competitions\">
+                            <span>${likeIcon}</span>
+                            <span class=\"font-bold\">${likeCount}</span>
+                        </button>
+                        
+                        <button class=\"share-btn p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition\" 
+                                data-title=\"${item.title}\" data-url=\"${shareUrl}\">
+                            <svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\">
+                                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z\" />
+                            </svg>
+                        </button>
+
+                        ${isAdminLoggedIn ? `
+                            <button class=\"delete-btn p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition\" data-id=\"${item.id}\" data-type=\"competitions\">
+                                <svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-5 w-5\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\">
+                                    <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16\" />
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
 
     // 2. Hantera startsidan (Senaste tävlingarna)
     const homeContainer = document.getElementById('home-competitions-container');
@@ -293,6 +332,16 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
             loggedInAdminUsername = auth.currentUser.email || 'Admin';
             adminUserInfo.textContent = `Inloggad som administratör: ${loggedInAdminUsername}`;
         }
+
+        // Hämta och visa besöksstatistik
+        getVisitorStats().then(stats => {
+            const todayEl = document.getElementById('visitor-count-today');
+            const totalEl = document.getElementById('visitor-count-total');
+            if (todayEl) todayEl.textContent = stats.todayVisits.toLocaleString('sv-SE');
+            if (totalEl) totalEl.textContent = stats.totalVisits.toLocaleString('sv-SE');
+        }).catch(err => {
+            console.error('Kunde inte hämta besöksstatistik:', err);
+        });
 
     } else {
         if (adminNavLink) adminNavLink.classList.add('hidden');
