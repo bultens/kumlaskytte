@@ -1,7 +1,7 @@
 // main.js
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { initializeDataListeners } from "./data-service.js";
+import { initializeDataListeners, trackVisitor } from "./data-service.js";
 import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -9,7 +9,7 @@ import { initFileManager } from "./admin-documents.js";
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 
-// Ver. 3.11
+// Ver. 3.12 - Added visitor counter
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
 
 async function checkAdminStatus(user) {
@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', () => {
         navigate(window.location.hash || '#hem');
     });
+    
+    // Räkna besökaren (endast en gång per session per dag)
+    trackVisitor();
     
     // Setup modal close buttons
     const closeErrorModal = document.getElementById('close-error-modal');

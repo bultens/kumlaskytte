@@ -583,3 +583,115 @@ export async function deleteAdminFolder(folderId) {
         return false;
     }
 }
+// ============================================
+// BESÖKSRÄKNARE (Visitor Counter)
+// ============================================
+
+// Hämta dagens datum som sträng (YYYY-MM-DD)
+function getTodayString() {
+    return new Date().toISOString().split('T')[0];
+}
+
+// Generera en unik session ID (baserat på timestamp + random)
+function getSessionId() {
+    let sessionId = sessionStorage.getItem('visitorSessionId');
+    if (!sessionId) {
+        sessionId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('visitorSessionId', sessionId);
+    }
+    return sessionId;
+}
+
+// Räkna upp besökaren i databasen
+export async function trackVisitor() {
+    try {
+        const today = getTodayString();
+        const sessionId = getSessionId();
+        const visitorRef = doc(db, 'statistics', 'visitors');
+        
+        // Kolla om vi redan räknat denna session idag
+        const sessionKey = `session_${today}_${sessionId}`;
+        if (sessionStorage.getItem(sessionKey)) {
+            return; // Redan räknad idag
+        }
+        
+        // Markera som räknad
+        sessionStorage.setItem(sessionKey, 'true');
+        
+        const docSnap = await getFirestoreDoc(visitorRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const lastVisit = data.lastVisitDate || '';
+            
+            // Om det är en ny dag, spara gårdagens unika besökare
+            if (lastVisit !== today && data.todayUniqueSessions) {
+                await updateDoc(visitorRef, {
+                    [`dailyStats.${lastVisit}`]: data.todayUniqueSessions || 0,
+                    todayUniqueSessions: 1,
+                    lastVisitDate: today,
+                    totalVisits: (data.totalVisits || 0) + 1
+                });
+            } else {
+                // Samma dag - öka räknarna
+                await updateDoc(visitorRef, {
+                    todayUniqueSessions: (data.todayUniqueSessions || 0) + 1,
+                    totalVisits: (data.totalVisits || 0) + 1
+                });
+            }
+        } else {
+            // Första gången - skapa dokumentet
+            await setDoc(visitorRef, {
+                totalVisits: 1,
+                todayUniqueSessions: 1,
+                lastVisitDate: today,
+                dailyStats: {},
+                createdAt: serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error("Fel vid besöksräkning:", error);
+    }
+}
+
+// Hämta besöksstatistik för adminsidan
+export async function getVisitorStats() {
+    try {
+        const visitorRef = doc(db, 'statistics', 'visitors');
+        const docSnap = await getFirestoreDoc(visitorRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const today = getTodayString();
+            
+            // Om det är en ny dag men dokumentet inte uppdaterats än
+            if (data.lastVisitDate !== today) {
+                return {
+                    totalVisits: data.totalVisits || 0,
+                    todayVisits: 0,
+                    lastVisitDate: data.lastVisitDate || 'Okänt'
+                };
+            }
+            
+            return {
+                totalVisits: data.totalVisits || 0,
+                todayVisits: data.todayUniqueSessions || 0,
+                lastVisitDate: data.lastVisitDate
+            };
+        }
+        
+        return {
+            totalVisits: 0,
+            todayVisits: 0,
+            lastVisitDate: null
+        };
+    } catch (error) {
+        console.error("Fel vid hämtning av besöksstatistik:", error);
+        return {
+            totalVisits: 0,
+            todayVisits: 0,
+            lastVisitDate: null,
+            error: true
+        };
+    }
+}
