@@ -505,7 +505,7 @@
                                 Besöksstatistik
                             </h2>
                             
-                            <!-- NYTT: Välj tidsperiod -->
+                            <!-- Välj tidsperiod -->
                             <select id="visitor-chart-grouping" class="text-xs border rounded px-2 py-1 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
                                 <option value="day" selected>Visa per dag</option>
                                 <option value="week">Visa per vecka</option>
@@ -530,7 +530,17 @@
                         </div>
                         
                         <p class="text-[10px] text-gray-400 mt-4 italic text-center">Visar de senaste 20 posterna för vald tidsperiod.</p>
-                    </div>
+                        </div>
+                                        <h2 class="text-xl font-bold mt-8 mb-4 flex items-center text-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Trafiktoppar (Klockslag)
+                        </h2>
+                        <div class="w-full bg-gray-50 p-2 rounded-lg border border-gray-100" style="height: 200px;">
+                            <canvas id="hourlyChart"></canvas>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-2 italic text-center">Visar genomsnittlig trafikfördelning över dygnet för vald period.</p>
 
                 <div class="card mt-4 sm:mt-6">
                     <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Webbplatsinställningar</h2>

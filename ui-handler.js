@@ -1551,3 +1551,51 @@ export function setupVisitorChartControls() {
         renderVisitorChart(stats.dailyStats, stats.todayVisits);
     });
 }
+let hourlyChartInstance = null;
+
+export function renderHourlyChart(dailyLogDocs) {
+    const canvas = document.getElementById('hourlyChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const hourlyTotals = Array(24).fill(0);
+    const labels = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+
+    // Gå igenom alla hämtade dagar och summera timmarna
+    dailyLogDocs.forEach(doc => {
+        const data = doc.data();
+        if (data.hourlyDistribution) {
+            Object.keys(data.hourlyDistribution).forEach(hour => {
+                const hourIndex = parseInt(hour);
+                hourlyTotals[hourIndex] += data.hourlyDistribution[hour];
+            });
+        }
+    });
+
+    if (hourlyChartInstance) hourlyChartInstance.destroy();
+
+    hourlyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Antal besök',
+                data: hourlyTotals,
+                fill: true,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'rgb(37, 99, 235)',
+                tension: 0.4,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { display: false } },
+                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }
+            }
+        }
+    });
+}

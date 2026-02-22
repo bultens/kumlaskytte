@@ -495,26 +495,28 @@ function getSessionId() {
 
 export async function trackVisitor() {
     try {
+        const now = new Date();
         const today = getTodayString();
+        const hour = now.getHours().toString().padStart(2, '0'); // Ex: "14"
         const sessionId = getSessionId();
         const sessionKey = `v_${today}_${sessionId}`;
         
-        // Hindra dubbelräkning under samma session
         if (sessionStorage.getItem(sessionKey)) return;
         sessionStorage.setItem(sessionKey, 'true');
 
         const batch = writeBatch(db);
 
-        // 1. Uppdatera den totala räknaren (Globalt dokument)
+        // 1. Totala räknaren
         const totalRef = doc(db, 'statistics', 'totals');
         batch.set(totalRef, { totalVisits: increment(1) }, { merge: true });
 
-        // 2. Skapa/Uppdatera dagens specifika dokument
-        // Struktur: statistics/dailyLog/days/YYYY-MM-DD
+        // 2. Dagens dokument med tim-fördelning
         const dailyRef = doc(db, 'statistics', 'dailyLog', 'days', today);
         batch.set(dailyRef, { 
             count: increment(1),
-            date: today 
+            date: today,
+            // Detta skapar eller uppdaterar fältet hourlyDistribution.14
+            [`hourlyDistribution.${hour}`]: increment(1) 
         }, { merge: true });
 
         await batch.commit();
