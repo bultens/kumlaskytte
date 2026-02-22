@@ -527,11 +527,9 @@ export async function trackVisitor() {
 
 export async function getVisitorStats() {
     try {
-        // Hämta totalen
         const totalSnap = await getFirestoreDoc(doc(db, 'statistics', 'totals'));
         const totalVisits = totalSnap.exists() ? totalSnap.data().totalVisits : 0;
 
-        // Hämta de senaste 20 dagarna från underkollektionen
         const dailyQuery = query(
             collection(db, 'statistics', 'dailyLog', 'days'),
             orderBy('date', 'desc'),
@@ -540,18 +538,19 @@ export async function getVisitorStats() {
         const dailySnap = await getDocs(dailyQuery);
         
         const dailyStats = {};
+        const allDocs = []; // Sparar hela dokumenten för tim-grafen
         let todayVisits = 0;
         const todayStr = getTodayString();
 
         dailySnap.forEach(d => {
             const data = d.data();
+            allDocs.push(d); 
             dailyStats[data.date] = data.count;
             if (data.date === todayStr) todayVisits = data.count;
         });
 
-        return { totalVisits, todayVisits, dailyStats };
+        return { totalVisits, todayVisits, dailyStats, allDocs };
     } catch (error) { 
-        console.error("Fel vid hämtning av stats:", error);
-        return { totalVisits: 0, todayVisits: 0, dailyStats: {} }; 
+        return { totalVisits: 0, todayVisits: 0, dailyStats: {}, allDocs: [] }; 
     }
 }

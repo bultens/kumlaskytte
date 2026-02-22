@@ -303,8 +303,9 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
             const totalEl = document.getElementById('visitor-count-total');
             if (todayEl) todayEl.textContent = stats.todayVisits.toLocaleString('sv-SE');
             if (totalEl) totalEl.textContent = stats.totalVisits.toLocaleString('sv-SE');
-            // Rendera den nya besöksgrafen
+            // Rendera den nya båda graferna
             renderVisitorChart(stats.dailyStats, stats.todayVisits);
+            renderHourlyChart(stats.allDocs);
         }).catch(err => {
             console.error('Kunde inte hämta besöksstatistik:', err);
         });
@@ -1561,13 +1562,15 @@ export function renderHourlyChart(dailyLogDocs) {
     const hourlyTotals = Array(24).fill(0);
     const labels = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
-    // Gå igenom alla hämtade dagar och summera timmarna
+    // Summera data från alla hämtade dagar
     dailyLogDocs.forEach(doc => {
         const data = doc.data();
         if (data.hourlyDistribution) {
             Object.keys(data.hourlyDistribution).forEach(hour => {
                 const hourIndex = parseInt(hour);
-                hourlyTotals[hourIndex] += data.hourlyDistribution[hour];
+                if (hourIndex >= 0 && hourIndex < 24) {
+                    hourlyTotals[hourIndex] += data.hourlyDistribution[hour];
+                }
             });
         }
     });
@@ -1579,13 +1582,14 @@ export function renderHourlyChart(dailyLogDocs) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Antal besök',
+                label: 'Besök per klockslag',
                 data: hourlyTotals,
                 fill: true,
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderColor: 'rgb(37, 99, 235)',
                 tension: 0.4,
-                pointRadius: 2
+                pointRadius: 3,
+                borderWidth: 2
             }]
         },
         options: {
@@ -1593,8 +1597,8 @@ export function renderHourlyChart(dailyLogDocs) {
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true, grid: { display: false } },
-                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } }
             }
         }
     });
