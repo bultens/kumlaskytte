@@ -1,16 +1,25 @@
-// main.js
+// main.js - Ver. 3.13 (Integrerad besöksstatistik)
 import { db, auth } from "./firebase-config.js";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { initializeDataListeners, trackVisitor } from "./data-service.js";
-import { handleAdminUI, navigate, renderProfileInfo, showModal, hideModal, isAdminLoggedIn } from "./ui-handler.js";
+import { 
+    handleAdminUI, 
+    navigate, 
+    renderProfileInfo, 
+    showModal, 
+    hideModal, 
+    isAdminLoggedIn,
+    setupVisitorChartControls // Importera den nya funktionen
+} from "./ui-handler.js";
 import { setupEventListeners } from "./event-listeners.js";
 import { getDoc as getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
 
-// Ver. 3.12 - Added visitor counter
 export { auth, db, firebaseSignOut as signOut, getFirestoreDoc, doc, collection, query, where, getDocs, writeBatch, serverTimestamp };
+
+let currentUserId = null;
 
 async function checkAdminStatus(user) {
     if (user) {
@@ -27,37 +36,47 @@ async function checkAdminStatus(user) {
     return false;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    setupEventListeners();
-    initFileManager();
-    navigate(window.location.hash || '#hem');
-    window.addEventListener('hashchange', () => {
-        navigate(window.location.hash || '#hem');
-    });
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Initiera dropdown-kontrollerna för besöksgrafen
+    setupVisitorChartControls();
     
-    // Räkna besökaren (endast en gång per session per dag)
+    // 2. Sätt upp alla generella event listeners
+    setupEventListeners();
+    
+    // 3. Initiera datalyssnare (inklusive den nya för besöksstatistik)
+    initializeDataListeners();
+
+    onAuthStateChanged(auth, async (user) => {
+        const isAdmin = await checkAdminStatus(user);
+        handleAdminUI(isAdmin);
+        
+        if (user) {
+            renderProfileInfo(user);
+        }
+    });
+
+    // Hantera navigation baserat på URL-hash
+    window.addEventListener('hashchange', () => navigate(window.location.hash));
+    navigate(window.location.hash);
+
+    // Registrera besökaren (endast en gång per session per dag)
     trackVisitor();
     
     // Setup modal close buttons
-    const closeErrorModal = document.getElementById('close-error-modal');
-    if (closeErrorModal) closeErrorModal.addEventListener('click', () => hideModal('errorModal'));
-    
-    const errorModal = document.getElementById('errorModal');
-    if (errorModal) errorModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('errorModal'); });
-    
-    const confirmationModal = document.getElementById('confirmationModal');
-    if (confirmationModal) confirmationModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('confirmationModal'); });
-    
-    const closeShareModalBtn = document.getElementById('close-share-modal');
-    if (closeShareModalBtn) closeShareModalBtn.addEventListener('click', () => hideModal('shareModal'));
-    
-    const shareModal = document.getElementById('shareModal');
-    if (shareModal) shareModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('shareModal'); });
-    
-    const closeUserInfoModal = document.getElementById('close-user-info-modal');
-    if (closeUserInfoModal) closeUserInfoModal.addEventListener('click', () => hideModal('userInfoModal'));
-    
-    const userInfoModal = document.getElementById('userInfoModal');
-    if (userInfoModal) userInfoModal.addEventListener('click', (e) => { if (e.target === e.currentTarget) hideModal('userInfoModal'); });
+    const setupModalClose = (btnId, modalId) => {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.addEventListener('click', () => hideModal(modalId));
+        
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) hideModal(modalId);
+            });
+        }
+    };
 
+    setupModalClose('close-error-modal', 'errorModal');
+    setupModalClose('close-confirmation-modal', 'confirmationModal');
+    setupModalClose('close-share-modal', 'shareModal');
+    setupModalClose('close-user-info-modal', 'userInfoModal');
 });
