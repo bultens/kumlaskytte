@@ -537,6 +537,25 @@
                             </svg>
                             Trafiktoppar (Klockslag)
                         </h2>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <select id="hourly-filter-period" class="text-xs border rounded px-2 py-1 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="1" selected>Idag</option>
+                                <option value="7">Senaste 7 dagarna</option>
+                                <option value="30">Senaste 30 dagarna</option>
+                                <option value="365">Senaste året</option>
+                            </select>
+
+                            <select id="hourly-filter-weekday" class="text-xs border rounded px-2 py-1 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="all" selected>Alla veckodagar</option>
+                                <option value="1">Måndagar</option>
+                                <option value="2">Tisdagar</option>
+                                <option value="3">Onsdagar</option>
+                                <option value="4">Torsdagar</option>
+                                <option value="5">Fredagar</option>
+                                <option value="6">Lördagar</option>
+                                <option value="0">Söndagar</option>
+                            </select>
+                        </div>
                         <div class="w-full bg-gray-50 p-2 rounded-lg border border-gray-100" style="height: 200px;">
                             <canvas id="hourlyChart"></canvas>
                         </div>

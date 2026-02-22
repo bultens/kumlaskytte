@@ -533,7 +533,7 @@ export async function getVisitorStats() {
         const dailyQuery = query(
             collection(db, 'statistics', 'dailyLog', 'days'),
             orderBy('date', 'desc'),
-            limit(20)
+            limit(365)
         );
         const dailySnap = await getDocs(dailyQuery);
         
