@@ -822,20 +822,18 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
 
     users.forEach(user => {
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-gray-50";
+        tr.className = "hover:bg-gray-50 border-b last:border-0";
         
-        // Medlemsstatus
         const memberColor = user.isClubMember ? 'text-green-600 bg-green-100' : 'text-gray-400 bg-gray-100';
         const memberText = user.isClubMember ? 'Ja' : 'Nej';
 
-        // Admin-kontroller
         let adminControls = '';
         if (user.isAdmin) {
             adminControls = `
                 <div class="flex flex-col items-center gap-1">
                     <span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">Admin</span>
                     ${user.id !== currentUserId ? 
-                        `<button class="delete-admin-btn text-xs text-red-600 hover:underline" data-id="${user.id}">Ta bort behörighet</button>` 
+                        `<button class="delete-admin-btn text-[10px] text-red-600 hover:underline" data-id="${user.id}">Ta bort behörighet</button>` 
                         : '<span class="text-[10px] text-gray-400">(Du)</span>'}
                 </div>`;
         } else {
@@ -845,28 +843,48 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
                 </button>`;
         }
 
+        // --- HÄR ÄR DE NYA KNAPPARNA ---
         tr.innerHTML = `
-            <td class="py-3 px-4 border-b">
+            <td class="py-3 px-4">
                 <div class="flex flex-col">
-                    <span class="font-medium text-gray-800">${user.email}</span>
-                    <span class="text-xs text-gray-500">${user.name || 'Inget namn'}</span>
+                    <span class="font-medium text-gray-800 text-sm sm:text-base">${user.email}</span>
+                    <span class="text-xs text-gray-500">${user.name || 'Inget namn angivet'}</span>
                 </div>
             </td>
-            <td class="py-3 px-4 border-b text-center">
+            <td class="py-3 px-4 text-center">
                 ${adminControls}
             </td>
-            <td class="py-3 px-4 border-b text-center">
+            <td class="py-3 px-4 text-center">
                  <button class="member-toggle-btn px-2 py-1 rounded-full text-xs font-bold ${memberColor} hover:opacity-80 transition" 
                     data-id="${user.id}" data-status="${user.isClubMember}">
                     ${memberText}
                 </button>
             </td>
-            <td class="py-3 px-4 border-b text-center">
-                ${!user.isAdmin ? `
-                    <button class="delete-user-btn text-red-600 hover:text-red-800 text-sm font-medium" data-id="${user.id}">
-                        Ta bort
+            <td class="py-3 px-4">
+                <div class="flex items-center justify-center gap-2">
+                    <button class="show-user-info-btn p-2 text-blue-600 hover:bg-blue-50 rounded-full transition" 
+                            data-id="${user.id}" title="Visa information">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                     </button>
-                ` : '<span class="text-gray-400 text-xs">-</span>'}
+
+                    <button class="edit-user-btn p-2 text-gray-600 hover:bg-gray-100 rounded-full transition" 
+                            data-user-id="${user.id}" title="Redigera användare">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+
+                    ${!user.isAdmin ? `
+                        <button class="delete-user-btn p-2 text-red-600 hover:bg-red-50 rounded-full transition" 
+                                data-id="${user.id}" title="Ta bort användare">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -874,7 +892,7 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
 
     container.appendChild(table);
 
-    // Koppla event listeners för Medlems-knappen (Admin och Delete hanteras globalt i event-listeners.js)
+    // Koppla event listeners (viktigt för medlems-togglen)
     tbody.querySelectorAll('.member-toggle-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const uid = btn.dataset.id;
@@ -885,7 +903,6 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
         });
     });
 }
-
 export function renderShootersAdmin(shootersData) {
     const container = document.getElementById('admin-shooters-list');
     if (!container) return;
