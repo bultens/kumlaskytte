@@ -133,27 +133,27 @@ export function setupEventListeners() {
             window.location.hash = '#topplistor';
         });
     }
-    
-    document.addEventListener('click', (e) => {
+
+        // 1. Lyssna på klick på bilder i galleriet
+        document.addEventListener('click', (e) => {
             const galleryItem = e.target.closest('.gallery-item');
             
-            // Om man klickar på en bild (men inte på admin-knapparna)
+            // Öppna bara om man INTE klickade på ändra/ta bort-knapparna
             if (galleryItem && !e.target.closest('.edit-image-btn') && !e.target.closest('.delete-btn')) {
                 const url = galleryItem.dataset.url;
                 const title = galleryItem.dataset.title;
-                
-                // Importera showLightbox dynamiskt eller se till att den är tillgänglig
                 import('./ui-handler.js').then(m => m.showLightbox(url, title));
             }
         });
 
-            // 2. Stäng modalen oavsett var man klickar (Bild eller bakgrund)
-            const lightboxModal = document.getElementById('lightboxModal');
-            if (lightboxModal) {
-                lightboxModal.addEventListener('click', () => {
-                    import('./ui-handler.js').then(m => m.hideModal('lightboxModal'));
-                });
-            }
+        // 2. Stäng modalen oavsett var man klickar (Bild eller bakgrund)
+        const lightboxModal = document.getElementById('lightboxModal');
+        if (lightboxModal) {
+            lightboxModal.addEventListener('click', () => {
+                import('./ui-handler.js').then(m => m.hideModal('lightboxModal'));
+            });
+        }
+
 
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {

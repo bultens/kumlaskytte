@@ -722,14 +722,14 @@ export function renderImages(imageData, isAdminLoggedIn) {
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
                 ${imagesInGroup.map(item => `
                     <div class="relative group cursor-pointer gallery-item" data-url="${item.url}" data-title="${item.title}">
-                        <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300 w-full h-64 object-cover">
+                        <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300 w-full h-64 object-cover rounded-lg">
                         <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
                             <h3 class="text-lg font-bold">${item.title}</h3>
                         </div>
                         ${isAdminLoggedIn ? `
                             <div class="absolute top-2 right-2 flex space-x-2 z-10">
-                                <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                                <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
+                                <button class="edit-image-btn px-3 py-1 bg-gray-500/80 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
+                                <button class="delete-btn px-3 py-1 bg-red-500/80 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
                             </div>
                         ` : ''}
                     </div>
@@ -740,7 +740,7 @@ export function renderImages(imageData, isAdminLoggedIn) {
     }
 }
 
-// Lägg även till denna hjälpfunktion i ui-handler.js
+// NY FUNKTION för att visa bilden stort
 export function showLightbox(url, title) {
     const modal = document.getElementById('lightboxModal');
     const img = document.getElementById('lightbox-img');
@@ -752,6 +752,7 @@ export function showLightbox(url, title) {
         modal.classList.add('active');
     }
 }
+
 
 export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     const sponsorsContainer = document.getElementById('sponsors-container');
