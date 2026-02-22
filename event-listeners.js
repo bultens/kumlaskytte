@@ -147,16 +147,13 @@ export function setupEventListeners() {
             }
         });
 
-        // Stäng lightbox när man klickar på krysset eller utanför bilden
-        const closeLightbox = document.getElementById('close-lightbox');
-        const lightboxModal = document.getElementById('lightboxModal');
-
-        if (closeLightbox) closeLightbox.onclick = () => hideModal('lightboxModal');
-        if (lightboxModal) {
-            lightboxModal.onclick = (e) => {
-                if (e.target === lightboxModal) hideModal('lightboxModal');
-            };
-        }
+            // 2. Stäng modalen oavsett var man klickar (Bild eller bakgrund)
+            const lightboxModal = document.getElementById('lightboxModal');
+            if (lightboxModal) {
+                lightboxModal.addEventListener('click', () => {
+                    import('./ui-handler.js').then(m => m.hideModal('lightboxModal'));
+                });
+            }
 
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
