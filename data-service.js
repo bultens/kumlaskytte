@@ -497,7 +497,7 @@ export async function trackVisitor() {
     try {
         const now = new Date();
         const today = getTodayString();
-        const hour = now.getHours().toString().padStart(2, '0'); // Ex: "14"
+        const hour = now.getHours().toString(); // Ex: "14"
         const sessionId = getSessionId();
         const sessionKey = `v_${today}_${sessionId}`;
         
@@ -505,18 +505,18 @@ export async function trackVisitor() {
         sessionStorage.setItem(sessionKey, 'true');
 
         const batch = writeBatch(db);
-
-        // 1. Totala räknaren
         const totalRef = doc(db, 'statistics', 'totals');
         batch.set(totalRef, { totalVisits: increment(1) }, { merge: true });
 
-        // 2. Dagens dokument med tim-fördelning
         const dailyRef = doc(db, 'statistics', 'dailyLog', 'days', today);
+        
+        // FIX: Använd objekt-syntax för att skapa/merga i en Map
         batch.set(dailyRef, { 
             count: increment(1),
             date: today,
-            // Detta skapar eller uppdaterar fältet hourlyDistribution.14
-            [`hourlyDistribution.${hour}`]: increment(1) 
+            hourlyDistribution: {
+                [hour]: increment(1) // Skapar en Map där timmen är nyckeln
+            }
         }, { merge: true });
 
         await batch.commit();
