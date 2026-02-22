@@ -9,6 +9,8 @@ import { getVisitorStats } from "./data-service.js";
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
 
+let visitorChartInstance = null; // För att kunna förstöra och rita om grafen
+
 export function showModal(modalId, message) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
@@ -301,6 +303,8 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
             const totalEl = document.getElementById('visitor-count-total');
             if (todayEl) todayEl.textContent = stats.todayVisits.toLocaleString('sv-SE');
             if (totalEl) totalEl.textContent = stats.totalVisits.toLocaleString('sv-SE');
+            // Rendera den nya besöksgrafen
+            renderVisitorChart(stats.dailyStats, stats.todayVisits);
         }).catch(err => {
             console.error('Kunde inte hämta besöksstatistik:', err);
         });
@@ -331,6 +335,67 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
     }
 }
 
+/**
+ * NY FUNKTION: Rendera graf över besökare
+ */
+export function renderVisitorChart(dailyStats, todayVisits) {
+    const canvas = document.getElementById('visitorChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    
+    // Slå ihop historisk data med dagens siffra
+    const todayStr = new Date().toISOString().split('T')[0];
+    const allData = { ...dailyStats };
+    allData[todayStr] = todayVisits;
+
+    // Sortera datum kronologiskt
+    const sortedDates = Object.keys(allData).sort();
+    
+    // Visa endast de senaste 14 dagarna för överskådlighet på mobil/desktop
+    const displayDates = sortedDates.slice(-14);
+    const displayValues = displayDates.map(date => allData[date]);
+    
+    // Formatera datum för labels (ta bort år för renare utseende)
+    const labels = displayDates.map(date => date.substring(5));
+
+    if (visitorChartInstance) {
+        visitorChartInstance.destroy();
+    }
+
+    visitorChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Unika besökare',
+                data: displayValues,
+                backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                borderColor: 'rgb(37, 99, 235)',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, font: { size: 10 } },
+                    grid: { color: '#f3f4f6' }
+                },
+                x: {
+                    ticks: { font: { size: 10 } },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
 
 export function toggleProfileUI(user, isAdmin) {
     const showLoginLink = document.getElementById('show-login-link');

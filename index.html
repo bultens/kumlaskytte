@@ -505,7 +505,7 @@
                         </svg>
                         Besöksstatistik
                     </h2>
-                    <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
                         <div class="bg-white p-3 sm:p-4 rounded-lg shadow-sm text-center">
                             <span class="block text-xs sm:text-sm text-gray-500 uppercase tracking-wider font-semibold">Idag</span>
                             <span id="visitor-count-today" class="text-2xl sm:text-3xl font-bold text-blue-600">-</span>
@@ -515,6 +515,15 @@
                             <span id="visitor-count-total" class="text-2xl sm:text-3xl font-bold text-green-600">-</span>
                         </div>
                     </div>
+
+                    <!-- NYTT: Behållare för grafen -->
+                    <div class="bg-white p-3 rounded-lg shadow-sm mb-2">
+                        <p class="text-[10px] uppercase font-bold text-gray-400 mb-2">Trend (Senaste 14 dagarna)</p>
+                        <div class="h-48 w-full">
+                            <canvas id="visitorChart"></canvas>
+                        </div>
+                    </div>
+                    
                     <p class="text-xs text-gray-400 mt-2 sm:mt-3 italic">Räknar unika besökare per dag (en gång per webbläsarsession)</p>
                 </div>
 
