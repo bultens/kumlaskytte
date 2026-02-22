@@ -1505,25 +1505,69 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
     if (!shooter) return;
 
     document.getElementById('public-shooter-name').textContent = shooter.name;
+    const yearSpan = document.getElementById('current-sb-year');
+    const currentYear = new Date().getFullYear();
+    if (yearSpan) yearSpan.textContent = `(${currentYear})`;
+    
     statsContainer.classList.remove('hidden');
 
     const myResults = allResults.filter(r => r.shooterId === shooterId && r.sharedWithClub === true);
     myResults.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    let maxTotal = 0;
-    let maxYear = 0;
-    const currentYear = new Date().getFullYear();
+    // Initialisera statistik-objekt
+    const stats = {
+        pb: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 },
+        sb: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 }
+    };
 
     myResults.forEach(r => {
-        if (r.total > maxTotal) maxTotal = r.total;
-        if (new Date(r.date).getFullYear() === currentYear) {
-            if (r.total > maxYear) maxYear = r.total;
+        const isCurrentYear = new Date(r.date).getFullYear() === currentYear;
+        const total = parseFloat(r.total) || 0;
+        const bestSeries = parseFloat(r.bestSeries) || 0;
+        const count = parseInt(r.shotCount);
+
+        // Kolla bästa serie (10 skott)
+        if (bestSeries > stats.pb.series) stats.pb.series = bestSeries;
+        if (isCurrentYear && bestSeries > stats.sb.series) stats.sb.series = bestSeries;
+
+        // Kolla totaler baserat på skottantal
+        const key = `s${count}`;
+        if (stats.pb[key] !== undefined) {
+            if (total > stats.pb[key]) stats.pb[key] = total;
+            if (isCurrentYear && total > stats.sb[key]) stats.sb[key] = total;
         }
     });
 
-    document.getElementById('public-pb').textContent = maxTotal > 0 ? maxTotal : '-';
-    document.getElementById('public-sb').textContent = maxYear > 0 ? maxYear : '-';
+    // Hjälpfunktion för att rendera rader i rekordlistan
+    const renderStatRows = (data, colorClass) => {
+        const labels = {
+            series: 'Bästa serie (10 skott)',
+            s20: '20 skott',
+            s40: '40 skott',
+            s60: '60 skott',
+            s100: '100 skott'
+        };
 
+        return Object.entries(labels).map(([key, label]) => {
+            const val = data[key];
+            if (val === 0) return ''; // Visa inte tomma kategorier
+            return `
+                <div class="flex justify-between items-center text-xs sm:text-sm border-b border-black/5 py-1 last:border-0">
+                    <span class="text-gray-600">${label}:</span>
+                    <span class="font-bold ${colorClass}">${val}p</span>
+                </div>
+            `;
+        }).join('');
+    };
+
+    // Rendera PB och SB listorna
+    const pbList = document.getElementById('public-pb-list');
+    const sbList = document.getElementById('public-sb-list');
+    
+    if (pbList) pbList.innerHTML = renderStatRows(stats.pb, 'text-green-700') || '<p class="text-xs italic text-gray-400">Inga rekord registrerade</p>';
+    if (sbList) sbList.innerHTML = renderStatRows(stats.sb, 'text-blue-700') || '<p class="text-xs italic text-gray-400">Inga rekord i år</p>';
+
+    // Rendera resultatlistan (senaste 10)
     container.innerHTML = '';
     if (myResults.length === 0) {
         container.innerHTML = '<p class="text-gray-500 italic">Inga delade resultat än.</p>';
@@ -1532,12 +1576,16 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
 
     myResults.slice(0, 10).forEach(res => {
         container.innerHTML += `
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-100">
+            <div class="flex justify-between items-center p-3 bg-white rounded border border-gray-100 shadow-sm">
                 <div>
-                    <span class="font-bold text-gray-800">${res.total}p</span>
-                    <span class="text-xs text-gray-500 ml-2">${res.date} (${res.discipline})</span>
+                    <span class="font-bold text-gray-800 text-lg">${res.total}p</span>
+                    <span class="text-xs text-gray-500 ml-2">${res.date}</span>
+                    <div class="text-[10px] text-gray-400 uppercase tracking-tighter">${res.discipline} • ${res.shotCount} skott</div>
                 </div>
-                ${res.isPB ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">PB</span>' : ''}
+                <div class="flex gap-1">
+                    ${res.isPB ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">PB</span>' : ''}
+                    ${res.isSB ? '<span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-200">ÅB</span>' : ''}
+                </div>
             </div>
         `;
     });
