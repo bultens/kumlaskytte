@@ -340,25 +340,45 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
  */
 export function renderVisitorChart(dailyStats, todayVisits) {
     const canvas = document.getElementById('visitorChart');
-    if (!canvas) return;
+    const groupingSelect = document.getElementById('visitor-chart-grouping');
+    if (!canvas || !groupingSelect) return;
 
+    const grouping = groupingSelect.value; // 'day', 'week', 'month' eller 'year'
     const ctx = canvas.getContext('2d');
     
-    // Slå ihop historisk data med dagens siffra
+    // 1. Förbered datan
     const todayStr = new Date().toISOString().split('T')[0];
     const allData = { ...dailyStats };
-    allData[todayStr] = todayVisits;
+    if (todayVisits > 0) allData[todayStr] = todayVisits;
 
-    // Sortera datum kronologiskt
-    const sortedDates = Object.keys(allData).sort();
+    // 2. Gruppera datan baserat på val
+    const groupedData = {};
     
-    // Visa endast de senaste 14 dagarna för överskådlighet på mobil/desktop
-    const displayDates = sortedDates.slice(-14);
-    const displayValues = displayDates.map(date => allData[date]);
-    
-    // Formatera datum för labels (ta bort år för renare utseende)
-    const labels = displayDates.map(date => date.substring(5));
+    Object.keys(allData).forEach(dateStr => {
+        let key = dateStr; // Standard: dag (YYYY-MM-DD)
+        const date = new Date(dateStr);
 
+        if (grouping === 'week') {
+            // Hitta veckonummer (enkel version)
+            const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+            const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+            const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+            key = `${date.getFullYear()}-V${weekNum}`;
+        } else if (grouping === 'month') {
+            key = dateStr.substring(0, 7); // Blir YYYY-MM
+        } else if (grouping === 'year') {
+            key = dateStr.substring(0, 4); // Blir YYYY
+        }
+
+        groupedData[key] = (groupedData[key] || 0) + allData[dateStr];
+    });
+
+    // 3. Sortera och förbered för Chart.js
+    const sortedKeys = Object.keys(groupedData).sort();
+    const displayKeys = sortedKeys.slice(-15); // Visa de senaste 15 punkterna
+    const displayValues = displayKeys.map(key => groupedData[key]);
+
+    // 4. Rita om grafen
     if (visitorChartInstance) {
         visitorChartInstance.destroy();
     }
@@ -366,32 +386,23 @@ export function renderVisitorChart(dailyStats, todayVisits) {
     visitorChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: displayKeys,
             datasets: [{
-                label: 'Unika besökare',
+                label: 'Besökare',
                 data: displayValues,
-                backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
                 borderColor: 'rgb(37, 99, 235)',
                 borderWidth: 1,
-                borderRadius: 4,
+                borderRadius: 5
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1, font: { size: 10 } },
-                    grid: { color: '#f3f4f6' }
-                },
-                x: {
-                    ticks: { font: { size: 10 } },
-                    grid: { display: false }
-                }
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { ticks: { font: { size: 10 } } }
             }
         }
     });
@@ -1535,17 +1546,8 @@ export function setupVisitorChartControls() {
     if (!select) return;
 
     select.addEventListener('change', async () => {
-        try {
-            // Hämta färsk data när användaren byter vy (dag/vecka/månad)
-            const stats = await getVisitorStats();
-            
-            // Just nu hanterar renderVisitorChart främst dagsdata, 
-            // men genom att anropa den här rensas och ritas grafen om.
-            renderVisitorChart(stats.dailyStats, stats.todayVisits);
-            
-            console.log(`Bytte vy till: ${select.value}`);
-        } catch (error) {
-            console.error("Kunde inte uppdatera grafen:", error);
-        }
+        // Hämta stats igen för att få den senaste datan från data-service
+        const stats = await getVisitorStats();
+        renderVisitorChart(stats.dailyStats, stats.todayVisits);
     });
 }
