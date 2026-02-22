@@ -1530,3 +1530,22 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
         `;
     });
 }
+export function setupVisitorChartControls() {
+    const select = document.getElementById('visitor-chart-grouping');
+    if (!select) return;
+
+    select.addEventListener('change', async () => {
+        try {
+            // Hämta färsk data när användaren byter vy (dag/vecka/månad)
+            const stats = await getVisitorStats();
+            
+            // Just nu hanterar renderVisitorChart främst dagsdata, 
+            // men genom att anropa den här rensas och ritas grafen om.
+            renderVisitorChart(stats.dailyStats, stats.todayVisits);
+            
+            console.log(`Bytte vy till: ${select.value}`);
+        } catch (error) {
+            console.error("Kunde inte uppdatera grafen:", error);
+        }
+    });
+}
