@@ -497,32 +497,40 @@
                 <div id="admin-user-info" class="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-500"></div>
 
                 <!-- Besöksräknare - endast synlig för admin -->
-                <div class="card mt-6 bg-white border-t-4 border-blue-600">
-                    <h2 class="text-xl font-bold mb-4 flex items-center text-gray-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Besöksstatistik
-                    </h2>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="bg-blue-50 p-4 rounded-xl text-center border border-blue-100">
-                            <span class="block text-xs text-blue-600 uppercase font-bold tracking-wider">Idag</span>
-                            <span id="visitor-count-today" class="text-3xl font-black text-blue-900">-</span>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                            <h2 class="text-xl font-bold flex items-center text-gray-800">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                                Besöksstatistik
+                            </h2>
+                            
+                            <!-- NYTT: Välj tidsperiod -->
+                            <select id="visitor-chart-grouping" class="text-xs border rounded px-2 py-1 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="day" selected>Visa per dag</option>
+                                <option value="week">Visa per vecka</option>
+                                <option value="month">Visa per månad</option>
+                                <option value="year">Visa per år</option>
+                            </select>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-xl text-center border border-green-100">
-                            <span class="block text-xs text-green-600 uppercase font-bold tracking-wider">Totalt</span>
-                            <span id="visitor-count-total" class="text-3xl font-black text-green-900">-</span>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-blue-50 p-4 rounded-xl text-center border border-blue-100">
+                                <span class="block text-xs text-blue-600 uppercase font-bold tracking-wider">Idag</span>
+                                <span id="visitor-count-today" class="text-3xl font-black text-blue-900">-</span>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-xl text-center border border-green-100">
+                                <span class="block text-xs text-green-600 uppercase font-bold tracking-wider">Totalt sedan 2026-02-21</span>
+                                <span id="visitor-count-total" class="text-3xl font-black text-green-900">-</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Behållare för grafen -->
-                    <div class="w-full bg-gray-50 p-2 rounded-lg border border-gray-100" style="height: 250px;">
-                        <canvas id="visitorChart"></canvas>
+                        <div class="w-full bg-gray-50 p-2 rounded-lg border border-gray-100" style="height: 250px;">
+                            <canvas id="visitorChart"></canvas>
+                        </div>
+                        
+                        <p class="text-[10px] text-gray-400 mt-4 italic text-center">Visar de senaste 20 posterna för vald tidsperiod.</p>
                     </div>
-                    
-                    <p class="text-[10px] text-gray-400 mt-4 italic text-center">Statistiken baseras på unika webbläsarsessioner per dygn sedan 2026-02-21.</p>
-                </div>
 
                 <div class="card mt-4 sm:mt-6">
                     <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Webbplatsinställningar</h2>
