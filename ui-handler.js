@@ -1519,22 +1519,9 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
         const discResults = myResults.filter(r => r.discipline === disc.id);
         if (discResults.length === 0) return; 
 
-        // Beräkna rekord för denna disciplin (Sparar både värde och datum)
         const stats = {
-            pb: { 
-                series: { val: 0, date: '' }, 
-                s20: { val: 0, date: '' }, 
-                s40: { val: 0, date: '' }, 
-                s60: { val: 0, date: '' }, 
-                s100: { val: 0, date: '' } 
-            },
-            sb: { 
-                series: { val: 0, date: '' }, 
-                s20: { val: 0, date: '' }, 
-                s40: { val: 0, date: '' }, 
-                s60: { val: 0, date: '' }, 
-                s100: { val: 0, date: '' } 
-            }
+            pb: { series: { val: 0, date: '' }, s20: { val: 0, date: '' }, s40: { val: 0, date: '' }, s60: { val: 0, date: '' }, s100: { val: 0, date: '' } },
+            sb: { series: { val: 0, date: '' }, s20: { val: 0, date: '' }, s40: { val: 0, date: '' }, s60: { val: 0, date: '' }, s100: { val: 0, date: '' } }
         };
 
         discResults.forEach(r => {
@@ -1544,36 +1531,26 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
             const count = parseInt(r.shotCount);
             const resDate = r.date;
 
-            // Kontrollera Bästa serie
-            if (bestSeries > stats.pb.series.val) {
-                stats.pb.series = { val: bestSeries, date: resDate };
-            }
-            if (isCurrentYear && bestSeries > stats.sb.series.val) {
-                stats.sb.series = { val: bestSeries, date: resDate };
-            }
+            if (bestSeries > stats.pb.series.val) stats.pb.series = { val: bestSeries, date: resDate };
+            if (isCurrentYear && bestSeries > stats.sb.series.val) stats.sb.series = { val: bestSeries, date: resDate };
 
-            // Kontrollera Totaler per skottantal
             const key = `s${count}`;
             if (stats.pb[key] !== undefined) {
-                if (total > stats.pb[key].val) {
-                    stats.pb[key] = { val: total, date: resDate };
-                }
-                if (isCurrentYear && total > stats.sb[key].val) {
-                    stats.sb[key] = { val: total, date: resDate };
-                }
+                if (total > stats.pb[key].val) stats.pb[key] = { val: total, date: resDate };
+                if (isCurrentYear && total > stats.sb[key].val) stats.sb[key] = { val: total, date: resDate };
             }
         });
 
-        // Hjälpfunktion för att rendera rader med datum i parentes
         const renderRows = (data) => {
             const labels = { series: 'Bästa serie', s20: '20 skott', s40: '40 skott', s60: '60 skott', s100: '100 skott' };
             return Object.entries(labels).map(([key, label]) => {
                 const item = data[key];
                 if (item.val === 0) return '';
+                // UPPDATERAD: Datumet är nu mörkare grått (text-gray-400) för bättre synlighet
                 return `
                     <div class="flex justify-between items-center py-1.5 border-b border-black/5 last:border-0 text-sm">
                         <span class="text-gray-500">
-                            ${label} <span class="text-[10px] opacity-60">(${item.date})</span>
+                            ${label} <span class="text-[10px] text-gray-400 ml-1">(${item.date})</span>
                         </span>
                         <span class="font-bold text-gray-800">${item.val}p</span>
                     </div>`;
@@ -1581,9 +1558,9 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
         };
 
         disciplineStatsContainer.innerHTML += `
-            <div class="discipline-section">
+            <div class="discipline-section mb-6">
                 <div class="flex items-center gap-2 mb-3">
-                    <span class="bg-${disc.color}-600 text-white text-xs font-black px-2 py-1 rounded uppercase tracking-wider">
+                    <span class="bg-${disc.color}-600 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
                         ${disc.icon} ${disc.name}
                     </span>
                 </div>
@@ -1597,15 +1574,13 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
                         ${renderRows(stats.sb)}
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     });
 
-    // Rendera den vanliga listan över senaste resultat
     resultsContainer.innerHTML = myResults.length === 0 ? '<p class="text-gray-500 italic">Inga delade resultat än.</p>' : '';
     myResults.slice(0, 10).forEach(res => {
         resultsContainer.innerHTML += `
-            <div class="flex justify-between items-center p-3 bg-white rounded border border-gray-100 shadow-sm">
+            <div class="flex justify-between items-center p-3 bg-white rounded border border-gray-100 shadow-sm mb-2">
                 <div>
                     <span class="font-bold text-gray-800">${res.total}p</span>
                     <span class="text-xs text-gray-500 ml-2">${res.date}</span>
@@ -1614,7 +1589,6 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
                     </div>
                 </div>
                 ${res.isPB ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">PB</span>' : ''}
-                ${res.isSB ? '<span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-200">ÅB</span>' : ''}
             </div>`;
     });
 }
