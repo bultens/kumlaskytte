@@ -1562,20 +1562,22 @@ export function renderHourlyChart(dailyLogDocs) {
     const hourlyTotals = Array(24).fill(0);
     const labels = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
+    // 1. Samla ihop all data från dokumenten
     dailyLogDocs.forEach(docSnap => {
         const data = docSnap.data();
         
-        // 1. Hantera riktiga objekt (Map)
+        // Hantera Map-objektet "hourlyDistribution"
         if (data.hourlyDistribution) {
             Object.keys(data.hourlyDistribution).forEach(hour => {
                 const hourIndex = parseInt(hour);
                 if (hourIndex >= 0 && hourIndex < 24) {
+                    // Firebase increment-värden läses som siffror här
                     hourlyTotals[hourIndex] += data.hourlyDistribution[hour];
                 }
             });
         }
 
-        // 2. FALLBACK: Hantera gamla platta fält (som "hourlyDistribution.13")
+        // Fallback för gamla fält med punkter (t.ex. "hourlyDistribution.14")
         Object.keys(data).forEach(key => {
             if (key.startsWith('hourlyDistribution.')) {
                 const hour = parseInt(key.split('.')[1]);
@@ -1584,7 +1586,54 @@ export function renderHourlyChart(dailyLogDocs) {
         });
     });
 
-    // Rita grafen (din befintliga Chart.js-kod här...)
-    if (hourlyChartInstance) hourlyChartInstance.destroy();
-    hourlyChartInstance = new Chart(ctx, { /* ... din config ... */ });
+    // 2. Förstör gammal instans om den finns
+    if (hourlyChartInstance) {
+        hourlyChartInstance.destroy();
+    }
+
+    // 3. Skapa den faktiska grafen
+    hourlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Antal besökare',
+                data: hourlyTotals,
+                backgroundColor: 'rgba(59, 130, 246, 0.6)', // Blå färg
+                borderColor: 'rgb(37, 99, 235)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Kl ${context.label}: ${context.raw} besök`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#94a3b8' },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    ticks: { 
+                        color: '#94a3b8',
+                        font: { size: 10 },
+                        // Visa bara varannan etikett på mobil för att spara plats
+                        callback: function(val, index) {
+                            return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                        }
+                    },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
 }
