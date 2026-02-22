@@ -1543,63 +1543,112 @@ export function renderPublicShooterStats(shooterId, allResults, allShooters) {
     });
 }
 export function setupVisitorChartControls() {
-    const select = document.getElementById('visitor-chart-grouping');
-    if (!select) return;
+    const mainSelect = document.getElementById('visitor-chart-grouping');
+    const hourlyPeriod = document.getElementById('hourly-filter-period');
+    const hourlyWeekday = document.getElementById('hourly-filter-weekday');
 
-    select.addEventListener('change', async () => {
-        // Hämta stats igen för att få den senaste datan från data-service
+    const refreshCharts = async () => {
         const stats = await getVisitorStats();
         renderVisitorChart(stats.dailyStats, stats.todayVisits);
-    });
+        renderHourlyChart(stats.allDocs);
+    };
+
+    if (mainSelect) mainSelect.addEventListener('change', refreshCharts);
+    if (hourlyPeriod) hourlyPeriod.addEventListener('change', refreshCharts);
+    if (hourlyWeekday) hourlyWeekday.addEventListener('change', refreshCharts);
 }
+
 let hourlyChartInstance = null;
 
+/**
+ * Renderar klockslagsgrafen med stöd för period- och veckodagsfiltrering.
+ * @param {Array} dailyLogDocs - Lista med dokument-snapshots från dailyLog-samlingen.
+ */
 export function renderHourlyChart(dailyLogDocs) {
     const canvas = document.getElementById('hourlyChart');
     if (!canvas) return;
+
+    // Hämta valda filtervärden från dropdown-menyerna
+    const periodFilter = document.getElementById('hourly-filter-period')?.value || "1";
+    const weekdayFilter = document.getElementById('hourly-filter-weekday')?.value || "all";
 
     const ctx = canvas.getContext('2d');
     const hourlyTotals = Array(24).fill(0);
     const labels = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
-    // 1. Samla ihop all data från dokumenten
+    // Datumlogik för filtrering
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    // Beräkna gränsdatum baserat på vald period
+    const cutoffDate = new Date();
+    cutoffDate.setDate(now.getDate() - parseInt(periodFilter));
+    cutoffDate.setHours(0, 0, 0, 0);
+
+    // Variabel för att räkna antal dagar som matchar filtret (om man vill räkna snitt senare)
+    let matchingDaysCount = 0;
+
     dailyLogDocs.forEach(docSnap => {
         const data = docSnap.data();
+        const docDate = new Date(data.date);
+        docDate.setHours(0, 0, 0, 0);
+
+        // --- FILTRERING ---
         
-        // Hantera Map-objektet "hourlyDistribution"
+        // 1. Kontrollera tidsperiod
+        if (periodFilter === "1") {
+            // "Idag" - kräv exakt matchning på dagens datumsträng
+            if (data.date !== todayStr) return;
+        } else {
+            // Övriga perioder - kontrollera att datumet är inom intervallet
+            if (docDate < cutoffDate) return;
+        }
+
+        // 2. Kontrollera veckodag
+        if (weekdayFilter !== "all") {
+            // getDay() returnerar 0 för söndag, 1 för måndag osv.
+            if (docDate.getDay().toString() !== weekdayFilter) return;
+        }
+
+        matchingDaysCount++;
+
+        // --- DATAAGGREGERING ---
+
+        // Hantera modern Map-struktur: hourlyDistribution: { "13": 5 }
         if (data.hourlyDistribution) {
             Object.keys(data.hourlyDistribution).forEach(hour => {
                 const hourIndex = parseInt(hour);
                 if (hourIndex >= 0 && hourIndex < 24) {
-                    // Firebase increment-värden läses som siffror här
                     hourlyTotals[hourIndex] += data.hourlyDistribution[hour];
                 }
             });
         }
 
-        // Fallback för gamla fält med punkter (t.ex. "hourlyDistribution.14")
+        // Fallback för gammal platt struktur: "hourlyDistribution.13": 2
         Object.keys(data).forEach(key => {
             if (key.startsWith('hourlyDistribution.')) {
                 const hour = parseInt(key.split('.')[1]);
-                if (!isNaN(hour)) hourlyTotals[hour] += data[key];
+                if (!isNaN(hour) && hour >= 0 && hour < 24) {
+                    hourlyTotals[hour] += data[key];
+                }
             }
         });
     });
 
-    // 2. Förstör gammal instans om den finns
+    // Rita om grafen
     if (hourlyChartInstance) {
         hourlyChartInstance.destroy();
     }
 
-    // 3. Skapa den faktiska grafen
+    // Skapa grafen med inställningar som matchar din övriga design
     hourlyChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Antal besökare',
+                label: 'Besökare',
                 data: hourlyTotals,
-                backgroundColor: 'rgba(59, 130, 246, 0.6)', // Blå färg
+                backgroundColor: 'rgba(59, 130, 246, 0.6)', // Kumla-blå med transparens
                 borderColor: 'rgb(37, 99, 235)',
                 borderWidth: 1,
                 borderRadius: 4
@@ -1612,21 +1661,25 @@ export function renderHourlyChart(dailyLogDocs) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => `Kl ${context.label}: ${context.raw} besök`
+                        label: (context) => `${context.raw} besök kl ${context.label}`
                     }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { stepSize: 1, color: '#94a3b8' },
+                    ticks: { 
+                        stepSize: 1,
+                        color: '#94a3b8',
+                        font: { size: 10 }
+                    },
                     grid: { color: 'rgba(0,0,0,0.05)' }
                 },
                 x: {
                     ticks: { 
                         color: '#94a3b8',
                         font: { size: 10 },
-                        // Visa bara varannan etikett på mobil för att spara plats
+                        // Visa bara varannan timme på x-axeln för bättre läsbarhet på mobil
                         callback: function(val, index) {
                             return index % 2 === 0 ? this.getLabelForValue(val) : '';
                         }
