@@ -1492,104 +1492,107 @@ export function renderTopLists(classes, allResults, allShooters) {
 }
 
 export function renderPublicShooterStats(shooterId, allResults, allShooters) {
-    const container = document.getElementById('public-results-list');
+    const resultsContainer = document.getElementById('public-results-list');
     const statsContainer = document.getElementById('public-shooter-stats');
-    if (!container || !statsContainer) return;
-
-    if (!shooterId) {
-        statsContainer.classList.add('hidden');
-        return;
-    }
+    const disciplineStatsContainer = document.getElementById('discipline-stats-container');
+    
+    if (!resultsContainer || !statsContainer || !disciplineStatsContainer) return;
+    if (!shooterId) { statsContainer.classList.add('hidden'); return; }
 
     const shooter = allShooters.find(s => s.id === shooterId);
     if (!shooter) return;
 
     document.getElementById('public-shooter-name').textContent = shooter.name;
-    const yearSpan = document.getElementById('current-sb-year');
-    const currentYear = new Date().getFullYear();
-    if (yearSpan) yearSpan.textContent = `(${currentYear})`;
-    
     statsContainer.classList.remove('hidden');
+    disciplineStatsContainer.innerHTML = ''; // Rensa tidigare stats
 
     const myResults = allResults.filter(r => r.shooterId === shooterId && r.sharedWithClub === true);
     myResults.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Initialisera statistik-objekt
-    const stats = {
-        pb: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 },
-        sb: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 }
-    };
+    const currentYear = new Date().getFullYear();
+    const disciplines = [
+        { id: 'sitting', name: 'Sittande', icon: '🪑', color: 'blue' },
+        { id: 'standing', name: 'Stående', icon: '🧍', color: 'indigo' }
+    ];
 
-    myResults.forEach(r => {
-        const isCurrentYear = new Date(r.date).getFullYear() === currentYear;
-        const total = parseFloat(r.total) || 0;
-        const bestSeries = parseFloat(r.bestSeries) || 0;
-        const count = parseInt(r.shotCount);
+    disciplines.forEach(disc => {
+        const discResults = myResults.filter(r => r.discipline === disc.id);
+        if (discResults.length === 0) return; // Hoppa över om inga resultat finns
 
-        // Kolla bästa serie (10 skott)
-        if (bestSeries > stats.pb.series) stats.pb.series = bestSeries;
-        if (isCurrentYear && bestSeries > stats.sb.series) stats.sb.series = bestSeries;
-
-        // Kolla totaler baserat på skottantal
-        const key = `s${count}`;
-        if (stats.pb[key] !== undefined) {
-            if (total > stats.pb[key]) stats.pb[key] = total;
-            if (isCurrentYear && total > stats.sb[key]) stats.sb[key] = total;
-        }
-    });
-
-    // Hjälpfunktion för att rendera rader i rekordlistan
-    const renderStatRows = (data, colorClass) => {
-        const labels = {
-            series: 'Bästa serie (10 skott)',
-            s20: '20 skott',
-            s40: '40 skott',
-            s60: '60 skott',
-            s100: '100 skott'
+        // Beräkna rekord för denna disciplin
+        const stats = {
+            pb: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 },
+            sb: { series: 0, s20: 0, s40: 0, s60: 0, s100: 0 }
         };
 
-        return Object.entries(labels).map(([key, label]) => {
-            const val = data[key];
-            if (val === 0) return ''; // Visa inte tomma kategorier
-            return `
-                <div class="flex justify-between items-center text-xs sm:text-sm border-b border-black/5 py-1 last:border-0">
-                    <span class="text-gray-600">${label}:</span>
-                    <span class="font-bold ${colorClass}">${val}p</span>
+        discResults.forEach(r => {
+            const isCurrentYear = new Date(r.date).getFullYear() === currentYear;
+            const total = parseFloat(r.total) || 0;
+            const bestSeries = parseFloat(r.bestSeries) || 0;
+            const count = parseInt(r.shotCount);
+
+            if (bestSeries > stats.pb.series) stats.pb.series = bestSeries;
+            if (isCurrentYear && bestSeries > stats.sb.series) stats.sb.series = bestSeries;
+
+            const key = `s${count}`;
+            if (stats.pb[key] !== undefined) {
+                if (total > stats.pb[key]) stats.pb[key] = total;
+                if (isCurrentYear && total > stats.sb[key]) stats.sb[key] = total;
+            }
+        });
+
+        // Generera HTML för rader
+        const renderRows = (data) => {
+            const labels = { series: 'Bästa serie', s20: '20 skott', s40: '40 skott', s60: '60 skott', s100: '100 skott' };
+            return Object.entries(labels).map(([key, label]) => {
+                if (data[key] === 0) return '';
+                return `
+                    <div class="flex justify-between items-center py-1.5 border-b border-black/5 last:border-0 text-sm">
+                        <span class="text-gray-500">${label}</span>
+                        <span class="font-bold text-gray-800">${data[key]}p</span>
+                    </div>`;
+            }).join('');
+        };
+
+        // Skapa sektionen för disciplinen
+        disciplineStatsContainer.innerHTML += `
+            <div class="discipline-section">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="bg-${disc.color}-600 text-white text-xs font-black px-2 py-1 rounded uppercase tracking-wider">
+                        ${disc.icon} ${disc.name}
+                    </span>
                 </div>
-            `;
-        }).join('');
-    };
-
-    // Rendera PB och SB listorna
-    const pbList = document.getElementById('public-pb-list');
-    const sbList = document.getElementById('public-sb-list');
-    
-    if (pbList) pbList.innerHTML = renderStatRows(stats.pb, 'text-green-700') || '<p class="text-xs italic text-gray-400">Inga rekord registrerade</p>';
-    if (sbList) sbList.innerHTML = renderStatRows(stats.sb, 'text-blue-700') || '<p class="text-xs italic text-gray-400">Inga rekord i år</p>';
-
-    // Rendera resultatlistan (senaste 10)
-    container.innerHTML = '';
-    if (myResults.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 italic">Inga delade resultat än.</p>';
-        return;
-    }
-
-    myResults.slice(0, 10).forEach(res => {
-        container.innerHTML += `
-            <div class="flex justify-between items-center p-3 bg-white rounded border border-gray-100 shadow-sm">
-                <div>
-                    <span class="font-bold text-gray-800 text-lg">${res.total}p</span>
-                    <span class="text-xs text-gray-500 ml-2">${res.date}</span>
-                    <div class="text-[10px] text-gray-400 uppercase tracking-tighter">${res.discipline} • ${res.shotCount} skott</div>
-                </div>
-                <div class="flex gap-1">
-                    ${res.isPB ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">PB</span>' : ''}
-                    ${res.isSB ? '<span class="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold border border-blue-200">ÅB</span>' : ''}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+                        <p class="text-[10px] font-bold text-green-600 uppercase mb-2">🚀 Personbästa</p>
+                        ${renderRows(stats.pb)}
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                        <p class="text-[10px] font-bold text-blue-600 uppercase mb-2">📅 Årsbästa ${currentYear}</p>
+                        ${renderRows(stats.sb)}
+                    </div>
                 </div>
             </div>
         `;
     });
+
+    // Rendera den vanliga resultatlistan i botten
+    resultsContainer.innerHTML = myResults.length === 0 ? '<p class="text-gray-500 italic">Inga delade resultat än.</p>' : '';
+    myResults.slice(0, 10).forEach(res => {
+        resultsContainer.innerHTML += `
+            <div class="flex justify-between items-center p-3 bg-white rounded border border-gray-100 shadow-sm">
+                <div>
+                    <span class="font-bold text-gray-800">${res.total}p</span>
+                    <span class="text-xs text-gray-500 ml-2">${res.date}</span>
+                    <div class="text-[10px] text-gray-400 uppercase font-medium">
+                        ${res.discipline === 'sitting' ? 'Sittande' : 'Stående'} • ${res.shotCount} skott
+                    </div>
+                </div>
+                ${res.isPB ? '<span class="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">PB</span>' : ''}
+            </div>`;
+    });
 }
+
 export function setupVisitorChartControls() {
     const mainSelect = document.getElementById('visitor-chart-grouping');
     const hourlyPeriod = document.getElementById('hourly-filter-period');
