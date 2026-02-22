@@ -699,17 +699,13 @@ export function renderImages(imageData, isAdminLoggedIn) {
         const dateB = new Date(b.year, b.month - 1);
         const priorityA = a.priority || 10;
         const priorityB = b.priority || 10;
-        if (dateB - dateA !== 0) {
-            return dateB - dateA;
-        }
+        if (dateB - dateA !== 0) return dateB - dateA;
         return priorityA - priorityB;
     });
     
     const groupedImages = imageData.reduce((acc, curr) => {
         const key = `${curr.year}-${curr.month}`;
-        if (!acc[key]) {
-            acc[key] = [];
-        }
+        if (!acc[key]) acc[key] = [];
         acc[key].push(curr);
         return acc;
     }, {});
@@ -725,13 +721,13 @@ export function renderImages(imageData, isAdminLoggedIn) {
             <hr class="border-gray-300 mb-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
                 ${imagesInGroup.map(item => `
-                    <div class="relative group">
-                        <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300">
+                    <div class="relative group cursor-pointer gallery-item" data-url="${item.url}" data-title="${item.title}">
+                        <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300 w-full h-64 object-cover">
                         <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
                             <h3 class="text-lg font-bold">${item.title}</h3>
                         </div>
                         ${isAdminLoggedIn ? `
-                            <div class="absolute top-2 right-2 flex space-x-2">
+                            <div class="absolute top-2 right-2 flex space-x-2 z-10">
                                 <button class="edit-image-btn px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
                                 <button class="delete-btn px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="images">Ta bort</button>
                             </div>
@@ -741,6 +737,19 @@ export function renderImages(imageData, isAdminLoggedIn) {
             </div>
         `;
         galleryContainer.innerHTML += galleryGroupHtml;
+    }
+}
+
+// Lägg även till denna hjälpfunktion i ui-handler.js
+export function showLightbox(url, title) {
+    const modal = document.getElementById('lightboxModal');
+    const img = document.getElementById('lightbox-img');
+    const caption = document.getElementById('lightbox-caption');
+    
+    if (modal && img && caption) {
+        img.src = url;
+        caption.textContent = title;
+        modal.classList.add('active');
     }
 }
 

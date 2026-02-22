@@ -134,6 +134,30 @@ export function setupEventListeners() {
         });
     }
     
+    document.addEventListener('click', (e) => {
+            const galleryItem = e.target.closest('.gallery-item');
+            
+            // Om man klickar på en bild (men inte på admin-knapparna)
+            if (galleryItem && !e.target.closest('.edit-image-btn') && !e.target.closest('.delete-btn')) {
+                const url = galleryItem.dataset.url;
+                const title = galleryItem.dataset.title;
+                
+                // Importera showLightbox dynamiskt eller se till att den är tillgänglig
+                import('./ui-handler.js').then(m => m.showLightbox(url, title));
+            }
+        });
+
+        // Stäng lightbox när man klickar på krysset eller utanför bilden
+        const closeLightbox = document.getElementById('close-lightbox');
+        const lightboxModal = document.getElementById('lightboxModal');
+
+        if (closeLightbox) closeLightbox.onclick = () => hideModal('lightboxModal');
+        if (lightboxModal) {
+            lightboxModal.onclick = (e) => {
+                if (e.target === lightboxModal) hideModal('lightboxModal');
+            };
+        }
+
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
             e.preventDefault();
