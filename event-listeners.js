@@ -213,30 +213,6 @@ export function setupEventListeners() {
         });
     }
 
-    // Lyssnare för Nyhetsfilter
-    document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
-        import('./ui-handler.js').then(m => {
-            m.newsState.year = e.target.value; // Använd m.newsState
-            m.newsState.currentPage = 1;
-            m.renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
-        });
-    });
-
-    document.getElementById('news-per-page')?.addEventListener('change', (e) => {
-        import('./ui-handler.js').then(m => {
-            m.newsState.itemsPerPage = parseInt(e.target.value);
-            m.newsState.currentPage = 1;
-            m.renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
-        });
-    });
-
-    // Samma för Tävlingar...
-    document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
-        compState.year = e.target.value;
-        compState.currentPage = 1;
-        renderCompetitions(competitionsData, isAdminLoggedIn);
-    });
-
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {
         if (!publicShooterSelect) return;
