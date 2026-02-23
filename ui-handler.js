@@ -522,10 +522,10 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
 
     if (!allNewsContainer) return;
 
-    // 1. Sortera all data först
+    // 1. Sortera all data
     const sortedAll = [...newsData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // 2. Uppdatera års-dropdownen (körs bara om den är tom utöver "alla")
+    // 2. Fyll års-dropdownen dynamiskt
     if (yearSelect && yearSelect.options.length <= 1) {
         const years = [...new Set(sortedAll.map(n => new Date(n.date).getFullYear()))].sort((a,b) => b-a);
         years.forEach(y => {
@@ -535,34 +535,35 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         });
     }
 
-    // 3. Filtrera baserat på valda filter
+    // 3. Rendera Hem-sektionen (alltid de 2 senaste)
+    if (homeNewsContainer) {
+        homeNewsContainer.innerHTML = '';
+        sortedAll.slice(0, 2).forEach(item => {
+            // ... (Klistra in din befintliga kod här som skapar korten för hem-nyheter) ...
+        });
+    }
+
+    // 4. Filtrera nyheter för arkivet baserat på newsState
     const filtered = sortedAll.filter(item => {
-        const matchYear = newsState.year === 'all' || new Date(item.date).getFullYear().toString() === newsState.year;
-        return matchYear;
+        return newsState.year === 'all' || new Date(item.date).getFullYear().toString() === newsState.year;
     });
 
-    // 4. Dela upp i sidor
+    // 5. Beräkna sidor
     const start = (newsState.currentPage - 1) * newsState.itemsPerPage;
     const paginatedItems = filtered.slice(start, start + newsState.itemsPerPage);
 
-    // 5. Rendera hem-sektionen (alltid de 2 senaste oavsett filter på stora sidan)
-    if (homeNewsContainer) {
-        homeNewsContainer.innerHTML = '';
-        sortedAll.slice(0, 2).forEach(item => { /* ... din befintliga kod för homeNewsContainer ... */ });
-    }
-
-    // 6. Rendera huvudlistan
+    // 6. Rendera arkivet
     allNewsContainer.innerHTML = '';
     if (paginatedItems.length === 0) {
-        allNewsContainer.innerHTML = '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades för detta val.</p>';
+        allNewsContainer.innerHTML = '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades.</p>';
     }
 
     paginatedItems.forEach(item => {
-        // ... (Här klistrar du in din befintliga loop-kod som ritar ut nyhetskorten) ...
-        // KOM IHÅG: Använd 'item' från paginatedItems här
+        // ... (Klistra in din befintliga kod här som skapar korten för arkiv-nyheter) ...
+        // KOM IHÅG att byta från "news.forEach" till "paginatedItems.forEach"
     });
 
-    // 7. Rita paginering
+    // 7. Rendera Paginering
     renderPaginationUI('news-pagination', filtered.length, newsState.itemsPerPage, newsState.currentPage, (newPage) => {
         newsState.currentPage = newPage;
         renderNews(newsData, isAdminLoggedIn, currentUserId);

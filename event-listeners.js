@@ -212,23 +212,22 @@ export function setupEventListeners() {
             }
         });
     }
-    
+
     // Lyssnare för Nyhetsfilter
     document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
         import('./ui-handler.js').then(m => {
-            // Vi behöver inte skicka data här, onSnapshot sköter omritningen
-            // men vi måste nollställa sidan
-            newsState.year = e.target.value;
-            newsState.currentPage = 1;
-            // Trigga omritning genom att använda den cachelagrade datan
-            renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
+            m.newsState.year = e.target.value; // Använd m.newsState
+            m.newsState.currentPage = 1;
+            m.renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
         });
     });
 
     document.getElementById('news-per-page')?.addEventListener('change', (e) => {
-        newsState.itemsPerPage = parseInt(e.target.value);
-        newsState.currentPage = 1;
-        renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
+        import('./ui-handler.js').then(m => {
+            m.newsState.itemsPerPage = parseInt(e.target.value);
+            m.newsState.currentPage = 1;
+            m.renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
+        });
     });
 
     // Samma för Tävlingar...
