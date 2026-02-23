@@ -212,6 +212,31 @@ export function setupEventListeners() {
             }
         });
     }
+    
+    // Lyssnare för Nyhetsfilter
+    document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
+        import('./ui-handler.js').then(m => {
+            // Vi behöver inte skicka data här, onSnapshot sköter omritningen
+            // men vi måste nollställa sidan
+            newsState.year = e.target.value;
+            newsState.currentPage = 1;
+            // Trigga omritning genom att använda den cachelagrade datan
+            renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
+        });
+    });
+
+    document.getElementById('news-per-page')?.addEventListener('change', (e) => {
+        newsState.itemsPerPage = parseInt(e.target.value);
+        newsState.currentPage = 1;
+        renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
+    });
+
+    // Samma för Tävlingar...
+    document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
+        compState.year = e.target.value;
+        compState.currentPage = 1;
+        renderCompetitions(competitionsData, isAdminLoggedIn);
+    });
 
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {
