@@ -5,7 +5,7 @@ import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } f
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists, showDeleteUserModal } from "./ui-handler.js";
-import { handleImageUpload, handleSponsorUpload, setEditingImageId } from "./upload-handler.js";
+import { handleImageUpload, handleSponsorUpload, setEditingImageId, setEditingSponsorId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 import { loadAndRenderChart } from "./statistics-chart.js";
 import { signOut } from "./auth.js";
@@ -15,7 +15,6 @@ let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
 let editingEventId = null;
-let editingSponsorId = null;
 let editingCompId = null;
 
 let currentHistoryPage = 1;
@@ -783,7 +782,11 @@ if (addShooterForm) {
     if (addSponsorForm) {
         addSponsorForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await handleSponsorUpload(e);
+            // Skicka med editingSponsorId som ett argument här!
+            await handleSponsorUpload(e, editingSponsorId); 
+            
+            // Nollställ efteråt (valfritt men bra)
+            editingSponsorId = null; 
         });
     }
 
@@ -1086,7 +1089,8 @@ if (addShooterForm) {
             const sponsorId = editSponsorBtn.getAttribute('data-id');
             const sponsorItem = sponsorsData.find(s => s.id === sponsorId);
             if (sponsorItem) {
-                editingSponsorId = sponsorId;
+                setEditingSponsorId(sponsorId); 
+
                 document.getElementById('sponsor-name').value = sponsorItem.name;
                 document.getElementById('sponsor-extra-text').value = sponsorItem.extraText || '';
                 document.getElementById('sponsor-url').value = sponsorItem.url;

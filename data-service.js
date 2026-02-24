@@ -99,7 +99,7 @@ export function initializeDataListeners() {
     onSnapshot(collection(db, 'news'), (snapshot) => {
         newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         // Hämta uid från auth.currentUser eller din lokala variabel
-        const uid = auth.currentUser ? auth.currentUser.uid : null;editSponsorBtn
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
         renderNews(newsData, isAdminLoggedIn, uid);
     });
 
