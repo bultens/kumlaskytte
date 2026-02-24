@@ -542,68 +542,49 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
     const allNewsContainer = document.getElementById('all-news-container');
     const yearSelect = document.getElementById('news-year-filter');
 
-    // 1. Sortera all data (senaste först)
-    const sortedAll = [...newsData].sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 1. Sortera all data (senaste först) - Säkerställ att det är en array
+    const sortedAll = (newsData && Array.isArray(newsData)) ? 
+        [...newsData].sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
 
-    // 2. Fyll års-dropdownen dynamiskt
-    if (yearSelect && yearSelect.options.length <= 1) {
-        const years = [...new Set(sortedAll.map(n => new Date(n.date).getFullYear()))].sort((a,b) => b-a);
+    // 2. Fyll års-dropdownen dynamiskt (körs bara om den är tom)
+    if (yearSelect && yearSelect.options.length <= 1 && sortedAll.length > 0) {
+        const years = [...new Set(sortedAll.map(n => {
+            const d = new Date(n.date);
+            return isNaN(d) ? null : d.getFullYear();
+        }))].filter(y => y !== null).sort((a,b) => b-a);
+        
         years.forEach(y => {
             const opt = document.createElement('option');
-            opt.value = y; opt.textContent = y;
+            opt.value = y.toString();
+            opt.textContent = y.toString();
             yearSelect.appendChild(opt);
         });
     }
 
-    // Hjälpfunktion för att skapa ett nyhetskort
-    const createNewsCard = (item) => {
-        const likes = item.likes || {};
-        const likeCount = Object.keys(likes).length;
-        const userHasLiked = currentUserId && likes[currentUserId];
-        const url = `${window.location.href.split('#')[0]}#nyheter#news-${item.id}`;
-
-        return `
-            <div class="card h-full flex flex-col sm:flex-row gap-4" id="news-${item.id}">
-                <div class="flex-grow">
-                    <h3 class="text-xl font-bold mb-1">${item.title}</h3>
-                    <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
-                    <div class="markdown-content text-gray-700 text-sm line-clamp-3">${item.content}</div>
-                    <div class="flex items-center space-x-2 mt-4">
-                        <button class="like-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition ${userHasLiked ? 'text-blue-600 font-bold' : ''}" data-id="${item.id}" data-type="news">
-                            👍 <span>${likeCount}</span>
-                        </button>
-                        <button class="share-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition" data-id="${item.id}" data-type="news" data-title="${item.title}">
-                            🔗 Dela
-                        </button>
-                        ${isAdminLoggedIn ? `
-                            <button class="edit-news-btn text-xs bg-gray-500 text-white px-2 py-1 rounded" data-id="${item.id}">Ändra</button>
-                            <button class="delete-btn text-xs bg-red-500 text-white px-2 py-1 rounded" data-id="${item.id}" data-type="news">Ta bort</button>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>`;
-    };
-
-    // 3. Rendera Hem-sektionen (de 2 senaste)
+    // 3. Rendera Startsidan (De 2 senaste) - Denna del ska INTE filtreras på år
     if (homeNewsContainer) {
-        homeNewsContainer.innerHTML = '';
+        homeNewsContainer.innerHTML = sortedAll.length === 0 ? 
+            '<p class="text-gray-500 italic">Inga nyheter tillgängliga.</p>' : '';
         sortedAll.slice(0, 2).forEach(item => {
-            homeNewsContainer.innerHTML += createNewsCard(item);
+            homeNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId);
         });
     }
 
-    // 4. Filtrera nyheter för arkivet
+    // 4. Rendera Arkivet (Filtrerat och Paginerat)
     if (allNewsContainer) {
         const filtered = sortedAll.filter(item => {
-            return newsState.year === 'all' || new Date(item.date).getFullYear().toString() === newsState.year;
+            if (!newsState.year || newsState.year === 'all') return true;
+            return new Date(item.date).getFullYear().toString() === newsState.year;
         });
 
         const start = (newsState.currentPage - 1) * newsState.itemsPerPage;
         const paginatedItems = filtered.slice(start, start + newsState.itemsPerPage);
 
-        allNewsContainer.innerHTML = paginatedItems.length === 0 ? '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades.</p>' : '';
+        allNewsContainer.innerHTML = paginatedItems.length === 0 ? 
+            '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades för valt år.</p>' : '';
+        
         paginatedItems.forEach(item => {
-            allNewsContainer.innerHTML += createNewsCard(item);
+            allNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId);
         });
 
         renderPaginationUI('news-pagination', filtered.length, newsState.itemsPerPage, newsState.currentPage, (newPage) => {
@@ -613,6 +594,34 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         });
     }
 }
+
+const createNewsCard = (item, isAdminLoggedIn, currentUserId) => {
+    const likes = item.likes || {};
+    const likeCount = Object.keys(likes).length;
+    const userHasLiked = currentUserId && likes[currentUserId];
+    const url = `${window.location.href.split('#')[0]}#nyheter#news-${item.id}`;
+
+    return `
+        <div class="card h-full flex flex-col sm:flex-row gap-4" id="news-${item.id}">
+            <div class="flex-grow">
+                <h3 class="text-xl font-bold mb-1">${item.title}</h3>
+                <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
+                <div class="markdown-content text-gray-700 text-sm line-clamp-3">${item.content}</div>
+                <div class="flex items-center space-x-2 mt-4">
+                    <button class="like-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition ${userHasLiked ? 'text-blue-600 font-bold' : ''}" data-id="${item.id}" data-type="news">
+                        👍 <span>${likeCount}</span>
+                    </button>
+                    <button class="share-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition" data-id="${item.id}" data-type="news" data-title="${item.title}">
+                        🔗 Dela
+                    </button>
+                    ${isAdminLoggedIn ? `
+                        <button class="edit-news-btn text-xs bg-gray-500 text-white px-2 py-1 rounded" data-id="${item.id}">Ändra</button>
+                        <button class="delete-btn text-xs bg-red-500 text-white px-2 py-1 rounded" data-id="${item.id}" data-type="news">Ta bort</button>
+                    ` : ''}
+                </div>
+            </div>
+        </div>`;
+};
 
 export function renderEvents(eventsData, isAdminLoggedIn) {
     const events = eventsData;
