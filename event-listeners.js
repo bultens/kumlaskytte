@@ -1094,6 +1094,7 @@ if (addShooterForm) {
                 document.getElementById('sponsor-priority').value = sponsorItem.priority;
                 document.getElementById('sponsor-size').value = sponsorItem.size || '1/4';
                 document.getElementById('sponsor-form-title').textContent = 'Ändra Sponsor';
+                document.getElementById('sponsor-bg-type').value = sponsorItem.bgType || 'bg-white';
                 addSponsorBtn.textContent = 'Spara ändring';
                 addSponsorBtn.disabled = false;
                 addSponsorBtn.classList.remove('bg-gray-400');

@@ -217,6 +217,33 @@ body {
     max-height: 90px;
 }
 
+.bg-white { 
+    background-color: #ffffff !important; 
+    color: #1f2937 !important;
+}
+
+/* Ändrad färg till mörkgrå för att matcha din övriga design men ändå vara 'svart' */
+.bg-black { 
+    background-color: #111827 !important; 
+    color: #ffffff !important;
+}
+
+.bg-none { 
+    background-color: transparent !important; 
+    box-shadow: none !important; 
+    border: 1px dashed rgba(0,0,0,0.1) !important;
+}
+
+/* Denna skugga gör att svarta loggor syns på mörk bakgrund utan att förstöra på vit */
+.sponsor-logo {
+    max-height: 100px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 1px rgba(255,255,255,0.4));
+    transition: filter 0.3s ease;
+}
+
 /* Färg-input fix */
 #header-color-input::-webkit-color-swatch-wrapper {
     padding: 0;

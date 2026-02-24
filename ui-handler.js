@@ -826,6 +826,7 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     if (!sponsorsContainer) return;
     sponsorsContainer.innerHTML = '';
     
+    // Sorteringslogik
     const sizeOrder = {'1/1': 1, '1/2': 2, '1/4': 3};
     sponsorsData.sort((a, b) => {
         const sizeDiff = sizeOrder[a.size] - sizeOrder[b.size];
@@ -835,17 +836,22 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
         return a.priority - b.priority;
     });
 
+    // Gruppering baserat på storlek
     const sponsorsByFull = sponsorsData.filter(s => s.size === '1/1');
     const sponsorsByHalf = sponsorsData.filter(s => s.size === '1/2');
     const sponsorsByQuarter = sponsorsData.filter(s => s.size === '1/4');
 
     const renderSponsorGroup = (group, className) => {
         return group.map(sponsor => {
+            // 1. Hämta bakgrundstyp från databasen, default till vit om det saknas
+            const bgClass = sponsor.bgType || 'bg-white';
+            
             const sponsorLink = sponsor.url ? `<a href="${sponsor.url}" target="_blank" rel="noopener noreferrer" class="block w-full h-full flex flex-col items-center justify-center">` : '';
             const closingTag = sponsor.url ? '</a>' : '';
             
+            // 2. Applicera bgClass i class-listan för div-elementet
             const sponsorHtml = `
-                <div class="card p-4 flex flex-col items-center justify-center text-center ${className}">
+                <div class="card p-4 flex flex-col items-center justify-center text-center ${className} ${bgClass}">
                     ${sponsorLink}
                         <img src="${sponsor.logoUrl}" alt="${sponsor.name}" class="sponsor-logo object-contain mb-2">
                         <h3 class="text-xl font-semibold">${sponsor.name}</h3>
@@ -863,9 +869,16 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
         }).join('');
     };
 
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByFull, 'sponsor-card-1-1')}</div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByHalf, 'sponsor-card-1-2')}</div>`;
-    sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
+    // Rendera grupperna
+    if (sponsorsByFull.length > 0) {
+        sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByFull, 'sponsor-card-1-1')}</div>`;
+    }
+    if (sponsorsByHalf.length > 0) {
+        sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByHalf, 'sponsor-card-1-2')}</div>`;
+    }
+    if (sponsorsByQuarter.length > 0) {
+        sponsorsContainer.innerHTML += `<div class="sponsors-grid-container">${renderSponsorGroup(sponsorsByQuarter, 'sponsor-card-1-4')}</div>`;
+    }
 }
 
 export function renderAdminsAndUsers(users, toggleStatusCallback) {
