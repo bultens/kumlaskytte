@@ -5,13 +5,14 @@ import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
 import { getVisitorStats } from "./data-service.js";
 
-// Ver. 1.7, sidor i News och rapporter
+// Ver. 1.8
 export let isAdminLoggedIn = false;
 export let loggedInAdminUsername = '';
+export let newsState = { currentPage: 1, year: 'all', itemsPerPage: 10 };
+export let compState = { currentPage: 1, year: 'all', itemsPerPage: 10 };
 
 let visitorChartInstance = null; // För att kunna förstöra och rita om grafen
-let newsState = { currentPage: 1, year: 'all', itemsPerPage: 10 };
-let compState = { currentPage: 1, year: 'all', itemsPerPage: 10 };
+
 let deviceChartInstance = null;
 
 export function showModal(modalId, message) {
@@ -246,7 +247,6 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
 
     paginatedItems.forEach(item => {
         const div = document.createElement('div');
-        // Lägg till id="comp-${item.id}" för att djuplänkar ska fungera
         div.id = `comp-${item.id}`;
         div.className = "card bg-white p-4 sm:p-6 shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-600 relative group mb-6";
         
@@ -291,11 +291,13 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
         container.appendChild(div);
     });
 
-    // 7. Rita ut pagineringsknapparna
+    // 7. Rita ut pagineringsknapparna för tävlingar
     renderPaginationUI('comp-pagination', filtered.length, compState.itemsPerPage, compState.currentPage, (newPage) => {
         compState.currentPage = newPage;
         renderCompetitions(competitionsData, isAdminLoggedIn);
-        document.getElementById('tavlingar').scrollIntoView({ behavior: 'smooth' });
+        // Scrolla mjukt upp till toppen av sektionen
+        const section = document.getElementById('tavlingar');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
     });
 }
 
@@ -542,7 +544,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
     const allNewsContainer = document.getElementById('all-news-container');
     const yearSelect = document.getElementById('news-year-filter');
 
-    // 1. Sortera all data (senaste först) - Säkerställ att det är en array
+    // 1. Sortera all data (senaste först)
     const sortedAll = (newsData && Array.isArray(newsData)) ? 
         [...newsData].sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
 
@@ -561,7 +563,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         });
     }
 
-    // 3. Rendera Startsidan (De 2 senaste) - Denna del ska INTE filtreras på år
+    // 3. Rendera Startsidan (De 2 senaste - filtreras INTE på år)
     if (homeNewsContainer) {
         homeNewsContainer.innerHTML = sortedAll.length === 0 ? 
             '<p class="text-gray-500 italic">Inga nyheter tillgängliga.</p>' : '';
@@ -587,6 +589,7 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
             allNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId);
         });
 
+        // Rita paginering för nyheter
         renderPaginationUI('news-pagination', filtered.length, newsState.itemsPerPage, newsState.currentPage, (newPage) => {
             newsState.currentPage = newPage;
             renderNews(newsData, isAdminLoggedIn, currentUserId);

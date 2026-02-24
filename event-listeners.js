@@ -4,7 +4,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
-import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists, showDeleteUserModal } from "./ui-handler.js";
+import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists, showDeleteUserModal,newsState, compState, renderNews, renderCompetitions } from "./ui-handler.js";
 import { handleImageUpload, handleSponsorUpload, setEditingImageId, setEditingSponsorId } from "./upload-handler.js";
 import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, checkEventForm } from './form-validation.js';
 import { loadAndRenderChart } from "./statistics-chart.js";
@@ -212,29 +212,31 @@ export function setupEventListeners() {
         });
     }
 
-    // Lyssnare för Nyhetsfilter
-    document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
-        import('./ui-handler.js').then(m => {
-            m.newsState.year = e.target.value; // Använd m.newsState
-            m.newsState.currentPage = 1;
-            m.renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
-        });
-    });
+// NYHETER: Filtrering och antal per sida
+document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
+    newsState.year = e.target.value;
+    newsState.currentPage = 1; // Gå alltid till sid 1 vid nytt filter
+    renderNews(newsData, isAdminLoggedIn);
+});
 
-    document.getElementById('news-per-page')?.addEventListener('change', (e) => {
-        import('./ui-handler.js').then(m => {
-            m.newsState.itemsPerPage = parseInt(e.target.value);
-            m.newsState.currentPage = 1;
-            m.renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
-        });
-    });
+document.getElementById('news-items-per-page')?.addEventListener('change', (e) => {
+    newsState.itemsPerPage = parseInt(e.target.value);
+    newsState.currentPage = 1;
+    renderNews(newsData, isAdminLoggedIn);
+});
 
-    // Samma för Tävlingar...
-    document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
-        compState.year = e.target.value;
-        compState.currentPage = 1;
-        renderCompetitions(competitionsData, isAdminLoggedIn);
-    });
+// TÄVLINGSRAPPORTER: Filtrering och antal per sida
+document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
+    compState.year = e.target.value;
+    compState.currentPage = 1;
+    renderCompetitions(competitionsData, isAdminLoggedIn);
+});
+
+document.getElementById('comp-items-per-page')?.addEventListener('change', (e) => {
+    compState.itemsPerPage = parseInt(e.target.value);
+    compState.currentPage = 1;
+    renderCompetitions(competitionsData, isAdminLoggedIn);
+});
 
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {
