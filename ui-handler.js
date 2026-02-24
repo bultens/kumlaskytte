@@ -183,6 +183,7 @@ export function toggleSponsorsNavLink(isVisible) {
 
 export function renderCompetitions(competitionsData, isAdminLoggedIn) {
     const container = document.getElementById('competitions-container');
+    const homeCompContainer = document.getElementById('home-competitions-container');
     const yearSelect = document.getElementById('comp-year-filter');
     const paginationContainer = document.getElementById('comp-pagination');
 
@@ -191,7 +192,27 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
     // 1. Sortera all data efter datum (senaste först)
     const sortedAll = [...competitionsData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // 2. Uppdatera års-dropdownen dynamiskt baserat på befintlig data
+    // 2. Uppdatera startsidan (de 2 senaste tävlingarna)
+    if (homeCompContainer) {
+        homeCompContainer.innerHTML = '';
+        sortedAll.slice(0, 2).forEach(item => {
+            const dateStr = new Date(item.date).toLocaleDateString('sv-SE', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            });
+            homeCompContainer.innerHTML += `
+                <a href="#tavlingar#comp-${item.id}" class="card block hover:shadow-lg transition border-l-4 border-blue-600 p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-900">${item.title}</h3>
+                            <p class="text-xs text-gray-500 mt-1">📅 ${dateStr} • 📍 ${item.location}</p>
+                        </div>
+                        <span class="text-blue-600 text-sm font-bold">Läs rapport →</span>
+                    </div>
+                </a>`;
+        });
+    }
+
+    // 3. Uppdatera års-dropdownen dynamiskt
     if (yearSelect && yearSelect.options.length <= 1) {
         const years = [...new Set(sortedAll.map(c => new Date(c.date).getFullYear()))].sort((a, b) => b - a);
         years.forEach(y => {
@@ -202,16 +223,16 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
         });
     }
 
-    // 3. Filtrera baserat på valt år
+    // 4. Filtrera baserat på valt år för arkivet
     const filtered = sortedAll.filter(item => {
         return compState.year === 'all' || new Date(item.date).getFullYear().toString() === compState.year;
     });
 
-    // 4. Beräkna sidor och plocka ut rätt inlägg
+    // 5. Beräkna sidor och plocka ut rätt inlägg
     const start = (compState.currentPage - 1) * compState.itemsPerPage;
     const paginatedItems = filtered.slice(start, start + compState.itemsPerPage);
 
-    // 5. Rendera inläggen
+    // 6. Rendera inläggen i arkivet
     container.innerHTML = '';
     
     if (paginatedItems.length === 0) {
@@ -225,9 +246,10 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
 
     paginatedItems.forEach(item => {
         const div = document.createElement('div');
-        div.className = "card bg-white p-4 sm:p-6 shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-600 relative group";
+        // Lägg till id="comp-${item.id}" för att djuplänkar ska fungera
+        div.id = `comp-${item.id}`;
+        div.className = "card bg-white p-4 sm:p-6 shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-600 relative group mb-6";
         
-        // Formatera datumet snyggt
         const formattedDate = new Date(item.date).toLocaleDateString('sv-SE', {
             year: 'numeric', month: 'long', day: 'numeric'
         });
@@ -269,12 +291,10 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
         container.appendChild(div);
     });
 
-    // 6. Rita ut pagineringsknapparna
-    // Vi använder samma hjälparfunktion renderPaginationUI som vi skapade för nyheterna
+    // 7. Rita ut pagineringsknapparna
     renderPaginationUI('comp-pagination', filtered.length, compState.itemsPerPage, compState.currentPage, (newPage) => {
         compState.currentPage = newPage;
         renderCompetitions(competitionsData, isAdminLoggedIn);
-        // Scrolla mjukt upp till toppen av sektionen
         document.getElementById('tavlingar').scrollIntoView({ behavior: 'smooth' });
     });
 }
@@ -517,15 +537,12 @@ function renderPaginationUI(containerId, totalItems, itemsPerPage, currentPage, 
     container.appendChild(nextBtn);
 }
 
-// UPPDATERAD renderNews
 export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
     const homeNewsContainer = document.getElementById('home-news-container');
     const allNewsContainer = document.getElementById('all-news-container');
     const yearSelect = document.getElementById('news-year-filter');
 
-    if (!allNewsContainer) return;
-
-    // 1. Sortera all data
+    // 1. Sortera all data (senaste först)
     const sortedAll = [...newsData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     // 2. Fyll års-dropdownen dynamiskt
@@ -538,40 +555,63 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         });
     }
 
-    // 3. Rendera Hem-sektionen (alltid de 2 senaste)
+    // Hjälpfunktion för att skapa ett nyhetskort
+    const createNewsCard = (item) => {
+        const likes = item.likes || {};
+        const likeCount = Object.keys(likes).length;
+        const userHasLiked = currentUserId && likes[currentUserId];
+        const url = `${window.location.href.split('#')[0]}#nyheter#news-${item.id}`;
+
+        return `
+            <div class="card h-full flex flex-col sm:flex-row gap-4" id="news-${item.id}">
+                <div class="flex-grow">
+                    <h3 class="text-xl font-bold mb-1">${item.title}</h3>
+                    <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
+                    <div class="markdown-content text-gray-700 text-sm line-clamp-3">${item.content}</div>
+                    <div class="flex items-center space-x-2 mt-4">
+                        <button class="like-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition ${userHasLiked ? 'text-blue-600 font-bold' : ''}" data-id="${item.id}" data-type="news">
+                            👍 <span>${likeCount}</span>
+                        </button>
+                        <button class="share-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition" data-id="${item.id}" data-type="news" data-title="${item.title}">
+                            🔗 Dela
+                        </button>
+                        ${isAdminLoggedIn ? `
+                            <button class="edit-news-btn text-xs bg-gray-500 text-white px-2 py-1 rounded" data-id="${item.id}">Ändra</button>
+                            <button class="delete-btn text-xs bg-red-500 text-white px-2 py-1 rounded" data-id="${item.id}" data-type="news">Ta bort</button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>`;
+    };
+
+    // 3. Rendera Hem-sektionen (de 2 senaste)
     if (homeNewsContainer) {
         homeNewsContainer.innerHTML = '';
         sortedAll.slice(0, 2).forEach(item => {
-            // ... (Klistra in din befintliga kod här som skapar korten för hem-nyheter) ...
+            homeNewsContainer.innerHTML += createNewsCard(item);
         });
     }
 
-    // 4. Filtrera nyheter för arkivet baserat på newsState
-    const filtered = sortedAll.filter(item => {
-        return newsState.year === 'all' || new Date(item.date).getFullYear().toString() === newsState.year;
-    });
+    // 4. Filtrera nyheter för arkivet
+    if (allNewsContainer) {
+        const filtered = sortedAll.filter(item => {
+            return newsState.year === 'all' || new Date(item.date).getFullYear().toString() === newsState.year;
+        });
 
-    // 5. Beräkna sidor
-    const start = (newsState.currentPage - 1) * newsState.itemsPerPage;
-    const paginatedItems = filtered.slice(start, start + newsState.itemsPerPage);
+        const start = (newsState.currentPage - 1) * newsState.itemsPerPage;
+        const paginatedItems = filtered.slice(start, start + newsState.itemsPerPage);
 
-    // 6. Rendera arkivet
-    allNewsContainer.innerHTML = '';
-    if (paginatedItems.length === 0) {
-        allNewsContainer.innerHTML = '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades.</p>';
+        allNewsContainer.innerHTML = paginatedItems.length === 0 ? '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades.</p>' : '';
+        paginatedItems.forEach(item => {
+            allNewsContainer.innerHTML += createNewsCard(item);
+        });
+
+        renderPaginationUI('news-pagination', filtered.length, newsState.itemsPerPage, newsState.currentPage, (newPage) => {
+            newsState.currentPage = newPage;
+            renderNews(newsData, isAdminLoggedIn, currentUserId);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
     }
-
-    paginatedItems.forEach(item => {
-        // ... (Klistra in din befintliga kod här som skapar korten för arkiv-nyheter) ...
-        // KOM IHÅG att byta från "news.forEach" till "paginatedItems.forEach"
-    });
-
-    // 7. Rendera Paginering
-    renderPaginationUI('news-pagination', filtered.length, newsState.itemsPerPage, newsState.currentPage, (newPage) => {
-        newsState.currentPage = newPage;
-        renderNews(newsData, isAdminLoggedIn, currentUserId);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
 }
 
 export function renderEvents(eventsData, isAdminLoggedIn) {
