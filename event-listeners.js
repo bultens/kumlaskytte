@@ -219,7 +219,7 @@ document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
     renderNews(newsData, isAdminLoggedIn);
 });
 
-document.getElementById('news-items-per-page')?.addEventListener('change', (e) => {
+document.getElementById('news-per-page')?.addEventListener('change', (e) => {
     newsState.itemsPerPage = parseInt(e.target.value);
     newsState.currentPage = 1;
     renderNews(newsData, isAdminLoggedIn);
@@ -232,7 +232,7 @@ document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
     renderCompetitions(competitionsData, isAdminLoggedIn);
 });
 
-document.getElementById('comp-items-per-page')?.addEventListener('change', (e) => {
+document.getElementById('comp-per-page')?.addEventListener('change', (e) => {
     compState.itemsPerPage = parseInt(e.target.value);
     compState.currentPage = 1;
     renderCompetitions(competitionsData, isAdminLoggedIn);
