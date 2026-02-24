@@ -779,16 +779,14 @@ if (addShooterForm) {
         });
     }
 
-    if (addSponsorForm) {
-        addSponsorForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // Skicka med editingSponsorId som ett argument här!
-            await handleSponsorUpload(e, editingSponsorId); 
-            
-            // Nollställ efteråt (valfritt men bra)
-            editingSponsorId = null; 
-        });
-    }
+if (addSponsorForm) {
+    addSponsorForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        // Anropa funktionen utan att skicka med editingSponsorId som variabel.
+        // handleSponsorUpload i upload-handler.js läser nu ID:t själv inifrån sin egen fil.
+        await handleSponsorUpload(e);
+    });
+}
 
     function checkCompForm() {
         if (compTitleInput.value && document.getElementById('comp-date').value) {
