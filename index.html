@@ -201,11 +201,27 @@
         </section>
 
         <section id="nyheter" class="page">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Alla Nyheter</h1>
-            <div id="all-news-container" class="space-y-4 sm:space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold">Nyhetsarkiv</h1>
+                
+                <div class="flex flex-wrap gap-2 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+                    <select id="news-year-filter" class="text-sm border-none focus:ring-0 cursor-pointer bg-transparent font-medium">
+                        <option value="all">Alla år</option>
+                    </select>
+                    <div class="w-px h-6 bg-gray-200 hidden sm:block"></div>
+                    <select id="news-per-page" class="text-sm border-none focus:ring-0 cursor-pointer bg-transparent font-medium">
+                        <option value="5">5 per sida</option>
+                        <option value="10" selected>10 per sida</option>
+                        <option value="20">20 per sida</option>
+                    </select>
+                </div>
             </div>
             
-            <div class="card mt-4 sm:mt-6 hidden" id="news-edit-section">
+            <div id="all-news-container" class="space-y-6"></div>
+
+            <div id="news-pagination" class="flex justify-center mt-10 gap-2"></div>
+            
+            <div class="card mt-12 hidden admin-only" id="news-edit-section">
                 <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" id="news-form-title">Lägg till Nyhet</h2>
                 <form id="add-news-form">
                     <label for="news-title" class="block mb-2 font-semibold text-sm sm:text-base">Titel</label>
@@ -230,13 +246,30 @@
         </section>
 
         <section id="tavlingar" class="page">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Tävlingsresultat</h1>
-            <p class="mb-4 sm:mb-6 text-gray-700 text-sm sm:text-base">Här hittar du rapporter och resultatlistor från tävlingar vi deltagit i.</p>
-            
-            <div id="competitions-container" class="space-y-4 sm:space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold">Tävlingsrapporter</h1>
+                    <p class="text-gray-600 text-sm mt-1">Resultatlistor och sammanfattningar från våra tävlingar.</p>
+                </div>
+                
+                <div class="flex flex-wrap gap-2 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+                    <select id="comp-year-filter" class="text-sm border-none focus:ring-0 cursor-pointer bg-transparent font-medium">
+                        <option value="all">Alla år</option>
+                    </select>
+                    <div class="w-px h-6 bg-gray-200 hidden sm:block"></div>
+                    <select id="comp-per-page" class="text-sm border-none focus:ring-0 cursor-pointer bg-transparent font-medium">
+                        <option value="5">5 per sida</option>
+                        <option value="10" selected>10 per sida</option>
+                        <option value="20">20 per sida</option>
+                    </select>
+                </div>
             </div>
+            
+            <div id="competitions-container" class="space-y-6"></div>
 
-            <div class="card mt-4 sm:mt-6 hidden" id="competition-edit-section">
+            <div id="comp-pagination" class="flex justify-center mt-10 gap-2"></div>
+
+            <div class="card mt-12 hidden admin-only" id="competition-edit-section">
                 <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" id="competition-form-title">Lägg till Tävlingsrapport</h2>
                 <form id="add-competition-form">
                     <label for="comp-title" class="block mb-2 font-semibold text-sm sm:text-base">Tävlingens namn</label>
@@ -560,6 +593,22 @@
                             <canvas id="hourlyChart"></canvas>
                         </div>
                         <p class="text-[10px] text-gray-400 mt-2 italic text-center">Visar genomsnittlig trafikfördelning över dygnet för vald period.</p>
+                        <h2 class="text-xl font-bold mt-8 mb-4 flex items-center text-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Enhetsfördelning (Skärmbredd)
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 flex flex-col items-center">
+                                <div class="w-full h-[250px]">
+                                    <canvas id="deviceChart"></canvas>
+                                </div>
+                                <p class="text-[10px] text-gray-400 mt-2 italic">Baserat på vald tidsperiod i filtret ovan.</p>
+                            </div>
+                            <div id="device-stats-legend" class="flex flex-col justify-center space-y-2">
+                                </div>
+                        </div>
 
                 <div class="card mt-4 sm:mt-6">
                     <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Webbplatsinställningar</h2>

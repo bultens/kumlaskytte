@@ -493,16 +493,24 @@ function getSessionId() {
     return id;
 }
 
+// Hitta trackVisitor i data-service.js och uppdatera den till detta:
 export async function trackVisitor() {
     try {
         const now = new Date();
         const today = getTodayString();
-        const hour = now.getHours().toString(); // Ex: "14"
+        const hour = now.getHours().toString();
         const sessionId = getSessionId();
         const sessionKey = `v_${today}_${sessionId}`;
         
         if (sessionStorage.getItem(sessionKey)) return;
         sessionStorage.setItem(sessionKey, 'true');
+
+        // --- NY LOGIK FÖR SKÄRMBREDD ---
+        const width = window.innerWidth;
+        let deviceCategory = 'Desktop';
+        if (width < 640) deviceCategory = 'Mobil';
+        else if (width < 1024) deviceCategory = 'Surfplatta';
+        // ------------------------------
 
         const batch = writeBatch(db);
         const totalRef = doc(db, 'statistics', 'totals');
@@ -510,12 +518,15 @@ export async function trackVisitor() {
 
         const dailyRef = doc(db, 'statistics', 'dailyLog', 'days', today);
         
-        // FIX: Använd objekt-syntax för att skapa/merga i en Map
         batch.set(dailyRef, { 
             count: increment(1),
             date: today,
             hourlyDistribution: {
-                [hour]: increment(1) // Skapar en Map där timmen är nyckeln
+                [hour]: increment(1)
+            },
+            // SPARA ENHETSTYP
+            deviceDistribution: {
+                [deviceCategory]: increment(1)
             }
         }, { merge: true });
 
