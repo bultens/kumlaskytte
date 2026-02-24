@@ -221,6 +221,7 @@ document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
 
 // ÄNDRAD: Använder nu rätt ID 'news-per-page'
 document.getElementById('news-per-page')?.addEventListener('change', (e) => {
+    console.log("Ändrar antal nyheter till:", e.target.value);
     newsState.itemsPerPage = parseInt(e.target.value);
     newsState.currentPage = 1;
     renderNews(newsData, isAdminLoggedIn);
