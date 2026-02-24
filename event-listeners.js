@@ -215,10 +215,11 @@ export function setupEventListeners() {
 // NYHETER: Filtrering och antal per sida
 document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
     newsState.year = e.target.value;
-    newsState.currentPage = 1; // Gå alltid till sid 1 vid nytt filter
+    newsState.currentPage = 1; 
     renderNews(newsData, isAdminLoggedIn);
 });
 
+// ÄNDRAD: Använder nu rätt ID 'news-per-page'
 document.getElementById('news-per-page')?.addEventListener('change', (e) => {
     newsState.itemsPerPage = parseInt(e.target.value);
     newsState.currentPage = 1;
@@ -232,6 +233,7 @@ document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
     renderCompetitions(competitionsData, isAdminLoggedIn);
 });
 
+// ÄNDRAD: Använder nu rätt ID 'comp-per-page'
 document.getElementById('comp-per-page')?.addEventListener('change', (e) => {
     compState.itemsPerPage = parseInt(e.target.value);
     compState.currentPage = 1;
