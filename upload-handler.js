@@ -121,23 +121,22 @@ export async function handleImageUpload(e) {
 }
 
 export async function handleSponsorUpload(e) {
-    // 1. Behörighetskontroll
     if (!isAdminLoggedIn) {
         showModal('errorModal', "Du har inte behörighet att utföra denna åtgärd.");
         return;
     }
     
-    // 2. Hämta alla värden från formuläret
+    // Hämta värden från formuläret
     const sponsorName = document.getElementById('sponsor-name').value;
     const sponsorExtraText = document.getElementById('sponsor-extra-text').value;
     const sponsorUrl = document.getElementById('sponsor-url').value;
     const sponsorLogoUrl = document.getElementById('sponsor-logo-url').value;
     const sponsorPriority = parseInt(document.getElementById('sponsor-priority').value);
     const sponsorSize = document.getElementById('sponsor-size').value;
-    const sponsorBgType = document.getElementById('sponsor-bg-type').value; // NY: Hämtar bakgrundsvalet
+    const sponsorBgType = document.getElementById('sponsor-bg-type').value; // Hämta bakgrundstyp
     const file = document.getElementById('sponsor-logo-upload').files[0];
     
-    // 3. Validering för nya sponsorer
+    // Validering: Om vi inte redigerar krävs namn, prio och logga
     if (!editingSponsorId && (!sponsorName || isNaN(sponsorPriority) || (sponsorLogoUrl === "" && !file))) {
         showModal('errorModal', "Sponsornamn, prioritet och logotyp krävs.");
         return;
@@ -146,7 +145,6 @@ export async function handleSponsorUpload(e) {
     let finalLogoUrl = sponsorLogoUrl;
     let storagePath = null;
     
-    // 4. Skapa objektet som ska sparas
     const sponsorObject = {
         name: sponsorName,
         extraText: sponsorExtraText,
@@ -154,13 +152,12 @@ export async function handleSponsorUpload(e) {
         logoUrl: finalLogoUrl,
         priority: sponsorPriority,
         size: sponsorSize,
-        bgType: sponsorBgType, // Sparar bakgrunden (bg-white/bg-black) i Firestore
+        bgType: sponsorBgType, // Sparas i Firestore
         storagePath: storagePath,
         createdAt: editingSponsorId ? null : serverTimestamp(),
         updatedAt: serverTimestamp()
     };
     
-    // 5. Hantera filuppladdning om en ny bild valts
     if (file) {
         const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
         if (file.size > MAX_IMAGE_SIZE) {
@@ -209,11 +206,11 @@ export async function handleSponsorUpload(e) {
         }
     }
     
-    // 6. Spara till Firestore (Här används editingSponsorId för att undvika dubbletter)
-    const successMsg = editingSponsorId ? "Sponsorn har uppdaterats!" : "Sponsorn har lagts till!";
-    await addOrUpdateDocument('sponsors', editingSponsorId, sponsorObject, successMsg, "Ett fel uppstod när sponsorn skulle hanteras.");
+    // Använd editingSponsorId för att veta om det är en uppdatering eller ny post
+    const successMessage = editingSponsorId ? "Sponsorn har uppdaterats!" : "Sponsorn har lagts till!";
+    await addOrUpdateDocument('sponsors', editingSponsorId, sponsorObject, successMessage, "Ett fel uppstod när sponsorn skulle hanteras.");
 
-    // 7. Återställ formuläret och UI efter lyckad sparning
+    // Reset form
     const addSponsorForm = document.getElementById('add-sponsor-form');
     if (addSponsorForm) {
         addSponsorForm.reset();
@@ -227,6 +224,5 @@ export async function handleSponsorUpload(e) {
         document.getElementById('clear-sponsor-logo-upload').classList.add('hidden');
     }
 
-    // 8. Nollställ redigerings-ID
-    editingSponsorId = null;
+    editingSponsorId = null; // Nollställ redigerings-ID
 }
