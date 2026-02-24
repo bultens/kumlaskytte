@@ -221,10 +221,12 @@ document.getElementById('news-year-filter')?.addEventListener('change', (e) => {
 
 // ÄNDRAD: Använder nu rätt ID 'news-per-page'
 document.getElementById('news-per-page')?.addEventListener('change', (e) => {
-    console.log("Ändrar antal nyheter till:", e.target.value);
-    newsState.itemsPerPage = parseInt(e.target.value);
+    const val = parseInt(e.target.value);
+    console.log("Uppdaterar newsState till:", val);
+    newsState.itemsPerPage = val;
     newsState.currentPage = 1;
-    renderNews(newsData, isAdminLoggedIn);
+    // Skicka med auth.currentUser?.uid som tredje argument
+    renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
 });
 
 // TÄVLINGSRAPPORTER: Filtrering och antal per sida
@@ -234,9 +236,10 @@ document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
     renderCompetitions(competitionsData, isAdminLoggedIn);
 });
 
-// ÄNDRAD: Använder nu rätt ID 'comp-per-page'
 document.getElementById('comp-per-page')?.addEventListener('change', (e) => {
-    compState.itemsPerPage = parseInt(e.target.value);
+    const val = parseInt(e.target.value);
+    console.log("Uppdaterar compState till:", val);
+    compState.itemsPerPage = val;
     compState.currentPage = 1;
     renderCompetitions(competitionsData, isAdminLoggedIn);
 });
