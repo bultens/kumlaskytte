@@ -112,36 +112,61 @@
 
     <main class="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
-        <section id="hem" class="page active">
-            <div class="bg-blue-100 p-4 sm:p-6 md:p-8 rounded-xl text-center mb-6 sm:mb-8">
-                <h1 class="text-xl sm:text-2xl md:text-4xl font-extrabold text-blue-900 mb-3 sm:mb-4">Välkommen till Kumla Skytteförening!</h1>
-                <p class="text-sm sm:text-base md:text-lg text-blue-700">Vi är en klubb för entusiaster av skytte. Här kan du hitta information om vår historia, nyheter och kommande evenemang.</p><BR>
-                     <p class="text-sm sm:text-base md:text-lg text-blue-700">Skapa en användare till sidan så kan du spara dina resultat, klicka knappen "Logga in" för att logga in eller skapa en användare.</p>
-            </div>
-            
-           <div id="achievements-section" class="hidden mb-8 sm:mb-12 bg-white p-4 sm:p-6 rounded-xl shadow-md border-t-4 border-yellow-400 cursor-pointer hover:bg-gray-50 transition">
-                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-gray-800 flex items-center justify-between flex-wrap gap-2">
-                    <span><span class="text-2xl sm:text-3xl mr-2">🏆</span> Senaste Prestationerna</span>
-                    <span class="text-xs sm:text-sm font-normal text-blue-600 bg-blue-50 px-2 sm:px-3 py-1 rounded-full">Klicka för topplistor &rarr;</span>
-                </h2>
-                <p class="text-gray-600 mb-3 sm:mb-4 text-xs sm:text-sm">Medaljresultat från medlemmar de senaste 30 dagarna.</p>
-                <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    <p class="text-gray-500 italic text-sm">Laddar prestationer...</p>
-                </div>
-            </div>
+<section id="hem" class="page active">
+    <div class="bg-blue-100 p-4 sm:p-6 md:p-8 rounded-xl text-center mb-6 sm:mb-8">
+        <h1 class="text-xl sm:text-2xl md:text-4xl font-extrabold text-blue-900 mb-3 sm:mb-4">Välkommen till Kumla Skytteförening!</h1>
+        <p class="text-sm sm:text-base md:text-lg text-blue-700">Vi är en klubb för entusiaster av skytte. Här kan du hitta information om vår historia, nyheter och kommande händelser.</p>
+        <br>
+        <p class="text-sm sm:text-base md:text-lg text-blue-700 font-medium">Logga in eller skapa ett konto för att spara dina resultat och se klubbstatistik.</p>
+    </div>
+    
+    <div id="achievements-section" class="hidden mb-8 sm:mb-12 bg-white p-4 sm:p-6 rounded-xl shadow-md border-t-4 border-yellow-400 cursor-pointer hover:bg-gray-50 transition">
+        <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-gray-800 flex justify-between items-center">
+            <span><span class="text-2xl sm:text-3xl mr-2">🏆</span> Senaste Prestationerna</span>
+            <span class="text-blue-600 text-sm hidden sm:inline">Visa alla →</span>
+        </h2>
+        <p class="text-gray-600 mb-4 text-xs sm:text-sm">Medaljresultat från medlemmar de senaste 30 dagarna.</p>
+        <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <p class="text-gray-500 italic text-sm">Laddar prestationer...</p>
+        </div>
+    </div>
 
-            <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">Senaste Nyheterna</h2>
-            <div id="home-news-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            </div>
-            
-            <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4">Kommande Evenemang</h2>
-            <div id="home-events-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            </div>
+    <div class="mb-10">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 flex items-center">
+            <span class="mr-2">📰</span> Senaste Nyheterna
+        </h2>
+        <div id="home-news-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"></div>
+        <div class="mt-4 flex justify-start">
+            <a href="#nyheter" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all duration-300 rounded-lg font-bold text-sm shadow-sm border border-blue-100">
+                Se fler nyheter <span class="ml-2">→</span>
+            </a>
+        </div>
+    </div>
+    
+    <div class="mb-10">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 flex items-center">
+            <span class="mr-2">📅</span> Kommande Händelser
+        </h2>
+        <div id="home-events-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"></div>
+        <div class="mt-4 flex justify-start">
+            <a href="#kalender" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all duration-300 rounded-lg font-bold text-sm shadow-sm border border-blue-100">
+                Öppna kalendern <span class="ml-2">→</span>
+            </a>
+        </div>
+    </div>
 
-            <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4">Senaste Tävlingsresultat</h2>
-            <div id="home-competitions-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            </div>
-        </section>
+    <div class="mb-10">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-4 flex items-center">
+            <span class="mr-2">🎯</span> Senaste Tävlingsrapporter
+        </h2>
+        <div id="home-competitions-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"></div>
+        <div class="mt-4 flex justify-start">
+            <a href="#tavlingar" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all duration-300 rounded-lg font-bold text-sm shadow-sm border border-blue-100">
+                Läs fler rapporter <span class="ml-2">→</span>
+            </a>
+        </div>
+    </div>
+</section>
 
         <section id="omoss" class="page">
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Om oss</h1>
