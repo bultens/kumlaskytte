@@ -544,11 +544,9 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
     const allNewsContainer = document.getElementById('all-news-container');
     const yearSelect = document.getElementById('news-year-filter');
 
-    // 1. Sortera all data (senaste först)
     const sortedAll = (newsData && Array.isArray(newsData)) ? 
         [...newsData].sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
 
-    // 2. Fyll års-dropdownen dynamiskt (körs bara om den är tom)
     if (yearSelect && yearSelect.options.length <= 1 && sortedAll.length > 0) {
         const years = [...new Set(sortedAll.map(n => {
             const d = new Date(n.date);
@@ -563,16 +561,16 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         });
     }
 
-    // 3. Rendera Startsidan (De 2 senaste - filtreras INTE på år)
+    // STARTSIDAN - Skicka med "true" som sista argument för att indikera att det är startsidan
     if (homeNewsContainer) {
         homeNewsContainer.innerHTML = sortedAll.length === 0 ? 
             '<p class="text-gray-500 italic">Inga nyheter tillgängliga.</p>' : '';
         sortedAll.slice(0, 2).forEach(item => {
-            homeNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId);
+            homeNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId, true);
         });
     }
 
-    // 4. Rendera Arkivet (Filtrerat och Paginerat)
+    // NYHETSSIDAN - Skicka med "false" som sista argument
     if (allNewsContainer) {
         const filtered = sortedAll.filter(item => {
             if (!newsState.year || newsState.year === 'all') return true;
@@ -586,10 +584,9 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
             '<p class="text-gray-500 italic p-8 text-center">Inga nyheter hittades för valt år.</p>' : '';
         
         paginatedItems.forEach(item => {
-            allNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId);
+            allNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId, false);
         });
 
-        // Rita paginering för nyheter
         renderPaginationUI('news-pagination', filtered.length, newsState.itemsPerPage, newsState.currentPage, (newPage) => {
             newsState.currentPage = newPage;
             renderNews(newsData, isAdminLoggedIn, currentUserId);
@@ -598,18 +595,30 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
     }
 }
 
-const createNewsCard = (item, isAdminLoggedIn, currentUserId) => {
+// NY VERSION AV createNewsCard
+const createNewsCard = (item, isAdminLoggedIn, currentUserId, isStartPage = false) => {
     const likes = item.likes || {};
     const likeCount = Object.keys(likes).length;
     const userHasLiked = currentUserId && likes[currentUserId];
-    const url = `${window.location.href.split('#')[0]}#nyheter#news-${item.id}`;
 
+    // Om det är på startsidan: Klickbart kort, förkortad text
+    if (isStartPage) {
+        return `
+            <a href="#nyheter#news-${item.id}" class="card block hover:shadow-lg transition border-l-4 border-blue-600 p-4 home-news-post" id="home-news-${item.id}">
+                <h3 class="text-xl font-bold mb-1 text-gray-900">${item.title}</h3>
+                <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
+                <div class="markdown-content text-gray-700 text-sm line-clamp-3 mb-2">${item.content}</div>
+                <span class="text-blue-600 text-sm font-bold">Läs hela nyheten →</span>
+            </a>`;
+    }
+
+    // Om det är på nyhetssidan: Full text (ingen line-clamp), gilla/dela-knappar
     return `
         <div class="card h-full flex flex-col sm:flex-row gap-4" id="news-${item.id}">
             <div class="flex-grow">
                 <h3 class="text-xl font-bold mb-1">${item.title}</h3>
                 <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
-                <div class="markdown-content text-gray-700 text-sm line-clamp-3">${item.content}</div>
+                <div class="markdown-content text-gray-700 text-sm">${item.content}</div>
                 <div class="flex items-center space-x-2 mt-4">
                     <button class="like-btn text-sm px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition ${userHasLiked ? 'text-blue-600 font-bold' : ''}" data-id="${item.id}" data-type="news">
                         👍 <span>${likeCount}</span>
