@@ -568,6 +568,15 @@ export function renderNews(newsData, isAdminLoggedIn, currentUserId) {
         sortedAll.slice(0, 2).forEach(item => {
             homeNewsContainer.innerHTML += createNewsCard(item, isAdminLoggedIn, currentUserId, true);
         });
+
+        // MOBILFIX: Sätt lyssnaren direkt på korten efter att de skapats
+        const newsCards = homeNewsContainer.querySelectorAll('.home-news-post');
+        newsCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const targetHash = card.getAttribute('data-href');
+                if (targetHash) window.location.hash = targetHash;
+            });
+        });
     }
 
     // NYHETSSIDAN - Skicka med "false" som sista argument
@@ -604,11 +613,11 @@ const createNewsCard = (item, isAdminLoggedIn, currentUserId, isStartPage = fals
     // Om det är på startsidan: Klickbart kort, förkortad text
     if (isStartPage) {
         return `
-            <div data-href="#nyheter#news-${item.id}" class="card block hover:shadow-lg transition border-l-4 border-blue-600 p-4 home-news-post cursor-pointer" id="home-news-${item.id}">
+            <div data-href="#nyheter#news-${item.id}" role="button" tabindex="0" class="card block hover:shadow-lg transition border-l-4 border-blue-600 p-4 home-news-post cursor-pointer touch-manipulation focus:outline-none focus:ring-2 focus:ring-blue-500" id="home-news-${item.id}">
                 <h3 class="text-xl font-bold mb-1 text-gray-900">${item.title}</h3>
                 <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
                 <div class="markdown-content text-gray-700 text-sm line-clamp-3 mb-2 pointer-events-none">${item.content}</div>
-                <span class="text-blue-600 text-sm font-bold mt-2 inline-block">Läs hela nyheten →</span>
+                <span class="text-blue-600 text-sm font-bold mt-2 inline-block pointer-events-none">Läs hela nyheten →</span>
             </div>`;
     }
 
