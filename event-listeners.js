@@ -1216,11 +1216,19 @@ if (addSponsorForm) {
         const shareBtn = e.target.closest('.share-btn');
         if (shareBtn) {
             const docId = shareBtn.getAttribute('data-id');
-            const docType = shareBtn.getAttribute('data-type'); // news eller competitions
+            const docType = shareBtn.getAttribute('data-type'); // news, competitions eller history
             const title = shareBtn.getAttribute('data-title');
             
             // Skapa länk baserat på typ
-            const pageHash = (docType === 'news') ? '#nyheter#news-' : '#tavlingar#comp-';
+            let pageHash = '';
+            if (docType === 'news') {
+                pageHash = '#nyheter#news-';
+            } else if (docType === 'competitions') {
+                pageHash = '#tavlingar#comp-';
+            } else if (docType === 'history') {
+                pageHash = '#omoss#history-';
+            }
+            
             const url = `${window.location.href.split('#')[0]}${pageHash}${docId}`;
             
             showShareModal(title, url);
