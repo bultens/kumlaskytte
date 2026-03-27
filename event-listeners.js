@@ -132,7 +132,16 @@ export function setupEventListeners() {
             window.location.hash = '#topplistor';
         });
     }
-
+        // Klick-funktion för nyhetskorten på startsidan
+        document.addEventListener('click', (e) => {
+            const newsCard = e.target.closest('.home-news-post');
+            if (newsCard) {
+                const targetHash = newsCard.getAttribute('data-href');
+                if (targetHash) {
+                    window.location.hash = targetHash;
+                }
+            }
+        });
         // 1. Lyssna på klick på bilder i galleriet
         document.addEventListener('click', (e) => {
             const galleryItem = e.target.closest('.gallery-item');

@@ -604,7 +604,7 @@ const createNewsCard = (item, isAdminLoggedIn, currentUserId, isStartPage = fals
     // Om det är på startsidan: Klickbart kort, förkortad text
     if (isStartPage) {
         return `
-            <div onclick="window.location.hash='#nyheter#news-${item.id}'" class="card block hover:shadow-lg transition border-l-4 border-blue-600 p-4 home-news-post cursor-pointer" id="home-news-${item.id}">
+            <div data-href="#nyheter#news-${item.id}" class="card block hover:shadow-lg transition border-l-4 border-blue-600 p-4 home-news-post cursor-pointer" id="home-news-${item.id}">
                 <h3 class="text-xl font-bold mb-1 text-gray-900">${item.title}</h3>
                 <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
                 <div class="markdown-content text-gray-700 text-sm line-clamp-3 mb-2 pointer-events-none">${item.content}</div>
