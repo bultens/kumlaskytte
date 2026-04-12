@@ -10,7 +10,7 @@ import { checkNewsForm, checkHistoryForm, checkImageForm, checkSponsorForm, chec
 import { loadAndRenderChart } from "./statistics-chart.js";
 import { signOut } from "./auth.js";
 
-// Ver. 2.2
+// Ver. 2.3
 let editingNewsId = null;
 let editingHistoryId = null;
 let editingImageId = null;
@@ -52,6 +52,7 @@ export function setupEventListeners() {
     const imageYearInput = document.getElementById('image-year');
     const imageMonthInput = document.getElementById('image-month');
     const imagePriorityInput = document.getElementById('image-priority');
+    const imageDescriptionInput = document.getElementById('image-description'); // NY
     const sponsorNameInput = document.getElementById('sponsor-name');
     const sponsorExtraText = document.getElementById('sponsor-extra-text');
     const sponsorUrlInput = document.getElementById('sponsor-url');
@@ -135,15 +136,15 @@ export function setupEventListeners() {
 
         // 1. Lyssna på klick på bilder i galleriet
         document.addEventListener('click', (e) => {
-            const galleryItem = e.target.closest('.gallery-item');
-            
-            // Öppna bara om man INTE klickade på ändra/ta bort-knapparna
-            if (galleryItem && !e.target.closest('.edit-image-btn') && !e.target.closest('.delete-btn')) {
-                const url = galleryItem.dataset.url;
-                const title = galleryItem.dataset.title;
-                import('./ui-handler.js').then(m => m.showLightbox(url, title));
-            }
-        });
+    const galleryItem = e.target.closest('.gallery-item');
+    
+    if (galleryItem && !e.target.closest('.edit-image-btn') && !e.target.closest('.delete-btn')) {
+        const url = galleryItem.dataset.url;
+        const title = galleryItem.dataset.title;
+        const description = galleryItem.dataset.description; // HÄMTA BESKRIVNING
+        import('./ui-handler.js').then(m => m.showLightbox(url, title, description));
+    }
+});
 
         // 2. Stäng modalen oavsett var man klickar (Bild eller bakgrund)
         const lightboxModal = document.getElementById('lightboxModal');
@@ -152,7 +153,7 @@ export function setupEventListeners() {
                 import('./ui-handler.js').then(m => m.hideModal('lightboxModal'));
             });
         }
-
+    
 
     if (addClassForm) {
         addClassForm.addEventListener('submit', async (e) => {
@@ -1068,25 +1069,46 @@ if (addSponsorForm) {
                 }, 100);
             }
         }
+        // ÄNDRA BILD - Komplett sektion
         const editImageBtn = e.target.closest('.edit-image-btn');
         if (editImageBtn) {
             const imageId = editImageBtn.getAttribute('data-id');
             const imageItem = imageData.find(i => i.id === imageId);
             if (imageItem) {
+                // Sätt ID för redigering i upload-handler
                 setEditingImageId(imageId);
+                
+                // Fyll i alla formulärfält inklusive den nya beskrivningen
                 document.getElementById('image-title').value = imageItem.title;
+                
+                // NYTT: Hantera beskrivningsfältet
+                const descInput = document.getElementById('image-description');
+                if (descInput) {
+                    descInput.value = imageItem.description || '';
+                }
+                
                 document.getElementById('image-url').value = imageItem.url;
                 document.getElementById('image-year').value = imageItem.year;
                 document.getElementById('image-month').value = imageItem.month;
                 document.getElementById('image-priority').value = imageItem.priority || 10;
+                
+                // Uppdatera UI för att visa att vi redigerar
                 document.getElementById('image-form-title').textContent = 'Ändra Bild';
-                addImageBtn.textContent = 'Spara ändring';
-                addImageBtn.disabled = false;
-                addImageBtn.classList.remove('bg-gray-400');
-                addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                const addImageBtn = document.getElementById('add-image-btn');
+                if (addImageBtn) {
+                    addImageBtn.textContent = 'Spara ändring';
+                    addImageBtn.disabled = false;
+                    addImageBtn.classList.remove('bg-gray-400');
+                    addImageBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }
+                
+                // Navigera till galleriet och scrolla till formuläret
                 navigate('#bilder');
                 setTimeout(() => {
-                    document.getElementById('image-edit-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const editSection = document.getElementById('image-edit-section');
+                    if (editSection) {
+                        editSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 }, 100);
             }
         }

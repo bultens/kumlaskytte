@@ -1,4 +1,3 @@
-
 // upload-handler.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { showModal, isAdminLoggedIn } from "./ui-handler.js";
@@ -6,7 +5,7 @@ import { addOrUpdateDocument } from "./data-service.js";
 import { auth } from "./main.js";
 import { serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Ver. 1.06
+// Ver. 1.07 - Lagt till stöd för bildbeskrivning
 export let editingImageId = null;
 export let editingSponsorId = null;
 
@@ -25,6 +24,7 @@ export async function handleImageUpload(e) {
     }
     
     const imageTitle = document.getElementById('image-title').value;
+    const imageDescription = document.getElementById('image-description').value; // NY
     const imageUrl = document.getElementById('image-url').value;
     const imageYear = parseInt(document.getElementById('image-year').value);
     const imageMonth = parseInt(document.getElementById('image-month').value);
@@ -41,14 +41,16 @@ export async function handleImageUpload(e) {
     
     const imageObject = {
         title: imageTitle,
+        description: imageDescription, // NY
         url: finalImageUrl,
         year: imageYear,
         month: imageMonth,
         priority: imagePriority || 10,
-        createdAt: editingImageId ? null : serverTimestamp(),
         updatedAt: editingImageId ? serverTimestamp() : null
     };
-
+    if (!editingImageId) {
+    imageObject.createdAt = serverTimestamp();
+    }
     if (file) {
         const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
         if (file.size > MAX_IMAGE_SIZE) {
@@ -77,9 +79,7 @@ export async function handleImageUpload(e) {
                         uploadProgress.value = progress;
                         uploadStatus.textContent = `Laddar upp: ${progress.toFixed(0)}%`;
                     },
-                    (error) => {
-                        reject(error);
-                    },
+                    (error) => { reject(error); },
                     () => {
                         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
                             finalImageUrl = downloadURL;
@@ -99,11 +99,9 @@ export async function handleImageUpload(e) {
         }
     }
     
-    // Använd rätt meddelande beroende på om det är en uppdatering eller ny bild
     const successMessage = editingImageId ? "Bilden har uppdaterats!" : "Bilden har lagts till!";
     await addOrUpdateDocument('images', editingImageId, imageObject, successMessage, "Ett fel uppstod när bilden skulle hanteras.");
     
-    // Reset form after successful upload
     const addImageForm = document.getElementById('add-image-form');
     if (addImageForm) {
         addImageForm.reset();
@@ -126,17 +124,15 @@ export async function handleSponsorUpload(e) {
         return;
     }
     
-    // Hämta värden från formuläret
     const sponsorName = document.getElementById('sponsor-name').value;
     const sponsorExtraText = document.getElementById('sponsor-extra-text').value;
     const sponsorUrl = document.getElementById('sponsor-url').value;
     const sponsorLogoUrl = document.getElementById('sponsor-logo-url').value;
     const sponsorPriority = parseInt(document.getElementById('sponsor-priority').value);
     const sponsorSize = document.getElementById('sponsor-size').value;
-    const sponsorBgType = document.getElementById('sponsor-bg-type').value; // Hämta bakgrundstyp
+    const sponsorBgType = document.getElementById('sponsor-bg-type').value; 
     const file = document.getElementById('sponsor-logo-upload').files[0];
     
-    // Validering: Om vi inte redigerar krävs namn, prio och logga
     if (!editingSponsorId && (!sponsorName || isNaN(sponsorPriority) || (sponsorLogoUrl === "" && !file))) {
         showModal('errorModal', "Sponsornamn, prioritet och logotyp krävs.");
         return;
@@ -152,7 +148,7 @@ export async function handleSponsorUpload(e) {
         logoUrl: finalLogoUrl,
         priority: sponsorPriority,
         size: sponsorSize,
-        bgType: sponsorBgType, // Sparas i Firestore
+        bgType: sponsorBgType, 
         storagePath: storagePath,
         createdAt: editingSponsorId ? null : serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -160,11 +156,6 @@ export async function handleSponsorUpload(e) {
     
     if (file) {
         const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
-        if (file.size > MAX_IMAGE_SIZE) {
-            showModal('errorModal', "Logotypen är för stor. Max tillåten storlek är 5 MB.");
-            return;
-        }
-
         const uploadProgressContainer = document.getElementById('sponsor-upload-progress-container');
         const addSponsorBtn = document.getElementById('add-sponsor-btn');
         const uploadProgress = document.getElementById('sponsor-upload-progress');
@@ -206,11 +197,9 @@ export async function handleSponsorUpload(e) {
         }
     }
     
-    // Använd editingSponsorId för att veta om det är en uppdatering eller ny post
     const successMessage = editingSponsorId ? "Sponsorn har uppdaterats!" : "Sponsorn har lagts till!";
     await addOrUpdateDocument('sponsors', editingSponsorId, sponsorObject, successMessage, "Ett fel uppstod när sponsorn skulle hanteras.");
 
-    // Reset form
     const addSponsorForm = document.getElementById('add-sponsor-form');
     if (addSponsorForm) {
         addSponsorForm.reset();
@@ -224,5 +213,5 @@ export async function handleSponsorUpload(e) {
         document.getElementById('clear-sponsor-logo-upload').classList.add('hidden');
     }
 
-    editingSponsorId = null; // Nollställ redigerings-ID
+    editingSponsorId = null; 
 }

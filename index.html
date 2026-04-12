@@ -23,9 +23,7 @@
         <div class="flex justify-between items-center">
             <a href="#hem" class="flex items-center space-x-2 sm:space-x-3 hover:opacity-90 transition min-w-0">
                 <img id="site-logo" src="logo.png" alt="Logotyp" class="h-10 sm:h-12 md:h-16 w-auto object-contain flex-shrink-0"> 
-                <!-- Fullständigt namn - visas på större skärmar -->
                 <span class="hidden sm:inline md:text-xl font-bold tracking-wide truncate">Kumla Skytteförening</span>
-                <!-- Förkortat namn - visas på mobil -->
                 <span class="inline sm:hidden text-sm font-bold tracking-wide">Kumla Skf</span>
                 <span id="admin-indicator" class="hidden bg-red-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-bold uppercase tracking-wider shadow-sm flex-shrink-0">Admin</span>
             </a>
@@ -388,67 +386,68 @@
         </section>
 
         <section id="bilder" class="page">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Bildgalleri</h1>
-            <div id="gallery-container">
-            </div>
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Bildgalleri</h1>
+                <div id="gallery-container"></div>
 
-            <div class="card mt-4 sm:mt-6 hidden" id="image-edit-section">
-                <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" id="image-form-title">Lägg till Bild</h2>
-                <form id="add-image-form">
-                    <label for="image-title" class="block mb-2 font-semibold text-sm sm:text-base">Titel/Beskrivning</label>
-                    <input type="text" id="image-title" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
-                    
-                    <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                            <label for="image-year" class="block mb-2 font-semibold text-sm sm:text-base">År</label>
-                            <input type="number" id="image-year" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
-                        </div>
-                        <div>
-                            <label for="image-month" class="block mb-2 font-semibold text-sm sm:text-base">Månad</label>
-                            <select id="image-month" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
-                                <option value="1">Januari</option>
-                                <option value="2">Februari</option>
-                                <option value="3">Mars</option>
-                                <option value="4">April</option>
-                                <option value="5">Maj</option>
-                                <option value="6">Juni</option>
-                                <option value="7">Juli</option>
-                                <option value="8">Augusti</option>
-                                <option value="9">September</option>
-                                <option value="10">Oktober</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <label for="image-priority" class="block mb-2 font-semibold text-sm sm:text-base">Prioritet (lägre nummer visas först)</label>
-                    <input type="number" id="image-priority" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base" value="10">
-
-                    <div class="mt-3 sm:mt-4 border-t-2 border-dashed border-gray-300 pt-3 sm:pt-4">
-                        <label for="image-upload-label" class="block mb-2 font-semibold text-sm sm:text-base">Ladda upp en bild</label>
-                        <label for="image-upload" class="cursor-pointer bg-gray-200 hover:bg-gray-300 transition duration-300 px-3 sm:px-4 py-2 rounded-lg inline-block text-sm">
-                            Välj fil
-                        </label>
-                        <span id="file-name-display" class="ml-2 text-gray-600 text-sm">Ingen fil vald</span>
-                        <input type="file" id="image-upload" class="hidden" accept="image/png, image/jpeg">
-                        <button type="button" id="clear-image-upload" class="hidden px-2 py-1 bg-red-500 text-white rounded-lg ml-2 hover:bg-red-600 text-sm">Rensa</button>
-
+                <div class="card mt-4 sm:mt-6 hidden" id="image-edit-section">
+                    <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" id="image-form-title">Lägg till Bild</h2>
+                    <form id="add-image-form">
+                        <label for="image-title" class="block mb-2 font-semibold text-sm sm:text-base">Titel</label>
+                        <input type="text" id="image-title" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
                         
-                        <p class="text-xs sm:text-sm text-gray-500 my-3 sm:my-4 text-center">Eller</p>
-                        
-                        <label for="image-url" class="block mb-2 font-semibold text-sm sm:text-base">Länka till en extern bild (URL)</label>
-                        <input type="url" id="image-url" class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
-                    </div>
+                        <label for="image-description" class="block mb-2 font-semibold text-sm sm:text-base">Beskrivande text (visas under bilden)</label>
+                        <textarea id="image-description" rows="3" class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base" placeholder="Skriv en kort historia eller beskrivning av bilden..."></textarea>
 
-                    <div id="upload-progress-container" class="mt-3 sm:mt-4 hidden">
-                        <p id="upload-status" class="text-xs sm:text-sm"></p>
-                        <progress id="upload-progress" class="w-full" value="0" max="100"></progress>
-                    </div>
-                    
-                    <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg text-sm sm:text-base">Lägg till Bild</button>
-                </form>
-            </div>
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div>
+                                <label for="image-year" class="block mb-2 font-semibold text-sm sm:text-base">År</label>
+                                <input type="number" id="image-year" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
+                            </div>
+                            <div>
+                                <label for="image-month" class="block mb-2 font-semibold text-sm sm:text-base">Månad</label>
+                                <select id="image-month" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
+                                    <option value="1">Januari</option>
+                                    <option value="2">Februari</option>
+                                    <option value="3">Mars</option>
+                                    <option value="4">April</option>
+                                    <option value="5">Maj</option>
+                                    <option value="6">Juni</option>
+                                    <option value="7">Juli</option>
+                                    <option value="8">Augusti</option>
+                                    <option value="9">September</option>
+                                    <option value="10">Oktober</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <label for="image-priority" class="block mb-2 font-semibold text-sm sm:text-base">Prioritet (lägre nummer visas först)</label>
+                        <input type="number" id="image-priority" required class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base" value="10">
+
+                        <div class="mt-3 sm:mt-4 border-t-2 border-dashed border-gray-300 pt-3 sm:pt-4">
+                            <label for="image-upload-label" class="block mb-2 font-semibold text-sm sm:text-base">Ladda upp en bild</label>
+                            <label for="image-upload" class="cursor-pointer bg-gray-200 hover:bg-gray-300 transition duration-300 px-3 sm:px-4 py-2 rounded-lg inline-block text-sm">
+                                Välj fil
+                            </label>
+                            <span id="file-name-display" class="ml-2 text-gray-600 text-sm">Ingen fil vald</span>
+                            <input type="file" id="image-upload" class="hidden" accept="image/png, image/jpeg">
+                            <button type="button" id="clear-image-upload" class="hidden px-2 py-1 bg-red-50 text-white rounded-lg ml-2 hover:bg-red-600 text-sm">Rensa</button>
+
+                            <p class="text-xs sm:text-sm text-gray-500 my-3 sm:my-4 text-center">Eller</p>
+                            
+                            <label for="image-url" class="block mb-2 font-semibold text-sm sm:text-base">Länka till en extern bild (URL)</label>
+                            <input type="url" id="image-url" class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
+                        </div>
+
+                        <div id="upload-progress-container" class="mt-3 sm:mt-4 hidden">
+                            <p id="upload-status" class="text-xs sm:text-sm"></p>
+                            <progress id="upload-progress" class="w-full" value="0" max="100"></progress>
+                        </div>
+                        
+                        <button type="submit" id="add-image-btn" disabled class="bg-gray-400 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg text-sm sm:text-base">Lägg till Bild</button>
+                    </form>
+                </div>
         </section>
 
         <section id="sponsorer" class="page">
@@ -1323,12 +1322,16 @@
         </div>
     </div>
     <div id="lightboxModal" class="modal bg-black/90 z-[100] cursor-pointer">
-        <div class="modal-content bg-transparent border-none p-0 max-w-5xl w-full relative">
-            <span id="close-lightbox" class="absolute -top-10 right-0 text-white text-4xl hover:text-gray-300">&times;</span>
-            <img id="lightbox-img" src="" class="max-h-[85vh] w-auto mx-auto rounded shadow-2xl">
-            <p id="lightbox-caption" class="text-white text-center mt-4 text-lg font-bold tracking-wide"></p>
+            <div class="modal-content bg-transparent border-none p-0 max-w-5xl w-full relative">
+                <span id="close-lightbox" class="absolute -top-10 right-0 text-white text-4xl hover:text-gray-300">×</span>
+                <img id="lightbox-img" src="" class="max-h-[75vh] w-auto mx-auto rounded shadow-2xl">
+                <div class="mt-4 text-white text-center max-w-2xl mx-auto px-4">
+                    <h3 id="lightbox-caption" class="text-xl sm:text-2xl font-bold tracking-wide mb-2"></h3>
+                    <p id="lightbox-description" class="text-sm sm:text-base text-gray-200 leading-relaxed"></p>
+                </div>
+            </div>
         </div>
-    </div>
-</body>
+    </main>
 
+</body>
 </html>

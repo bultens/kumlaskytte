@@ -809,10 +809,14 @@ export function renderImages(imageData, isAdminLoggedIn) {
             <hr class="border-gray-300 mb-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
                 ${imagesInGroup.map(item => `
-                    <div class="relative group cursor-pointer gallery-item" data-url="${item.url}" data-title="${item.title}">
+                    <div class="relative group cursor-pointer gallery-item" 
+                         data-url="${item.url}" 
+                         data-title="${item.title}" 
+                         data-description="${item.description || ''}">
                         <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300 w-full h-64 object-cover rounded-lg">
-                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
+                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/80 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
                             <h3 class="text-lg font-bold">${item.title}</h3>
+                            ${item.description ? `<p class="text-xs text-gray-200 line-clamp-1 mt-0.5">${item.description}</p>` : ''}
                         </div>
                         ${isAdminLoggedIn ? `
                             <div class="absolute top-2 right-2 flex space-x-2 z-10">
@@ -828,15 +832,16 @@ export function renderImages(imageData, isAdminLoggedIn) {
     }
 }
 
-// NY FUNKTION för att visa bilden stort
-export function showLightbox(url, title) {
+export function showLightbox(url, title, description = "") {
     const modal = document.getElementById('lightboxModal');
     const img = document.getElementById('lightbox-img');
     const caption = document.getElementById('lightbox-caption');
+    const descEl = document.getElementById('lightbox-description'); // NY
     
     if (modal && img && caption) {
         img.src = url;
         caption.textContent = title;
+        if (descEl) descEl.textContent = description; // VISAR HELA TEXTEN
         modal.classList.add('active');
     }
 }
