@@ -16,7 +16,7 @@ import {
 } from "./ui-handler.js";
 
 import { 
-    getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL, arrayUnion, arrayRemove
+    getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // --- GLOBALA DATALAGER ---
