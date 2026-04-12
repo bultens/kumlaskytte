@@ -776,6 +776,32 @@ export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {
     });
 }
 
+
+export function renderGroupsAdmin(groups) {
+    const container = document.getElementById('admin-groups-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    if (groups.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 italic text-sm">Inga grupper skapade än.</p>';
+        return;
+    }
+
+    groups.forEach(group => {
+        container.innerHTML += `
+            <div class="flex items-center justify-between p-3 bg-white border rounded shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-4 h-4 rounded-full shadow-inner border border-black/10" style="background-color: ${group.color}"></div>
+                    <span class="font-bold text-gray-800">${group.name}</span>
+                </div>
+                <button class="delete-btn text-red-600 hover:text-red-800 font-bold text-sm transition" 
+                    data-id="${group.id}" data-type="groups">Ta bort</button>
+            </div>
+        `;
+    });
+}
+
 export function renderImages(imageData, isAdminLoggedIn) {
     const galleryContainer = document.getElementById('gallery-container');
     if (!galleryContainer) return;

@@ -689,6 +689,30 @@
                         <button type="button" id="cancel-class-btn" class="ml-2 text-gray-500 text-sm">Avbryt</button>
                     </form>
                 </div>
+                
+                <div class="card mt-4 sm:mt-6">
+                    <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Hantera Grupper (Behörigheter)</h2>
+                    <p class="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">Skapa grupper för att rikta nyheter och inlägg till specifika medlemmar.</p>
+                    
+                    <div id="admin-groups-list" class="space-y-2 mb-4 sm:mb-6">
+                        <p class="text-gray-500 italic text-sm">Laddar grupper...</p>
+                    </div>
+
+                    <h3 class="text-base sm:text-lg font-bold mb-2">Lägg till ny grupp</h3>
+                    <form id="add-group-form" class="bg-gray-50 p-3 sm:p-4 rounded border">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                            <div>
+                                <label for="group-name" class="block text-xs font-bold mb-1">Gruppnamn</label>
+                                <input type="text" id="group-name" placeholder="T.ex. Styrelsen" required class="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label for="group-color" class="block text-xs font-bold mb-1">Färgkod (för etiketter)</label>
+                                <input type="color" id="group-color" value="#3b82f6" class="w-full h-9 p-0.5 border rounded cursor-pointer">
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded font-bold hover:bg-blue-700 text-sm transition">Spara Grupp</button>
+                    </form>
+                </div>
 
                 <div class="card mt-4 sm:mt-6">
                     <h3 class="text-lg sm:text-xl font-bold mt-6 sm:mt-8 mb-2">Användarhantering</h3>

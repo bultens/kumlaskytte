@@ -31,6 +31,7 @@ export let allShootersData = [];
 export let latestResultsCache = [];
 export let competitionClasses = [];
 export let currentUserId = null;
+export let groupsData = [];
 
 export function setCurrentUserId(id) {
     currentUserId = id;
@@ -138,6 +139,16 @@ export function initializeDataListeners() {
         sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderSponsors(sponsorsData, isAdminLoggedIn);
     });
+
+    // Dynamiska Grupper
+    onSnapshot(collection(db, 'groups'), (snapshot) => {
+        groupsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sortera alfabetiskt
+        groupsData.sort((a, b) => a.name.localeCompare(b.name));
+        import('./ui-handler.js').then(m => {
+            if (isAdminLoggedIn) m.renderGroupsAdmin(groupsData);
+        });
+    });
     
     // Webbplatsinställningar (Färg, Logo, Kontaktinfo)
     onSnapshot(doc(db, 'settings', 'siteSettings'), (docSnap) => {
@@ -168,6 +179,19 @@ function refreshMultiDependentViews() {
 }
 
 // --- CRUD OPERATIONER (SKAPA, LÄSA, UPPDATERA, RADERA) ---
+export async function addOrUpdateGroup(id, data) {
+    if (!isAdminLoggedIn) return;
+    try {
+        if (id) {
+            await updateDoc(doc(db, 'groups', id), data);
+        } else {
+            await addDoc(collection(db, 'groups'), data);
+        }
+        showModal('confirmationModal', "Gruppen sparad!");
+    } catch (error) {
+        showModal('errorModal', "Kunde inte spara gruppen.");
+    }
+}
 
 export async function addOrUpdateDocument(collectionName, docId, data, successMessage, errorMessage) {
     if (!isAdminLoggedIn) {

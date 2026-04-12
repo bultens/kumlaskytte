@@ -1193,7 +1193,24 @@ if (addSponsorForm) {
         }
     });
 
-
+    const addGroupForm = document.getElementById('add-group-form');
+    if (addGroupForm) {
+        addGroupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('group-name').value;
+            const color = document.getElementById('group-color').value;
+            
+            const groupData = {
+                name: name,
+                color: color,
+                createdAt: serverTimestamp()
+            };
+            
+            await addOrUpdateDocument('groups', null, groupData, "Gruppen har skapats!", "Fel vid skapande av grupp.");
+            addGroupForm.reset();
+            document.getElementById('group-color').value = '#3b82f6'; // Återställ standardfärg
+        });
+    }
 
     const inputElements = [
         newsTitleInput, newsContentEditor,
