@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
-import { getVisitorStats } from "./data-service.js";
+import { getVisitorStats, groupsData } from "./data-service.js";
 
 // Ver. 1.8
 export let isAdminLoggedIn = false;
@@ -1040,21 +1040,27 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
 
     container.appendChild(table);
 
-    // Lyssnare för Medlemstoggle
+// Event listeners för medlemstoggle
     tbody.querySelectorAll('.member-toggle-btn').forEach(btn => {
-        btn.onclick = () => toggleStatusCallback(btn.dataset.id, btn.dataset.status === 'true');
+        btn.addEventListener('click', async () => {
+            const uid = btn.dataset.id;
+            const currentStatus = btn.dataset.status === 'true';
+            if (typeof toggleStatusCallback === 'function') {
+                await toggleStatusCallback(uid, currentStatus);
+            }
+        });
     });
 
-    // NYTT: Lyssnare för Grupp-kryssrutor
+    // NYTT: Event listeners för grupp-checkboxar
     tbody.querySelectorAll('.user-group-checkbox').forEach(cb => {
-        cb.onchange = () => {
+        cb.addEventListener('change', () => {
             const userId = cb.dataset.userId;
             const groupId = cb.dataset.groupId;
             const isChecked = cb.checked;
             if (typeof toggleGroupCallback === 'function') {
                 toggleGroupCallback(userId, groupId, isChecked);
             }
-        };
+        });
     });
 }
 
