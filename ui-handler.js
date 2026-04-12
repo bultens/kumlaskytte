@@ -1040,17 +1040,24 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
 
     container.appendChild(table);
 
-    // Event listeners för medlemstoggle
+    // Lyssnare för Medlemstoggle
     tbody.querySelectorAll('.member-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const uid = btn.dataset.id;
-            const currentStatus = btn.dataset.status === 'true';
-            if (typeof toggleStatusCallback === 'function') {
-                await toggleStatusCallback(uid, currentStatus);
+        btn.onclick = () => toggleStatusCallback(btn.dataset.id, btn.dataset.status === 'true');
+    });
+
+    // NYTT: Lyssnare för Grupp-kryssrutor
+    tbody.querySelectorAll('.user-group-checkbox').forEach(cb => {
+        cb.onchange = () => {
+            const userId = cb.dataset.userId;
+            const groupId = cb.dataset.groupId;
+            const isChecked = cb.checked;
+            if (typeof toggleGroupCallback === 'function') {
+                toggleGroupCallback(userId, groupId, isChecked);
             }
-        });
+        };
     });
 }
+
 export function renderShootersAdmin(shootersData) {
     const container = document.getElementById('admin-shooters-list');
     if (!container) return;

@@ -16,7 +16,7 @@ import {
 } from "./ui-handler.js";
 
 import { 
-    getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL 
+    getStorage, ref, deleteObject, uploadBytesResumable, getDownloadURL, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // --- GLOBALA DATALAGER ---
@@ -35,6 +35,22 @@ export let groupsData = [];
 
 export function setCurrentUserId(id) {
     currentUserId = id;
+}
+
+export async function toggleUserGroup(userId, groupId, shouldHaveGroup) {
+    if (!isAdminLoggedIn) return;
+    
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            groups: shouldHaveGroup ? arrayUnion(groupId) : arrayRemove(groupId)
+        });
+        // Vi behöver inte visa en modal här, det är smidigare för admin 
+        // om det bara sparas i bakgrunden (silent save).
+    } catch (error) {
+        console.error("Fel vid uppdatering av grupp:", error);
+        showModal('errorModal', "Kunde inte uppdatera användarens grupp.");
+    }
 }
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
@@ -119,7 +135,7 @@ export function initializeDataListeners() {
     // Användarlistan (för admin)
     onSnapshot(collection(db, 'users'), (snapshot) => {
         usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderAdminsAndUsers(usersData, toggleClubMemberStatus);
+        renderAdminsAndUsers(usersData, toggleClubMemberStatus, toggleUserGroup);
     });
 
     // Föreningens Historia
