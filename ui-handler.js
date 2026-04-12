@@ -933,7 +933,9 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     }
 }
 
-export function renderAdminsAndUsers(users, toggleStatusCallback) {
+// ui-handler.js
+
+export function renderAdminsAndUsers(users, toggleStatusCallback, toggleGroupCallback) {
     const container = document.getElementById('admin-users-list');
     if (!container) return;
 
@@ -945,15 +947,16 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
     }
 
     const table = document.createElement('table');
-    // Lagt till table-fixed för att få bättre kontroll på kolumnbredder
     table.className = "min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden";
     
+    // 1. LÄGG TILL GRUPP-KOLUMNEN I HEADERN HÄR
     table.innerHTML = `
         <thead class="bg-gray-100">
             <tr>
                 <th class="py-2 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase">E-post / Namn</th>
                 <th class="py-2 px-4 border-b text-center text-xs font-semibold text-gray-600 uppercase w-20 sm:w-32">Admin</th>
                 <th class="py-2 px-4 border-b text-center text-xs font-semibold text-gray-600 uppercase w-16 sm:w-24">Medlem</th>
+                <th class="py-2 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase">Grupper</th>
                 <th class="py-2 px-4 border-b text-center text-xs font-semibold text-gray-600 uppercase w-24 sm:w-32">Åtgärd</th>
             </tr>
         </thead>
@@ -986,8 +989,21 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
                 </button>`;
         }
 
-        // FÖRÄNDRING: Vi använder 'truncate' och 'max-w' på e-posten
-        // Titeln (title="${user.email}") gör att man ser hela mailen om man håller musen över den (på datorn)
+        // 2. BYGG UPP GRUPPERNA (Detta saknades i min kod du fick)
+        const userGroups = user.groups || [];
+        const groupsHtml = groupsData && groupsData.length > 0 ? groupsData.map(group => `
+            <label class="inline-flex items-center mr-2 mb-1 cursor-pointer group" title="${group.name}">
+                <input type="checkbox" 
+                    class="user-group-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                    data-user-id="${user.id}" 
+                    data-group-id="${group.id}" 
+                    ${userGroups.includes(group.id) ? 'checked' : ''}>
+                <span class="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style="background-color: ${group.color}22; color: ${group.color}">
+                    ${group.name}
+                </span>
+            </label>
+        `).join('') : '<span class="text-[10px] text-gray-400 italic">Inga grupper skapade</span>';
+
         tr.innerHTML = `
             <td class="py-2 px-3 sm:px-4">
                 <div class="flex flex-col min-w-0">
@@ -1007,6 +1023,11 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
                     data-id="${user.id}" data-status="${user.isClubMember}">
                     ${memberText}
                 </button>
+            </td>
+            <td class="py-2 px-2">
+                <div class="flex flex-wrap max-w-[200px]">
+                    ${groupsHtml}
+                </div>
             </td>
             <td class="py-2 px-2">
                 <div class="flex items-center justify-center gap-1 sm:gap-2">
@@ -1040,7 +1061,7 @@ export function renderAdminsAndUsers(users, toggleStatusCallback) {
 
     container.appendChild(table);
 
-// Event listeners för medlemstoggle
+    // Event listeners för medlemstoggle
     tbody.querySelectorAll('.member-toggle-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const uid = btn.dataset.id;
