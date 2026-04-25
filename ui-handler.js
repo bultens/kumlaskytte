@@ -1951,24 +1951,40 @@ export function renderLinks(data, isAdmin) {
 
     container.innerHTML = '';
     
-    // 1. Gruppera data per kategori
-    const grouped = data.reduce((acc, link) => {
-        // Filtrera baserat på behörighet (förenklad version: om admin eller publik)
-        // Här kan du senare lägga till check mot currentUser.group
+    // --- 1. FILTRERA BORT DET SOM INTE SKA SYNAS ---
+    const filteredData = data.filter(link => {
+        // Admin ser alltid alla länkar
+        if (isAdmin) return true;
+        
+        // Om länken är publik (eller saknar målgrupp), visa den för alla
+        if (!link.targetGroup || link.targetGroup === 'all') return true;
+        
+        // Om vi når hit krävs det att man är inloggad. Är man inte det? Göm länken!
+        if (!auth.currentUser) return false;
+
+        // Framtida tillägg: Här kan vi lägga till if(användarensGrupp !== link.targetGroup) return false;
+        // Just nu får alla inloggade se grupp-länkarna.
+        return true; 
+    });
+
+    // 2. Gruppera BARA den filtrerade datan per kategori
+    const grouped = filteredData.reduce((acc, link) => {
         if (!acc[link.category]) acc[link.category] = [];
         acc[link.category].push(link);
         return acc;
     }, {});
 
-    // 2. Sortera kategorinamn alfanumeriskt
+    // 3. Sortera kategorinamn alfanumeriskt
     const sortedCategories = Object.keys(grouped).sort();
 
-    // Uppdatera datalist för admin-formuläret
+    // Uppdatera datalist för admin-formuläret (så admin kan se alla tidigare kategorier)
     if (categoryList) {
-        categoryList.innerHTML = sortedCategories.map(cat => `<option value="${cat}">`).join('');
+        // Vi hämtar unika kategorier från ALL data för admin, oavsett filtrering
+        const allUniqueCategories = [...new Set(data.map(l => l.category))].sort();
+        categoryList.innerHTML = allUniqueCategories.map(cat => `<option value="${cat}">`).join('');
     }
 
-    // 3. Rendera varje kategori
+    // 4. Rendera varje kategori
     sortedCategories.forEach(category => {
         const categorySection = document.createElement('div');
         categorySection.className = 'link-category-block';
