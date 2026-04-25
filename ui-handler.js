@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
-import { getVisitorStats, groupsData } from "./data-service.js";
+import { getVisitorStats, groupsData, renderlinks } from "./data-service.js";
 
 // Ver. 1.8
 export let isAdminLoggedIn = false;
@@ -939,8 +939,6 @@ export function renderSponsors(sponsorsData, isAdminLoggedIn) {
     }
 }
 
-// ui-handler.js
-
 export function renderAdminsAndUsers(users, toggleStatusCallback, toggleGroupCallback) {
     const container = document.getElementById('admin-users-list');
     if (!container) return;
@@ -1313,21 +1311,17 @@ export function navigate(hash) {
     // 1. Hantera om hash är tom (gå till hem)
     if (!hash) hash = '#hem';
 
-    // 2. Dela upp hashen för att hantera djuplänkar (t.ex. #nyheter#news-123)
-    // split('#') på "#nyheter#news-123" ger arrayen: ["", "nyheter", "news-123"]
+    // 2. Dela upp hashen för att hantera djuplänkar (t.ex. #lankar#link-123)
+    // parts[1] blir sidans ID ("lankar"), parts[2] blir elementets ID ("link-123")
     const parts = hash.split('#');
-    
-    // Del 1 (index 1) är sidans ID (t.ex. "nyheter")
     const pageId = parts[1] || 'hem'; 
-    
-    // Del 2 (index 2) är det specifika inläggets ID (t.ex. "news-123"), kan vara undefined
     const subId = parts[2];           
 
     // 3. Dölj alla sidor
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => page.classList.remove('active'));
 
-    // 4. Hitta och visa rätt huvudsida
+    // 4. Hitta och visa rätt huvudsida (t.ex. sektionen med id="lankar")
     const targetPage = document.getElementById(pageId);
     
     if (targetPage) {
@@ -1336,21 +1330,21 @@ export function navigate(hash) {
         // Scrolla alltid till toppen först
         window.scrollTo(0, 0);
 
-        // 5. Om vi har en djuplänk (subId), försök scrolla till den
+        // 5. Om vi har en djuplänk (subId), t.ex. från en delad länk eller bild
         if (subId) {
-            // Vi väntar lite så att Firebase hinner ladda innehållet (nyheter/kalender)
+            // Vi väntar lite (600ms) så att Firebase hinner rendera listan
             setTimeout(() => {
                 const targetElement = document.getElementById(subId);
                 if (targetElement) {
-                    // Scrolla dit mjukt
+                    // Scrolla till elementet mjukt och centrera det i vyn
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     
-                    // Valfritt: Highlighta elementet temporärt så man ser vad som menas
-                    targetElement.style.transition = "background-color 0.5s";
+                    // Highlight-effekt: Gör bakgrunden temporärt gul så man hittar rätt
                     const originalBg = targetElement.style.backgroundColor;
+                    targetElement.style.transition = "background-color 0.5s";
                     targetElement.style.backgroundColor = "#fffbeb"; // Ljusgul highlight
                     
-                    // Om det är en kalenderpost, expandera den
+                    // Om det är en kalenderpost, se till att den expanderas
                     if (targetElement.classList.contains('calendar-post')) {
                         const shortText = targetElement.querySelector('.calendar-post-short');
                         const expandedText = targetElement.querySelector('.calendar-post-expanded');
@@ -1361,14 +1355,15 @@ export function navigate(hash) {
                         }
                     }
 
+                    // Återställ färgen efter 2 sekunder
                     setTimeout(() => {
                         targetElement.style.backgroundColor = originalBg;
                     }, 2000);
                 }
-            }, 600); // 600ms fördröjning för att säkerställa att listan laddats
+            }, 600); 
         }
     } else {
-        // Om ID:t är ogiltigt, skicka till startsidan
+        // Om ID:t inte finns (felskrivet i URL), skicka användaren till hem
         const hemPage = document.getElementById('hem');
         if (hemPage) hemPage.classList.add('active');
     }
@@ -1948,7 +1943,87 @@ export function renderHourlyChart(dailyLogDocs) {
     });
 }
 
+export function renderLinks(data, isAdmin) {
+    const container = document.getElementById('links-container');
+    const categoryList = document.getElementById('category-list');
+    const groupSelect = document.getElementById('link-target-group');
+    if (!container) return;
 
+    container.innerHTML = '';
+    
+    // 1. Gruppera data per kategori
+    const grouped = data.reduce((acc, link) => {
+        // Filtrera baserat på behörighet (förenklad version: om admin eller publik)
+        // Här kan du senare lägga till check mot currentUser.group
+        if (!acc[link.category]) acc[link.category] = [];
+        acc[link.category].push(link);
+        return acc;
+    }, {});
+
+    // 2. Sortera kategorinamn alfanumeriskt
+    const sortedCategories = Object.keys(grouped).sort();
+
+    // Uppdatera datalist för admin-formuläret
+    if (categoryList) {
+        categoryList.innerHTML = sortedCategories.map(cat => `<option value="${cat}">`).join('');
+    }
+
+    // 3. Rendera varje kategori
+    sortedCategories.forEach(category => {
+        const categorySection = document.createElement('div');
+        categorySection.className = 'link-category-block';
+        
+        let linksHtml = grouped[category].map(link => `
+            <div class="group bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition relative mb-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <a href="${link.url}" target="_blank" class="text-lg font-bold text-blue-700 hover:underline flex items-center">
+                            ${link.title} 
+                            <span class="ml-2 text-xs font-normal text-gray-400">↗</span>
+                        </a>
+                        ${link.description ? `<p class="text-gray-600 text-sm mt-1">${link.description}</p>` : ''}
+                        ${link.targetGroup && link.targetGroup !== 'all' ? `<span class="inline-block mt-2 text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Endast ${link.targetGroup}</span>` : ''}
+                    </div>
+                    ${isAdmin ? `
+                        <div class="flex space-x-1">
+                            <button class="edit-link-btn p-1.5 text-gray-400 hover:text-blue-600 transition" data-id="${link.id}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button class="delete-btn p-1.5 text-gray-400 hover:text-red-600 transition" data-id="${link.id}" data-type="links">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        categorySection.innerHTML = `
+            <h3 class="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-blue-100 flex items-center">
+                <span class="bg-blue-900 w-2 h-6 mr-3 rounded-full"></span>
+                ${category}
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${linksHtml}
+            </div>
+        `;
+        container.appendChild(categorySection);
+    });
+
+    // Visa/Dölj admin-sektion
+    const adminSection = document.getElementById('admin-add-link-section');
+    if (adminSection) {
+        isAdmin ? adminSection.classList.remove('hidden') : adminSection.classList.add('hidden');
+    }
+
+    // Fyll i grupper i dropdown om de finns
+    if (groupSelect && groupsData) {
+        const currentVal = groupSelect.value;
+        groupSelect.innerHTML = '<option value="all">Alla (Publik)</option>' + 
+            groupsData.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+        groupSelect.value = currentVal;
+    }
+}
 
 export function renderDeviceChart(dailyLogDocs) {
     const canvas = document.getElementById('deviceChart');

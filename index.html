@@ -52,6 +52,7 @@
                     <div class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-xl py-2 hidden group-hover:block z-50 text-gray-800">
                         <a href="#omoss" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700 text-sm">Om Oss</a>
                         <a href="#bilder" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700 text-sm">Bilder</a>
+                        <a href="#lankar" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Länkar</a>
                         <a href="#sponsorer" class="block px-4 py-2 hover:bg-blue-50 hover:text-blue-700 text-sm">Sponsorer</a>
                     </div>
                 </div>
@@ -96,6 +97,7 @@
                 <a href="#kalender" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Kalender</a>
                 <a href="#bilder" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Bilder</a>
                 <a href="#omoss" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Om Oss</a>
+                <a href="#lankar" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Länkar</a>
                 <a href="#sponsorer" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Sponsorer</a>
                 <a href="#tavlingar" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Tävlingar</a>
                 <a href="#topplistor" class="mobile-nav-link block hover:text-blue-300 transition py-2.5 px-2 rounded hover:bg-blue-800/50 text-sm">Topplistor</a>
@@ -531,6 +533,37 @@
 
                     <button type="submit" id="add-sponsor-btn" disabled class="bg-gray-400 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg text-sm sm:text-base">Lägg till Sponsor</button>
                 </form>
+            </div>
+        </section>
+
+        <section id="lankar" class="page container mx-auto px-4 py-8">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold mb-2 text-blue-900">Länkar</h2>
+                <p class="text-gray-600 mb-8">Här har vi samlat nyttiga länkar för våra medlemmar och besökare.</p>
+                
+                <div id="links-container" class="space-y-12"></div>
+
+                <div id="admin-add-link-section" class="mt-16 p-6 bg-white rounded-xl shadow-md border border-gray-100 hidden">
+                    <h3 id="link-form-title" class="text-xl font-bold mb-4">Lägg till ny länk</h3>
+                    <form id="add-link-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="link-title" placeholder="Titel (t.ex. IndTA)" class="p-2 border rounded w-full" required>
+                            <input type="url" id="link-url" placeholder="URL (https://...)" class="p-2 border rounded w-full" required>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <input type="text" id="link-category" list="category-list" placeholder="Kategori" class="p-2 border rounded w-full" required>
+                                <datalist id="category-list"></datalist>
+                            </div>
+                            <input type="number" id="link-priority" placeholder="Prio (1 = först)" class="p-2 border rounded w-full">
+                            <select id="link-target-group" class="p-2 border rounded w-full">
+                                <option value="all">Alla (Publik)</option>
+                                </select>
+                        </div>
+                        <textarea id="link-description" placeholder="Beskrivning (frivilligt)" class="p-2 border rounded w-full h-20"></textarea>
+                        <button type="submit" id="add-link-btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition">Spara länk</button>
+                    </form>
+                </div>
             </div>
         </section>
 

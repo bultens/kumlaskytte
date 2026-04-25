@@ -32,6 +32,7 @@ export let latestResultsCache = [];
 export let competitionClasses = [];
 export let currentUserId = null;
 export let groupsData = [];
+export let linksData = [];
 
 export function setCurrentUserId(id) {
     currentUserId = id;
@@ -150,6 +151,12 @@ export function initializeDataListeners() {
         renderImages(imageData, isAdminLoggedIn);
     });
 
+    // Länkar
+    onSnapshot(query(collection(db, 'links'), orderBy('priority', 'asc')), (snapshot) => {
+        linksData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderLinks(linksData, isAdminLoggedIn);
+    });
+    
     // Sponsorer
     onSnapshot(collection(db, 'sponsors'), (snapshot) => {
         sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

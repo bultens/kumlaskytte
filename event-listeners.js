@@ -16,6 +16,7 @@ let editingHistoryId = null;
 let editingImageId = null;
 let editingEventId = null;
 let editingCompId = null;
+let editingLinkId = null;
 
 let currentHistoryPage = 1;
 const RESULTS_PER_PAGE = 20;
@@ -244,6 +245,55 @@ document.getElementById('comp-per-page')?.addEventListener('change', (e) => {
     compState.currentPage = 1;
     renderCompetitions(competitionsData, isAdminLoggedIn);
 });
+
+// Spara/Uppdatera länk
+    const addLinkForm = document.getElementById('add-link-form');
+    if (addLinkForm) {
+        addLinkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const linkObject = {
+                title: document.getElementById('link-title').value,
+                url: document.getElementById('link-url').value,
+                category: document.getElementById('link-category').value,
+                description: document.getElementById('link-description').value,
+                priority: parseInt(document.getElementById('link-priority').value) || 99,
+                targetGroup: document.getElementById('link-target-group').value,
+                updatedAt: serverTimestamp()
+            };
+
+            const successMsg = editingLinkId ? "Länken har uppdaterats!" : "Länken har lagts till!";
+            await addOrUpdateDocument('links', editingLinkId, linkObject, successMsg);
+            
+            addLinkForm.reset();
+            editingLinkId = null;
+            document.getElementById('link-form-title').textContent = "Lägg till ny länk";
+            document.getElementById('add-link-btn').textContent = "Spara länk";
+        });
+    }
+
+    // Redigera länk (klick på pennan)
+    document.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-link-btn');
+        if (editBtn) {
+            const id = editBtn.dataset.id;
+            const link = linksData.find(l => l.id === id);
+            if (link) {
+                editingLinkId = id;
+                document.getElementById('link-title').value = link.title;
+                document.getElementById('link-url').value = link.url;
+                document.getElementById('link-category').value = link.category;
+                document.getElementById('link-description').value = link.description || '';
+                document.getElementById('link-priority').value = link.priority;
+                document.getElementById('link-target-group').value = link.targetGroup || 'all';
+                
+                document.getElementById('link-form-title').textContent = "Redigera länk";
+                document.getElementById('add-link-btn').textContent = "Uppdatera länk";
+                document.getElementById('lankar').scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }
+    });
+
+
 
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {
