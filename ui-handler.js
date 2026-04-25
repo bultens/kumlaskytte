@@ -3,7 +3,7 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
-import { getVisitorStats, groupsData, renderlinks } from "./data-service.js";
+import { getVisitorStats, groupsData } from "./data-service.js";
 
 // Ver. 1.8
 export let isAdminLoggedIn = false;

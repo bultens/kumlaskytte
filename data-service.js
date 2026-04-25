@@ -12,7 +12,7 @@ import {
     toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, 
     renderSiteSettings, renderCompetitions, renderHomeAchievements, 
     renderClassesAdmin, renderTopLists, renderShootersAdmin,
-    renderVisitorChart
+    renderVisitorChart, renderLinks
 } from "./ui-handler.js";
 
 import { 
@@ -156,7 +156,7 @@ export function initializeDataListeners() {
         linksData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderLinks(linksData, isAdminLoggedIn);
     });
-    
+
     // Sponsorer
     onSnapshot(collection(db, 'sponsors'), (snapshot) => {
         sponsorsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
