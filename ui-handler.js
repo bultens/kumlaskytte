@@ -277,16 +277,19 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
                 ${item.content}
             </div>
 
-            ${isAdminLoggedIn ? `
-                <div class="flex gap-2 pt-4 border-t border-gray-100">
+            <div class="flex items-center space-x-2 pt-4 border-t border-gray-100 mt-4">
+                <button class="share-btn text-xs px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition font-bold" data-id="${item.id}" data-type="competitions" data-title="${item.title}">
+                    🔗 Dela
+                </button>
+                ${isAdminLoggedIn ? `
                     <button class="edit-comp-btn text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-200 transition font-bold" data-id="${item.id}">
                         Redigera
                     </button>
                     <button class="delete-btn text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-md hover:bg-red-100 transition font-bold" data-id="${item.id}" data-type="competitions">
                         Ta bort
                     </button>
-                </div>
-            ` : ''}
+                ` : ''}
+            </div>
         `;
         container.appendChild(div);
     });
@@ -702,12 +705,13 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
                     <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                     <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
                     <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
-                    ${isAdminLoggedIn ? `
-                        <div class="flex space-x-2 mt-4">
-                            <button class="delete-btn px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-300" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
-                            <button class="edit-event-btn px-4 py-2 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition duration-300" data-id="${item.id}">Ändra</button>
-                        </div>
-                    ` : ''}
+                    <div class="flex items-center space-x-2 mt-4">
+                        <button class="share-btn px-3 py-1 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 transition text-sm" data-id="${item.id}" data-type="events" data-title="${item.title}">🔗 Dela</button>
+                        ${isAdminLoggedIn ? `
+                            <button class="delete-btn px-3 py-1 bg-red-500 text-white font-bold rounded hover:bg-red-600 transition text-sm" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
+                            <button class="edit-event-btn px-3 py-1 bg-gray-500 text-white font-bold rounded hover:bg-gray-600 transition text-sm" data-id="${item.id}">Ändra</button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -836,13 +840,15 @@ export function renderImages(imageData, isAdminLoggedIn) {
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
                 ${imagesInGroup.map(item => `
                     <div class="relative group cursor-pointer gallery-item" 
+                         id="image-${item.id}"
                          data-url="${item.url}" 
                          data-title="${item.title}" 
                          data-description="${item.description || ''}">
                         <img src="${item.url}" alt="${item.title}" class="gallery-image shadow-md group-hover:opacity-75 transition-opacity duration-300 w-full h-64 object-cover rounded-lg">
-                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/80 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
+                        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/80 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg flex flex-col items-start">
                             <h3 class="text-lg font-bold">${item.title}</h3>
                             ${item.description ? `<p class="text-xs text-gray-200 line-clamp-1 mt-0.5">${item.description}</p>` : ''}
+                            <button class="share-btn mt-2 px-3 py-1 bg-white/20 text-white text-xs font-bold rounded hover:bg-white/40 transition duration-300" data-id="${item.id}" data-type="images" data-title="${item.title}">🔗 Dela bild</button>
                         </div>
                         ${isAdminLoggedIn ? `
                             <div class="absolute top-2 right-2 flex space-x-2 z-10">

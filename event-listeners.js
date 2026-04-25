@@ -138,7 +138,7 @@ export function setupEventListeners() {
         document.addEventListener('click', (e) => {
     const galleryItem = e.target.closest('.gallery-item');
     
-    if (galleryItem && !e.target.closest('.edit-image-btn') && !e.target.closest('.delete-btn')) {
+    if (galleryItem && !e.target.closest('.edit-image-btn') && !e.target.closest('.delete-btn') && !e.target.closest('.share-btn')) {
         const url = galleryItem.dataset.url;
         const title = galleryItem.dataset.title;
         const description = galleryItem.dataset.description; // HÄMTA BESKRIVNING
@@ -1255,7 +1255,7 @@ if (addSponsorForm) {
         const shareBtn = e.target.closest('.share-btn');
         if (shareBtn) {
             const docId = shareBtn.getAttribute('data-id');
-            const docType = shareBtn.getAttribute('data-type'); // news, competitions eller history
+            const docType = shareBtn.getAttribute('data-type'); 
             const title = shareBtn.getAttribute('data-title');
             
             // Skapa länk baserat på typ
@@ -1266,6 +1266,10 @@ if (addSponsorForm) {
                 pageHash = '#tavlingar#comp-';
             } else if (docType === 'history') {
                 pageHash = '#omoss#history-';
+            } else if (docType === 'events') {
+                pageHash = '#kalender#event-';
+            } else if (docType === 'images') {
+                pageHash = '#bilder#image-';
             }
             
             const url = `${window.location.href.split('#')[0]}${pageHash}${docId}`;
