@@ -2041,6 +2041,147 @@ export function renderLinks(data, isAdmin) {
     }
 }
 
+
+// --- SKYTTEPORTALEN (GUIDER) ---
+
+export function renderGuides(data, isAdmin) {
+    const menuContainer = document.getElementById('guide-menu-container');
+    const contentContainer = document.getElementById('guide-content-container');
+    const categoryList = document.getElementById('guide-category-list');
+    const groupSelect = document.getElementById('guide-target-group');
+    
+    if (!menuContainer || !contentContainer) return;
+
+    // 1. Filtrera data (likt länkarna)
+    const filteredData = data.filter(guide => {
+        if (isAdmin) return true;
+        if (!guide.targetGroup || guide.targetGroup === 'all') return true;
+        if (!auth.currentUser) return false;
+        return true; 
+    });
+
+    // 2. Gruppera per kategori
+    const grouped = filteredData.reduce((acc, guide) => {
+        if (!acc[guide.category]) acc[guide.category] = [];
+        acc[guide.category].push(guide);
+        return acc;
+    }, {});
+
+    const sortedCategories = Object.keys(grouped).sort();
+
+    // Uppdatera admin-datalist
+    if (categoryList) {
+        const allCats = [...new Set(data.map(g => g.category))].sort();
+        categoryList.innerHTML = allCats.map(cat => `<option value="${cat}">`).join('');
+    }
+
+    // 3. Rendera Menyn (Vänster)
+    menuContainer.innerHTML = sortedCategories.map(cat => `
+        <button onclick="document.getElementById('cat-${cat.replace(/\s+/g, '-')}').scrollIntoView({behavior:'smooth'})" 
+                class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition">
+            ${cat}
+        </button>
+    `).join('');
+
+    // 4. Rendera Innehållet (Höger)
+    contentContainer.innerHTML = sortedCategories.map(cat => `
+        <div id="cat-${cat.replace(/\s+/g, '-')}" class="space-y-6 pt-4">
+            <h3 class="text-2xl font-bold text-gray-800 border-b-2 border-blue-100 pb-2">${cat}</h3>
+            <div class="grid grid-cols-1 gap-6">
+                ${grouped[cat].map(guide => `
+                    <article id="guide-${guide.id}" class="bg-white border border-gray-100 rounded-xl p-6 shadow-sm relative group">
+                        <div class="flex justify-between items-start mb-4">
+                            <h4 class="text-xl font-bold text-blue-900">${guide.title}</h4>
+                            ${isAdmin ? `
+                                <div class="flex space-x-2">
+                                    <button class="edit-guide-btn p-1 text-gray-400 hover:text-blue-600" data-id="${guide.id}">✎</button>
+                                    <button class="delete-btn p-1 text-gray-400 hover:text-red-600" data-id="${guide.id}" data-type="guides">🗑</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="markdown-content text-gray-700 leading-relaxed">
+                            ${guide.content}
+                        </div>
+                        ${guide.targetGroup !== 'all' ? `<span class="mt-4 inline-block text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">${guide.targetGroup}</span>` : ''}
+                    </article>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    // Visa admin-sektion
+    const adminSection = document.getElementById('admin-add-guide-section');
+    if (adminSection) isAdmin ? adminSection.classList.remove('hidden') : adminSection.classList.add('hidden');
+
+    // Fyll i grupper i dropdown
+    if (groupSelect && groupsData) {
+        const currentVal = groupSelect.value;
+        groupSelect.innerHTML = '<option value="all">Alla (Publik)</option>' + 
+            groupsData.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+        groupSelect.value = currentVal;
+    }
+}
+
+// --- DYNAMISKT HERO-KORT ---
+
+export function renderHero(user, userData) {
+    const container = document.getElementById('hero-container');
+    if (!container) return;
+
+    // 1. Oinloggad
+    if (!user) {
+        container.innerHTML = `
+            <div class="card bg-blue-900 text-white p-8 relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 class="text-2xl sm:text-3xl font-bold">Nyfiken på skytte?</h2>
+                    <p class="mt-2 text-blue-100 max-w-xl">Vi välkomnar alla åldrar! Kom ner på en prova-på-kväll i hallen. Vi har all utrustning du behöver för att komma igång.</p>
+                    <button onclick="navigate('#guider')" class="mt-6 bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-blue-50 transition shadow-lg">Läs nybörjarguiden</button>
+                </div>
+                <div class="absolute right-[-20px] bottom-[-20px] text-white/10 text-9xl font-black select-none italic">KUMLA</div>
+            </div>`;
+        return;
+    }
+
+    // 2. Registrerad men ej klubbmedlem
+    if (userData && !userData.isClubMember) {
+        container.innerHTML = `
+            <div class="card bg-gradient-to-r from-orange-500 to-red-600 text-white p-8">
+                <h2 class="text-2xl font-bold">Välkommen till föreningen!</h2>
+                <p class="mt-2 opacity-90">Härligt att du har skapat ett konto. Prata med en ledare på plats i hallen så registrerar vi ditt medlemskap och ger dig full tillgång.</p>
+                <button onclick="navigate('#guider')" class="mt-6 bg-black/20 border border-white/30 text-white px-8 py-3 rounded-full font-bold hover:bg-black/30 transition">Hur blir jag medlem?</button>
+            </div>`;
+        return;
+    }
+
+    // 3. Tävlingsskytt (Kolla gruppen TävlingsSkyttar)
+    const isCompShooter = userData && userData.groups && userData.groups.includes('TävlingsSkyttar');
+
+    if (isCompShooter) {
+        container.innerHTML = `
+            <div class="card bg-white border-2 border-blue-900 p-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <span class="bg-blue-900 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">Aktiv Tävlande</span>
+                        <h2 class="text-2xl font-bold mt-2 text-gray-900">Dags för nästa tävling?</h2>
+                        <p class="text-gray-600 mt-1">Glöm inte att kolla samåkningen inför helgens starter.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="navigate('#tavlingar')" class="bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">Tävlingsrapporter</button>
+                        <button onclick="navigate('#kalender')" class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-bold hover:bg-gray-200 transition">Kalender</button>
+                    </div>
+                </div>
+            </div>`;
+    } else {
+        // 4. Vanlig medlem
+        container.innerHTML = `
+            <div class="card bg-green-800 text-white p-8">
+                <h2 class="text-2xl font-bold">Redo att börja tävla?</h2>
+                <p class="mt-2 text-green-100">Som medlem har du möjlighet att börja tävla för klubben. Vi har en komplett guide som hjälper dig igång.</p>
+                <button onclick="navigate('#guider')" class="mt-6 bg-white text-green-800 px-8 py-3 rounded-full font-bold hover:bg-green-50 transition">Visa tävlingsguiden</button>
+            </div>`;
+    }
+}
+
 export function renderDeviceChart(dailyLogDocs) {
     const canvas = document.getElementById('deviceChart');
     if (!canvas) return;

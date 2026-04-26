@@ -12,7 +12,7 @@ import {
     toggleSponsorsNavLink, renderProfileInfo, showModal, isAdminLoggedIn, 
     renderSiteSettings, renderCompetitions, renderHomeAchievements, 
     renderClassesAdmin, renderTopLists, renderShootersAdmin,
-    renderVisitorChart, renderLinks
+    renderVisitorChart, renderLinks, renderGuides
 } from "./ui-handler.js";
 
 import { 
@@ -33,6 +33,7 @@ export let competitionClasses = [];
 export let currentUserId = null;
 export let groupsData = [];
 export let linksData = [];
+export let guidesData = [];
 
 export function setCurrentUserId(id) {
     currentUserId = id;
@@ -155,6 +156,13 @@ export function initializeDataListeners() {
     onSnapshot(query(collection(db, 'links'), orderBy('priority', 'asc')), (snapshot) => {
         linksData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderLinks(linksData, isAdminLoggedIn);
+    });
+
+    // Guider (Skytteportalen)
+    onSnapshot(query(collection(db, 'guides'), orderBy('priority', 'asc')), (snapshot) => {
+        guidesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Vi skapar renderGuides i ui-handler strax
+        renderGuides(guidesData, isAdminLoggedIn); 
     });
 
     // Sponsorer

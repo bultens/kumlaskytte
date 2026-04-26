@@ -17,6 +17,7 @@ let editingImageId = null;
 let editingEventId = null;
 let editingCompId = null;
 let editingLinkId = null;
+let editingGuideId = null;
 
 let currentHistoryPage = 1;
 const RESULTS_PER_PAGE = 20;
@@ -293,7 +294,51 @@ document.getElementById('comp-per-page')?.addEventListener('change', (e) => {
         }
     });
 
+    // Spara/Uppdatera Guide
+    const addGuideForm = document.getElementById('add-guide-form');
+        if (addGuideForm) {
+            addGuideForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const guideObject = {
+                    title: document.getElementById('guide-title').value,
+                    category: document.getElementById('guide-category').value,
+                    content: document.getElementById('guide-content').innerHTML, // Vi sparar HTML direkt från editor
+                    priority: parseInt(document.getElementById('guide-priority').value) || 99,
+                    targetGroup: document.getElementById('guide-target-group').value,
+                    updatedAt: serverTimestamp()
+                };
 
+                const successMsg = editingGuideId ? "Artikeln har uppdaterats!" : "Artikeln har publicerats i portalen!";
+                await addOrUpdateDocument('guides', editingGuideId, guideObject, successMsg);
+                
+                addGuideForm.reset();
+                document.getElementById('guide-content').innerHTML = "Skriv artikelns innehåll här...";
+                editingGuideId = null;
+                document.getElementById('guide-form-title').textContent = "Skapa ny guide/artikel";
+                document.getElementById('add-guide-btn').textContent = "Spara guide";
+            });
+        }
+
+        // Redigera Guide (klick på pennan)
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-guide-btn');
+            if (editBtn) {
+                const id = editBtn.dataset.id;
+                const guide = guidesData.find(g => g.id === id); // Kom ihåg att importera guidesData
+                if (guide) {
+                    editingGuideId = id;
+                    document.getElementById('guide-title').value = guide.title;
+                    document.getElementById('guide-category').value = guide.category;
+                    document.getElementById('guide-content').innerHTML = guide.content;
+                    document.getElementById('guide-priority').value = guide.priority;
+                    document.getElementById('guide-target-group').value = guide.targetGroup || 'all';
+                    
+                    document.getElementById('guide-form-title').textContent = "Redigera artikel";
+                    document.getElementById('add-guide-btn').textContent = "Uppdatera artikel";
+                    document.getElementById('guider').scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            }
+        });
 
     const publicShooterSelect = document.getElementById('public-shooter-selector');
     const populatePublicDropdown = () => {

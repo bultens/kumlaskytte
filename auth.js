@@ -55,6 +55,7 @@ onAuthStateChanged(auth, async (user) => {
     handleAdminUI(isAdmin, isMember); 
     initializeDataListeners(); 
     toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
+    renderHero(user, userData);
 });
 
 // --- AUTH FUNKTIONER ---
