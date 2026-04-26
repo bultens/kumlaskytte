@@ -2061,7 +2061,6 @@ export function renderLinks(data, isAdmin) {
 // --- SKYTTEPORTALEN (GUIDER) ---
 
 export function renderGuides(data, isAdmin) {
-    alert("Nu körs renderGuides! Admin = " + isAdmin);
     const menuContainer = document.getElementById('guide-menu-container');
     const contentContainer = document.getElementById('guide-content-container');
     const categoryList = document.getElementById('guide-category-list');
