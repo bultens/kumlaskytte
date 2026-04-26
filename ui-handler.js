@@ -2135,7 +2135,7 @@ export function renderHero(user, userData) {
                 <div class="relative z-10">
                     <h2 class="text-2xl sm:text-3xl font-bold">Nyfiken på skytte?</h2>
                     <p class="mt-2 text-blue-100 max-w-xl">Vi välkomnar alla åldrar! Kom ner på en prova-på-kväll i hallen. Vi har all utrustning du behöver för att komma igång.</p>
-                    <button onclick="navigate('#guider')" class="mt-6 bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-blue-50 transition shadow-lg">Läs nybörjarguiden</button>
+                    <a href="#guider" class="inline-block mt-6 bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-blue-50 transition shadow-lg">Läs nybörjarguiden</a>
                 </div>
                 <div class="absolute right-[-20px] bottom-[-20px] text-white/10 text-9xl font-black select-none italic">KUMLA</div>
             </div>`;
@@ -2148,7 +2148,7 @@ export function renderHero(user, userData) {
             <div class="card bg-gradient-to-r from-orange-500 to-red-600 text-white p-8">
                 <h2 class="text-2xl font-bold">Välkommen till föreningen!</h2>
                 <p class="mt-2 opacity-90">Härligt att du har skapat ett konto. Prata med en ledare på plats i hallen så registrerar vi ditt medlemskap och ger dig full tillgång.</p>
-                <button onclick="navigate('#guider')" class="mt-6 bg-black/20 border border-white/30 text-white px-8 py-3 rounded-full font-bold hover:bg-black/30 transition">Hur blir jag medlem?</button>
+                <a href="#guider" class="inline-block mt-6 bg-black/20 border border-white/30 text-white px-8 py-3 rounded-full font-bold hover:bg-black/30 transition">Hur blir jag medlem?</a>
             </div>`;
         return;
     }
@@ -2166,8 +2166,8 @@ export function renderHero(user, userData) {
                         <p class="text-gray-600 mt-1">Glöm inte att kolla samåkningen inför helgens starter.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="navigate('#tavlingar')" class="bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">Tävlingsrapporter</button>
-                        <button onclick="navigate('#kalender')" class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-bold hover:bg-gray-200 transition">Kalender</button>
+                        <a href="#tavlingar" class="inline-block bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">Tävlingsrapporter</a>
+                        <a href="#kalender" class="inline-block bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-bold hover:bg-gray-200 transition">Kalender</a>
                     </div>
                 </div>
             </div>`;
@@ -2177,7 +2177,7 @@ export function renderHero(user, userData) {
             <div class="card bg-green-800 text-white p-8">
                 <h2 class="text-2xl font-bold">Redo att börja tävla?</h2>
                 <p class="mt-2 text-green-100">Som medlem har du möjlighet att börja tävla för klubben. Vi har en komplett guide som hjälper dig igång.</p>
-                <button onclick="navigate('#guider')" class="mt-6 bg-white text-green-800 px-8 py-3 rounded-full font-bold hover:bg-green-50 transition">Visa tävlingsguiden</button>
+                <a href="#guider" class="inline-block mt-6 bg-white text-green-800 px-8 py-3 rounded-full font-bold hover:bg-green-50 transition">Visa tävlingsguiden</a>
             </div>`;
     }
 }
