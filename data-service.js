@@ -5,7 +5,7 @@ import {
     writeBatch, setDoc, serverTimestamp, addDoc, deleteDoc, 
     getDoc as getFirestoreDoc, arrayUnion, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { 
     renderNews, renderEvents, renderHistory, renderImages, renderSponsors, 
     renderAdminsAndUsers, renderUserReport, renderContactInfo, updateHeaderColor, 
@@ -62,62 +62,11 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'kumla-skytte-app';
  * Sköter realtidsuppdatering av hemsidan när databasen ändras.
  */
 export function initializeDataListeners() {
-    const uid = auth.currentUser ? auth.currentUser.uid : null;
-
-    // 1. INLOGGADE ANVÄNDARE - SPECIFIK DATA
-    if (auth.currentUser) {
-        // Skyttar (Klubbens medlemmar)
-        onSnapshot(collection(db, 'shooters'), (snapshot) => { 
-            allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            if (isAdminLoggedIn) {
-                renderShootersAdmin(allShootersData);
-            }
-            refreshMultiDependentViews();
-        });
-
-        // Tävlingsklasser (Junior, Senior, etc)
-        onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
-            competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            competitionClasses.sort((a, b) => a.minAge - b.minAge);
-            if (isAdminLoggedIn) {
-                renderClassesAdmin(competitionClasses);
-            }
-            refreshMultiDependentViews();
-        });
-
-        // Resultat (Alla sparade resultat)
-        onSnapshot(collection(db, 'results'), (snapshot) => {
-            latestResultsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-            refreshMultiDependentViews();
-        });
-
-        // Besöksstatistik (Realtid för Admin)
-        if (isAdminLoggedIn) {
-            onSnapshot(doc(db, 'statistics', 'visitors'), (docSnap) => {
-                const todayEl = document.getElementById('visitor-count-today');
-                const totalEl = document.getElementById('visitor-count-total');
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const today = getTodayString();
-                    const isNewDay = data.lastVisitDate !== today;
-                    
-                    const todayCount = isNewDay ? 0 : (data.todayUniqueSessions || 0);
-                    if (todayEl) todayEl.textContent = todayCount.toLocaleString('sv-SE');
-                    if (totalEl) totalEl.textContent = (data.totalVisits || 0).toLocaleString('sv-SE');
-                    
-                    // Rendera grafen i realtid för admin
-                    renderVisitorChart(data.dailyStats || {}, todayCount);
-                }
-            });
-        }
-    }
-
-    // 2. PUBLIK DATA (ALLTID TILLGÄNGLIG)
+    // --- 1. PUBLIK DATA (Laddas direkt för alla) ---
     
     // Nyheter
     onSnapshot(collection(db, 'news'), (snapshot) => {
         newsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Hämta uid från auth.currentUser eller din lokala variabel
         const uid = auth.currentUser ? auth.currentUser.uid : null;
         renderNews(newsData, isAdminLoggedIn, uid);
     });
@@ -131,18 +80,14 @@ export function initializeDataListeners() {
     // Tävlingsinfo (Uppdaterad för att stödja gilla/dela)
     onSnapshot(collection(db, 'competitions'), (snapshot) => { 
         competitionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
         renderCompetitions(competitionsData, isAdminLoggedIn, uid);
-    });
-    
-    // Användarlistan (för admin)
-    onSnapshot(collection(db, 'users'), (snapshot) => {
-        usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderAdminsAndUsers(usersData, toggleClubMemberStatus, toggleUserGroup);
     });
 
     // Föreningens Historia
     onSnapshot(collection(db, 'history'), (snapshot) => {
         historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
         renderHistory(historyData, isAdminLoggedIn, uid);
     });
 
@@ -161,7 +106,6 @@ export function initializeDataListeners() {
     // Guider (Skytteportalen)
     onSnapshot(query(collection(db, 'guides'), orderBy('priority', 'asc')), (snapshot) => {
         guidesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Vi skapar renderGuides i ui-handler strax
         renderGuides(guidesData, isAdminLoggedIn); 
     });
 
@@ -195,6 +139,89 @@ export function initializeDataListeners() {
             updateHeaderColor(data.headerColor);
             toggleSponsorsNavLink(data.showSponsors);
             renderSiteSettings(data);
+        }
+    });
+
+    // --- 2. HEMLIG DATA (Vakthund: Laddas bara om inloggad) ---
+    let unsubShooters = null;
+    let unsubClasses = null;
+    let unsubResults = null;
+    let unsubUsers = null;
+    let unsubStats = null;
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Kolla om den inloggade är Admin (krävs för användarlista och statistik)
+            const userDoc = await getFirestoreDoc(doc(db, 'users', user.uid));
+            const isAdmin = userDoc.exists() && userDoc.data().isAdmin === true;
+
+            // Skyttar (Klubbens medlemmar) - För alla inloggade
+            if (!unsubShooters) {
+                unsubShooters = onSnapshot(collection(db, 'shooters'), (snapshot) => { 
+                    allShootersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                    if (isAdminLoggedIn) renderShootersAdmin(allShootersData);
+                    refreshMultiDependentViews();
+                });
+            }
+
+            // Tävlingsklasser - För alla inloggade
+            if (!unsubClasses) {
+                unsubClasses = onSnapshot(collection(db, 'competitionClasses'), (snapshot) => {
+                    competitionClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    competitionClasses.sort((a, b) => a.minAge - b.minAge);
+                    if (isAdminLoggedIn) renderClassesAdmin(competitionClasses);
+                    refreshMultiDependentViews();
+                });
+            }
+
+            // Resultat (Alla sparade resultat) - För alla inloggade
+            if (!unsubResults) {
+                unsubResults = onSnapshot(collection(db, 'results'), (snapshot) => {
+                    latestResultsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
+                    refreshMultiDependentViews();
+                });
+            }
+
+            // Användarlistan - BARA för Admin
+            if (isAdmin && !unsubUsers) {
+                unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+                    usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderAdminsAndUsers(usersData, toggleClubMemberStatus, toggleUserGroup);
+                });
+            }
+
+            // Besöksstatistik - BARA för Admin
+            if (isAdmin && !unsubStats) {
+                unsubStats = onSnapshot(doc(db, 'statistics', 'visitors'), (docSnap) => {
+                    const todayEl = document.getElementById('visitor-count-today');
+                    const totalEl = document.getElementById('visitor-count-total');
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        const today = getTodayString();
+                        const isNewDay = data.lastVisitDate !== today;
+                        
+                        const todayCount = isNewDay ? 0 : (data.todayUniqueSessions || 0);
+                        if (todayEl) todayEl.textContent = todayCount.toLocaleString('sv-SE');
+                        if (totalEl) totalEl.textContent = (data.totalVisits || 0).toLocaleString('sv-SE');
+                        
+                        // Rendera grafen i realtid för admin
+                        renderVisitorChart(data.dailyStats || {}, todayCount);
+                    }
+                });
+            }
+        } else {
+            // Användaren loggade ut - Stäng av alla hemliga prenumerationer
+            if (unsubShooters) { unsubShooters(); unsubShooters = null; }
+            if (unsubClasses) { unsubClasses(); unsubClasses = null; }
+            if (unsubResults) { unsubResults(); unsubResults = null; }
+            if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+            if (unsubStats) { unsubStats(); unsubStats = null; }
+            
+            // Töm cachad data i minnet
+            allShootersData = [];
+            competitionClasses = [];
+            latestResultsCache = [];
+            usersData = [];
         }
     });
 }
