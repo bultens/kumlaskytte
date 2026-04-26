@@ -322,7 +322,8 @@ export function handleAdminUI(isAdmin, isMember) {
     const adminSections = [
         'news-edit-section', 'competition-edit-section', 
         'calendar-edit-section', 'image-edit-section', 
-        'history-edit-section', 'sponsors-edit-section', 'admin-panel', 'file-manager-container'
+        'history-edit-section', 'sponsors-edit-section', 'admin-panel', 'file-manager-container',
+        'admin-add-guide-section'
     ];
     
     const adminLoginPanel = document.getElementById('admin-login-panel');
