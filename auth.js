@@ -52,12 +52,15 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
 
-    // Uppdatera UI i rätt ordning
+    // Uppdatera UI i rätt ordning (OBS: initializeDataListeners är bortplockad härifrån då den ska köras från main.js)
     handleAdminUI(isAdmin, isMember); 
-    initializeDataListeners(); 
     toggleProfileUI(user, isAdmin); // Detta visar "Mina resultat" och "Profil"
+    
+    // Rita ut nya Hero-kortet och Skytteportalen
     renderHero(user, userData);
-    renderGuides(guidesData, isAdmin);
+    if (typeof guidesData !== 'undefined') {
+        renderGuides(guidesData, isAdmin);
+    }
 });
 
 // --- AUTH FUNKTIONER ---
@@ -211,33 +214,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Hämta kryss-knapparna
-const closeLoginBtn = document.getElementById('close-login-panel');
-const closeRegisterBtn = document.getElementById('close-register-panel');
+    const closeLoginBtn = document.getElementById('close-login-panel');
+    const closeRegisterBtn = document.getElementById('close-register-panel');
 
-// Stäng inloggningspanelen
-if (closeLoginBtn) {
-    closeLoginBtn.addEventListener('click', () => {
-        const loginPanel = document.getElementById('user-login-panel');
-        if (loginPanel) loginPanel.classList.add('hidden');
-    });
-}
-
-// Stäng registreringspanelen
-if (closeRegisterBtn) {
-    closeRegisterBtn.addEventListener('click', () => {
-        const registerPanel = document.getElementById('register-panel');
-        if (registerPanel) registerPanel.classList.add('hidden');
-    });
-}
-
-// Bonus: Stäng även panelen om man klickar utanför själva boxen (på den mörka bakgrunden)
-[document.getElementById('user-login-panel'), document.getElementById('register-panel')].forEach(panel => {
-    if (panel) {
-        panel.addEventListener('click', (e) => {
-            if (e.target === panel) {
-                panel.classList.add('hidden');
-            }
+    // Stäng inloggningspanelen
+    if (closeLoginBtn) {
+        closeLoginBtn.addEventListener('click', () => {
+            const loginPanel = document.getElementById('user-login-panel');
+            if (loginPanel) loginPanel.classList.add('hidden');
         });
     }
-});
+
+    // Stäng registreringspanelen
+    if (closeRegisterBtn) {
+        closeRegisterBtn.addEventListener('click', () => {
+            const registerPanel = document.getElementById('register-panel');
+            if (registerPanel) registerPanel.classList.add('hidden');
+        });
+    }
+
+    // Bonus: Stäng även panelen om man klickar utanför själva boxen (på den mörka bakgrunden)
+    [document.getElementById('user-login-panel'), document.getElementById('register-panel')].forEach(panel => {
+        if (panel) {
+            panel.addEventListener('click', (e) => {
+                if (e.target === panel) {
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+    });
 });

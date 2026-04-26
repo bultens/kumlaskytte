@@ -3,7 +3,10 @@ import { auth, db } from "./firebase-config.js";
 import { doc, getDoc as getFirestoreDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
-import { getVisitorStats, groupsData } from "./data-service.js";
+import { 
+    getVisitorStats, groupsData, 
+    newsData, competitionsData, linksData, guidesData, sponsorsData, historyData 
+} from "./data-service.js";
 
 // Ver. 1.8
 export let isAdminLoggedIn = false;
@@ -304,10 +307,10 @@ export function renderCompetitions(competitionsData, isAdminLoggedIn) {
     });
 }
 
-export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
+export function handleAdminUI(isAdmin, isMember) { 
     isAdminLoggedIn = isAdmin;
 
-    // --- 1. ADMIN-LOGIK (Din gamla kod) ---
+    // --- 1. ADMIN-LOGIK  ---
     const adminElements = document.querySelectorAll('.admin-only');
     adminElements.forEach(el => {
         isAdmin ? el.classList.remove('hidden') : el.classList.add('hidden');
@@ -350,13 +353,24 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
             const totalEl = document.getElementById('visitor-count-total');
             if (todayEl) todayEl.textContent = stats.todayVisits.toLocaleString('sv-SE');
             if (totalEl) totalEl.textContent = stats.totalVisits.toLocaleString('sv-SE');
-            // Rendera den nya båda graferna
-            renderVisitorChart(stats.dailyStats, stats.todayVisits);
-            renderHourlyChart(stats.allDocs);
-            renderDeviceChart(stats.allDocs);
+            // Rendera de nya graferna
+            if (typeof renderVisitorChart === 'function') renderVisitorChart(stats.dailyStats, stats.todayVisits);
+            if (typeof renderHourlyChart === 'function') renderHourlyChart(stats.allDocs);
+            if (typeof renderDeviceChart === 'function') renderDeviceChart(stats.allDocs);
         }).catch(err => {
             console.error('Kunde inte hämta besöksstatistik:', err);
         });
+
+        // --- MASTER-REFRESH: RITA OM INNEHÅLL MED ADMIN-VERKTYG ---
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
+        
+        // Vi kollar ifall listorna finns hämtade från databasen innan vi ritar om dem
+        if (typeof newsData !== 'undefined' && newsData.length > 0) renderNews(newsData, true, uid);
+        if (typeof competitionsData !== 'undefined' && competitionsData.length > 0) renderCompetitions(competitionsData, true, uid);
+        if (typeof linksData !== 'undefined' && linksData.length > 0) renderLinks(linksData, true);
+        if (typeof guidesData !== 'undefined' && (guidesData.length > 0 || document.getElementById('guider'))) renderGuides(guidesData, true);
+        if (typeof sponsorsData !== 'undefined' && sponsorsData.length > 0) renderSponsors(sponsorsData, true);
+        if (typeof historyData !== 'undefined' && historyData.length > 0) renderHistory(historyData, true, uid);
 
     } else {
         if (adminNavLink) adminNavLink.classList.add('hidden');
@@ -370,12 +384,13 @@ export function handleAdminUI(isAdmin, isMember) { // <--- Uppdaterad signatur
         if (adminLoginPanel) adminLoginPanel.classList.remove('hidden');
     }
 
-    // --- 2. NYTT: MEDLEMS-LOGIK (Topplistor) ---
-    const toplistItem = document.getElementById('nav-toplist-item'); // Hitta via ID
-        if (isMember || isAdmin) { 
-            if (toplistItem) toplistItem.classList.remove('hidden');
-        } else {
-    if (toplistItem) toplistItem.classList.add('hidden');
+    // --- 2. MEDLEMS-LOGIK (Topplistor) ---
+    const toplistItem = document.getElementById('nav-toplist-item'); 
+    
+    if (isMember || isAdmin) { 
+        if (toplistItem) toplistItem.classList.remove('hidden');
+    } else {
+        if (toplistItem) toplistItem.classList.add('hidden');
         
         // Om användaren redan står på sidan #topplistor, skicka hem dem
         if (window.location.hash === '#topplistor') {
