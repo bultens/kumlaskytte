@@ -20,6 +20,7 @@ const profileWelcomeMessage = document.getElementById('profile-welcome-message')
 onAuthStateChanged(auth, async (user) => {
     let isAdmin = false;
     let isMember = false;
+    let userData = null;
 
     if (user) {
         if (typeof setCurrentUserId === 'function') {
@@ -31,7 +32,7 @@ onAuthStateChanged(auth, async (user) => {
             const docSnap = await getDoc(docRef);
             
             if (docSnap.exists()) {
-                const userData = docSnap.data();
+                userData = docSnap.data();
                 isAdmin = userData.isAdmin === true;
                 isMember = userData.isClubMember === true;
                 
