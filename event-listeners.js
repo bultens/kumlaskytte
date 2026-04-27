@@ -120,23 +120,32 @@ export function setupEventListeners() {
 
     // --- STÄNG "SKAPA NY SKYTT"-MODALEN ---
 
-    // 1. Krysset uppe i högra hörnet
-    const closeShooterModalBtn = document.getElementById('close-add-shooter-modal');
-    if (closeShooterModalBtn) {
-        closeShooterModalBtn.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            hideModal('addShooterModal');
-        });
-    }
-
-    // 2. Stäng om man klickar utanför rutan (addShooterModal är redan hämtad högre upp!)
-    if (addShooterModal) {
-        addShooterModal.addEventListener('click', (e) => {
-            if (e.target === addShooterModal) {
+        // 1. Krysset uppe i högra hörnet
+        const closeShooterModalBtn = document.getElementById('close-add-shooter-modal');
+        if (closeShooterModalBtn) {
+            closeShooterModalBtn.addEventListener('click', (e) => {
+                e.preventDefault(); 
                 hideModal('addShooterModal');
-            }
-        });
-    }
+            });
+        }
+
+        // 2. Avbryt-knappen (NY KOD HÄR!)
+        const cancelShooterBtn = document.getElementById('cancel-add-shooter-btn');
+        if (cancelShooterBtn) {
+            cancelShooterBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideModal('addShooterModal');
+            });
+        }
+
+        // 3. Stäng om man klickar utanför rutan
+        if (addShooterModal) {
+            addShooterModal.addEventListener('click', (e) => {
+                if (e.target === addShooterModal) {
+                    hideModal('addShooterModal');
+                }
+            });
+        }
 
     const showLoginLink = document.getElementById('show-login-link');
     const loginPanel = document.getElementById('user-login-panel');
