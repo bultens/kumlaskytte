@@ -131,17 +131,9 @@ export function setupEventListeners() {
 
     // 2. Avbryt-knappen
         const cancelShooterBtn = document.getElementById('cancel-add-shooter-btn');
-        
-        // SPION 1: Syns knappen när sidan laddas?
-        console.log("Hittade JavaScriptet Avbryt-knappen?", cancelShooterBtn); 
-
         if (cancelShooterBtn) {
             cancelShooterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                
-                // SPION 2: Känner den av klicket?
-                console.log("Avbryt klickades! Försöker stänga rutan..."); 
-                
                 hideModal('addShooterModal');
             });
         }
