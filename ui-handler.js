@@ -2061,6 +2061,16 @@ export function renderLinks(data, isAdmin) {
 // --- SKYTTEPORTALEN (GUIDER) ---
 
 export function renderGuides(data, isAdmin) {
+    // 1. DÖRRVAKTEN FÖRST! Visa/göm formuläret direkt, oavsett om datan är tom eller ej.
+    const adminSection = document.getElementById('admin-add-guide-section');
+    if (adminSection) {
+        if (isAdmin) {
+            adminSection.classList.remove('hidden');
+        } else {
+            adminSection.classList.add('hidden');
+        }
+    }
+
     const menuContainer = document.getElementById('guide-menu-container');
     const contentContainer = document.getElementById('guide-content-container');
     const categoryList = document.getElementById('guide-category-list');
@@ -2068,15 +2078,18 @@ export function renderGuides(data, isAdmin) {
     
     if (!menuContainer || !contentContainer) return;
 
-    // 1. Filtrera data (likt länkarna)
-    const filteredData = data.filter(guide => {
+    // 2. SKOTTSÄKER DATA: Säkerställ att vi alltid har en array, även om databasen är tom
+    const safeData = Array.isArray(data) ? data : [];
+
+    // 3. Filtrera data
+    const filteredData = safeData.filter(guide => {
         if (isAdmin) return true;
         if (!guide.targetGroup || guide.targetGroup === 'all') return true;
         if (!auth.currentUser) return false;
         return true; 
     });
 
-    // 2. Gruppera per kategori
+    // 4. Gruppera per kategori
     const grouped = filteredData.reduce((acc, guide) => {
         if (!acc[guide.category]) acc[guide.category] = [];
         acc[guide.category].push(guide);
@@ -2087,50 +2100,50 @@ export function renderGuides(data, isAdmin) {
 
     // Uppdatera admin-datalist
     if (categoryList) {
-        const allCats = [...new Set(data.map(g => g.category))].sort();
+        const allCats = [...new Set(safeData.map(g => g.category))].sort();
         categoryList.innerHTML = allCats.map(cat => `<option value="${cat}">`).join('');
     }
 
-    // 3. Rendera Menyn (Vänster)
-    menuContainer.innerHTML = sortedCategories.map(cat => `
-        <button onclick="document.getElementById('cat-${cat.replace(/\s+/g, '-')}').scrollIntoView({behavior:'smooth'})" 
-                class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition">
-            ${cat}
-        </button>
-    `).join('');
+    // 5. RITA UT (Med fallback om det är tomt!)
+    if (sortedCategories.length === 0) {
+        menuContainer.innerHTML = `<p class="text-sm text-gray-500 italic p-2 border-l-2 border-blue-200">Inga guider ännu.</p>`;
+        contentContainer.innerHTML = `<p class="text-gray-500 bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">Skytteportalen är under uppbyggnad. Här kommer vi samla guider och instruktioner.</p>`;
+    } else {
+        menuContainer.innerHTML = sortedCategories.map(cat => `
+            <button onclick="document.getElementById('cat-${cat.replace(/\s+/g, '-')}').scrollIntoView({behavior:'smooth'})" 
+                    class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition mb-1">
+                ${cat}
+            </button>
+        `).join('');
 
-    // 4. Rendera Innehållet (Höger)
-    contentContainer.innerHTML = sortedCategories.map(cat => `
-        <div id="cat-${cat.replace(/\s+/g, '-')}" class="space-y-6 pt-4">
-            <h3 class="text-2xl font-bold text-gray-800 border-b-2 border-blue-100 pb-2">${cat}</h3>
-            <div class="grid grid-cols-1 gap-6">
-                ${grouped[cat].map(guide => `
-                    <article id="guide-${guide.id}" class="bg-white border border-gray-100 rounded-xl p-6 shadow-sm relative group">
-                        <div class="flex justify-between items-start mb-4">
-                            <h4 class="text-xl font-bold text-blue-900">${guide.title}</h4>
-                            ${isAdmin ? `
-                                <div class="flex space-x-2">
-                                    <button class="edit-guide-btn p-1 text-gray-400 hover:text-blue-600" data-id="${guide.id}">✎</button>
-                                    <button class="delete-btn p-1 text-gray-400 hover:text-red-600" data-id="${guide.id}" data-type="guides">🗑</button>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="markdown-content text-gray-700 leading-relaxed">
-                            ${guide.content}
-                        </div>
-                        ${guide.targetGroup !== 'all' ? `<span class="mt-4 inline-block text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">${guide.targetGroup}</span>` : ''}
-                    </article>
-                `).join('')}
+        contentContainer.innerHTML = sortedCategories.map(cat => `
+            <div id="cat-${cat.replace(/\s+/g, '-')}" class="space-y-6 pt-4">
+                <h3 class="text-2xl font-bold text-gray-800 border-b-2 border-blue-100 pb-2">${cat}</h3>
+                <div class="grid grid-cols-1 gap-6">
+                    ${grouped[cat].map(guide => `
+                        <article id="guide-${guide.id}" class="bg-white border border-gray-100 rounded-xl p-6 shadow-sm relative group">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-xl font-bold text-blue-900">${guide.title}</h4>
+                                ${isAdmin ? `
+                                    <div class="flex space-x-2">
+                                        <button class="edit-guide-btn p-1 text-gray-400 hover:text-blue-600" data-id="${guide.id}">✎</button>
+                                        <button class="delete-btn p-1 text-gray-400 hover:text-red-600" data-id="${guide.id}" data-type="guides">🗑</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="markdown-content text-gray-700 leading-relaxed">
+                                ${guide.content}
+                            </div>
+                            ${guide.targetGroup && guide.targetGroup !== 'all' ? `<span class="mt-4 inline-block text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">${guide.targetGroup}</span>` : ''}
+                        </article>
+                    `).join('')}
+                </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
 
-    // Visa admin-sektion
-    const adminSection = document.getElementById('admin-add-guide-section');
-    if (adminSection) isAdmin ? adminSection.classList.remove('hidden') : adminSection.classList.add('hidden');
-
-    // Fyll i grupper i dropdown
-    if (groupSelect && groupsData) {
+    // Fyll i dynamiska grupper i dropdownen
+    if (groupSelect && typeof groupsData !== 'undefined') {
         const currentVal = groupSelect.value;
         groupSelect.innerHTML = '<option value="all">Alla (Publik)</option>' + 
             groupsData.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
