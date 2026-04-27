@@ -88,7 +88,6 @@ export function setupEventListeners() {
     const compAddBtn = document.getElementById('add-comp-btn');
     const openAddShooterBtn = document.getElementById('open-add-shooter-modal-btn');
     const addShooterModal = document.getElementById('addShooterModal');
-    const closeShooterModalBtn = document.getElementById('close-add-shooter-modal');
     const addShooterForm = document.getElementById('add-shooter-form');
     const resultsContainer = document.getElementById('results-history-container');
     const editResultModal = document.getElementById('editResultModal');
@@ -116,6 +115,26 @@ export function setupEventListeners() {
             link.addEventListener('click', () => {
                 mobileMenu.classList.add('hidden');
             });
+        });
+    }
+
+    // --- STÄNG "SKAPA NY SKYTT"-MODALEN ---
+
+    // 1. Krysset uppe i högra hörnet
+    const closeShooterModalBtn = document.getElementById('close-add-shooter-modal');
+    if (closeShooterModalBtn) {
+        closeShooterModalBtn.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            hideModal('addShooterModal');
+        });
+    }
+
+    // 2. Stäng om man klickar utanför rutan (addShooterModal är redan hämtad högre upp!)
+    if (addShooterModal) {
+        addShooterModal.addEventListener('click', (e) => {
+            if (e.target === addShooterModal) {
+                hideModal('addShooterModal');
+            }
         });
     }
 
@@ -1807,7 +1826,7 @@ if (addSponsorForm) {
             }
         };
     }
-}
+
 // --- NY KOD FÖR ATT HANTERA BORRTAGNING AV ANVÄNDARE ---
     
     // 1. Lyssna på klick i listan ("Ta bort"-knappen)
@@ -1840,3 +1859,4 @@ if (addSponsorForm) {
             }
         });
     }
+}
