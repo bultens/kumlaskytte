@@ -2254,9 +2254,9 @@ export function renderHero(user, userData) {
             </div>`;
 
     // 4. BlivandeTävlingsSkytt (Kolla gruppen TävlingsRedo)
-    const isCompShooter = userData && userData.groups && userData.groups.includes('TävlingsRedo');
+    const isRedyShooter = userData && userData.groups && userData.groups.includes('TävlingsRedo');
 
-    if (isCompShooter) {
+    if (isRedyShooter) {
         container.innerHTML = `
             <div class="card bg-white border-2 border-blue-900 p-8">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
