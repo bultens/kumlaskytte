@@ -5,7 +5,7 @@ import { initFileManager } from "./admin-documents.js";
 import { getMedalForScore } from "./result-handler.js";
 import { 
     getVisitorStats, groupsData, 
-    newsData, competitionsData, linksData, guidesData, sponsorsData, historyData 
+    newsData, competitionsData, linksData, guidesData, sponsorsData, historyData, eventsData
 } from "./data-service.js";
 
 // Ver. 1.8
@@ -367,6 +367,7 @@ export function handleAdminUI(isAdmin, isMember) {
         
         // Vi kollar ifall listorna finns hämtade från databasen innan vi ritar om dem
         if (typeof newsData !== 'undefined' && newsData.length > 0) renderNews(newsData, true, uid);
+        if (typeof eventsData !== 'undefined' && eventsData.length > 0) renderEvents(eventsData, true);
         if (typeof competitionsData !== 'undefined' && competitionsData.length > 0) renderCompetitions(competitionsData, true, uid);
         if (typeof linksData !== 'undefined' && linksData.length > 0) renderLinks(linksData, true);
         if (typeof guidesData !== 'undefined' && (guidesData.length > 0 || document.getElementById('guider'))) renderGuides(guidesData, true);
@@ -710,7 +711,27 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = item.description;
-        const shortText = tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P' ? tempDiv.firstElementChild.innerHTML : tempDiv.innerHTML;
+        
+        // --- NY LOGIK FÖR KORT TEXT (Fixar gamla inlägg) ---
+        let shortText = tempDiv.innerHTML;
+        let showChevron = true;
+        
+        if (tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P') {
+            shortText = tempDiv.firstElementChild.outerHTML;
+            // Om texten har ett stycke men är jättekort och saknar fil -> Visa ingen pil
+            if (tempDiv.children.length === 1 && tempDiv.textContent.length < 100 && !item.fileUrl) {
+                showChevron = false; 
+            }
+        } else {
+            // Om texten saknar P-taggar helt (gamla inlägg) klipp den rakt av vid 120 tecken
+            const plain = tempDiv.textContent || tempDiv.innerText || "";
+            if (plain.length > 120) {
+                shortText = '<p>' + plain.substring(0, 120) + '...</p>';
+            } else if (!item.fileUrl) {
+                showChevron = false; // Kort text och ingen fil -> Visa ingen pil
+            }
+        }
+
         const createdAt = item.createdAt?.toDate() || new Date();
         const updatedAt = item.updatedAt?.toDate() || createdAt;
         const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
@@ -723,8 +744,8 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
                 </div>
                 <div class="flex-grow">
                     <h3 class="text-2xl font-semibold mb-1 flex items-center justify-between">
-                        <span>${item.title}</span> 
-                        <span class="collapse-icon text-gray-400 text-lg transition-transform duration-200">▼</span>
+                        <span class="pr-4">${item.title}</span> 
+                        ${showChevron ? `<span class="collapse-icon text-gray-400 text-lg transition-transform duration-200">▼</span>` : ''}
                     </h3>
                     <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                     <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
@@ -743,7 +764,6 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
 
                     <div class="flex items-center space-x-2 mt-4">
                         <button class="share-btn px-3 py-1 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 transition text-sm" data-id="${item.id}" data-type="events" data-title="${item.title}">🔗 Dela</button>
-                        
                         ${isAdminLoggedIn ? `
                             <button class="delete-btn px-3 py-1 bg-red-500 text-white font-bold rounded hover:bg-red-600 transition text-sm" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
                             <button class="edit-event-btn px-3 py-1 bg-gray-500 text-white font-bold rounded hover:bg-gray-600 transition text-sm" data-id="${item.id}">Ändra</button>
@@ -756,6 +776,13 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
 
     document.querySelectorAll('.calendar-post').forEach(post => {
         post.addEventListener('click', (e) => {
+            // Säkerhetsspärr: Gör inget om man klickar på startsidans lilla kort
+            if (post.classList.contains('home-calendar-post')) return;
+            
+            const chevron = post.querySelector('.collapse-icon');
+            // Om inlägget saknar pil (för kort) behöver det inte expanderas
+            if (!chevron) return; 
+
             if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn') || e.target.closest('.share-btn') || e.target.closest('a')) {
                 return;
             }
@@ -765,21 +792,14 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
             const shortText = post.querySelector('.calendar-post-short');
             const expandedText = post.querySelector('.calendar-post-expanded');
             
-            // FIX: Hämta pilen (chevron)
-            const chevron = post.querySelector('.collapse-icon');
-
             if (isExpanded) {
-                // Fäll ihop
                 shortText.classList.remove('hidden');
                 expandedText.classList.add('hidden');
-                // FIX: Rotera pilen tillbaka (pekar ner)
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                chevron.style.transform = 'rotate(0deg)';
             } else {
-                // Expandera
                 shortText.classList.add('hidden');
                 expandedText.classList.remove('hidden');
-                // FIX: Rotera pilen (pekar upp)
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
+                chevron.style.transform = 'rotate(180deg)';
             }
         });
     });
