@@ -2252,7 +2252,7 @@ export function renderHero(user, userData) {
                     </div>
                 </div>
             </div>`;
-
+    }
     // 4. BlivandeTävlingsSkytt (Kolla gruppen TävlingsRedo)
     const isRedyShooter = userData && userData.groups && userData.groups.includes('TävlingsRedo');
 
