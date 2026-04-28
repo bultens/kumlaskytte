@@ -260,6 +260,52 @@ document.getElementById('news-per-page')?.addEventListener('change', (e) => {
     renderNews(newsData, isAdminLoggedIn, auth.currentUser?.uid);
 });
 
+// --- FILUPPLADDNING FÖR NYHETER ---
+const newsFileUpload = document.getElementById('news-file-upload');
+if (newsFileUpload) {
+    newsFileUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const storage = getStorage();
+        const storageRef = ref(storage, `news-files/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on('state_changed', null, 
+            (error) => showModal('errorModal', "Kunde inte ladda upp filen."), 
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((url) => {
+                    document.getElementById('news-file-url').value = url;
+                    document.getElementById('news-file-name-display').textContent = `Fil klar: ${file.name}`;
+                });
+            }
+        );
+    });
+}
+
+// --- FILUPPLADDNING FÖR KALENDER ---
+const eventFileUpload = document.getElementById('event-file-upload');
+if (eventFileUpload) {
+    eventFileUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const storage = getStorage();
+        const storageRef = ref(storage, `event-files/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on('state_changed', null, 
+            (error) => showModal('errorModal', "Kunde inte ladda upp filen."), 
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((url) => {
+                    document.getElementById('event-file-url').value = url;
+                    document.getElementById('event-file-name-display').textContent = `Fil klar: ${file.name}`;
+                });
+            }
+        );
+    });
+}
+
 // TÄVLINGSRAPPORTER: Filtrering och antal per sida
 document.getElementById('comp-year-filter')?.addEventListener('change', (e) => {
     compState.year = e.target.value;
@@ -868,7 +914,8 @@ if (addShooterForm) {
                 content: newsContentEditor.innerHTML,
                 date: document.getElementById('news-date').value,
                 createdAt: editingNewsId ? newsData.find(n => n.id === editingNewsId).createdAt : serverTimestamp(),
-                updatedAt: editingNewsId ? serverTimestamp() : null
+                updatedAt: editingNewsId ? serverTimestamp() : null,
+                fileUrl: document.getElementById('news-file-url').value || null
             };
             await addOrUpdateDocument('news', editingNewsId, newsObject, "Nyhet har lagts till!", "Ett fel uppstod.");
             addNewsForm.reset();
@@ -1006,7 +1053,8 @@ if (addSponsorForm) {
                 title: eventTitle,
                 description: eventDescription,
                 createdAt: editingEventId ? eventsData.find(evt => evt.id === editingEventId).createdAt : serverTimestamp(),
-                updatedAt: editingEventId ? serverTimestamp() : null
+                updatedAt: editingEventId ? serverTimestamp() : null,
+                fileUrl: document.getElementById('event-file-url').value || null
             };
 
             if (isRecurring) {

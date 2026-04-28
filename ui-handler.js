@@ -636,6 +636,11 @@ const createNewsCard = (item, isAdminLoggedIn, currentUserId, isStartPage = fals
                 <h3 class="text-xl font-bold mb-1 text-gray-900">${item.title}</h3>
                 <p class="text-xs text-gray-500 mb-3">📅 ${item.date}</p>
                 <div class="markdown-content text-gray-700 text-sm line-clamp-3 mb-2 pointer-events-none">${item.content}</div>
+                ${item.fileUrl ? `
+                    <a href="${item.fileUrl}" target="_blank" class="inline-flex items-center mt-3 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 hover:bg-blue-100 transition text-sm font-bold">
+                        <span class="mr-2">📎</span> Ladda ner bilaga
+                    </a>
+                ` : ''}
                 <span class="text-blue-600 text-sm font-bold mt-2 inline-block pointer-events-none">Läs hela nyheten →</span>
             </div>`;
     }
@@ -720,7 +725,18 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
                     <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
                     <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                     <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
-                    <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">${item.description}</div>
+                    
+                    <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">
+                        ${item.description}
+                        
+                        ${item.fileUrl ? `
+                            <div class="mt-4">
+                                <a href="${item.fileUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 hover:bg-blue-100 transition text-sm font-bold shadow-sm">
+                                    <span class="mr-2">📄</span> Visa inbjudan/fil
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
                     <div class="flex items-center space-x-2 mt-4">
                         <button class="share-btn px-3 py-1 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 transition text-sm" data-id="${item.id}" data-type="events" data-title="${item.title}">🔗 Dela</button>
                         ${isAdminLoggedIn ? `
@@ -735,7 +751,8 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
 
     document.querySelectorAll('.calendar-post').forEach(post => {
         post.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn')) {
+            // VIKTIG FIX: Fäll inte ihop kortet om man klickar på en länk (<a>), dela, ändra eller ta bort!
+            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn') || e.target.closest('.share-btn') || e.target.closest('a')) {
                 return;
             }
             const isExpanded = post.getAttribute('data-expanded') === 'true';

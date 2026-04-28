@@ -245,7 +245,12 @@
                     </div>
                     <div id="news-content-editor" contenteditable="true" class="editor-content w-full p-2.5 sm:p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base"></div>
                     <input type="hidden" id="news-content-hidden">
-                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-bold mb-2 text-sm">Bifoga fil (PDF, Docx etc.)</label>
+                        <input type="file" id="news-file-upload" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <input type="hidden" id="news-file-url">
+                        <p id="news-file-name-display" class="text-xs text-blue-600 mt-1 font-bold"></p>
+                    </div>
                     <button type="submit" id="add-news-btn" disabled class="bg-gray-400 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg text-sm sm:text-base">Lägg till</button>
                 </form>
             </div>
@@ -375,7 +380,12 @@
                     </div>
                     <div id="event-description-editor" contenteditable="true" class="editor-content w-full p-2.5 sm:p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base"></div>
                     <input type="hidden" id="event-description-hidden">
-
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-bold mb-2 text-sm">Bifoga fil (Inbjudan/Info)</label>
+                        <input type="file" id="event-file-upload" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <input type="hidden" id="event-file-url">
+                        <p id="event-file-name-display" class="text-xs text-blue-600 mt-1 font-bold"></p>
+                    </div>
                     <button type="submit" id="add-event-btn" disabled class="bg-gray-400 text-white font-bold py-2.5 sm:py-3 px-4 rounded-lg text-sm sm:text-base">Lägg till</button>
                 </form>
             </div>
