@@ -716,13 +716,16 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
 
         calendarContainer.innerHTML += `
-            <div class="card flex items-start calendar-post" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
+            <div class="card flex items-start calendar-post cursor-pointer" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
                 <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
                     <p class="text-xl leading-none">${day}</p>
                     <p class="text-xs uppercase">${month}</p>
                 </div>
                 <div class="flex-grow">
-                    <h3 class="text-2xl font-semibold mb-1">${item.title}</h3>
+                    <h3 class="text-2xl font-semibold mb-1 flex items-center justify-between">
+                        <span>${item.title}</span> 
+                        <span class="collapse-icon text-gray-400 text-lg transition-transform duration-200">▼</span>
+                    </h3>
                     <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
                     <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
                     
@@ -737,8 +740,10 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
                             </div>
                         ` : ''}
                     </div>
+
                     <div class="flex items-center space-x-2 mt-4">
                         <button class="share-btn px-3 py-1 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 transition text-sm" data-id="${item.id}" data-type="events" data-title="${item.title}">🔗 Dela</button>
+                        
                         ${isAdminLoggedIn ? `
                             <button class="delete-btn px-3 py-1 bg-red-500 text-white font-bold rounded hover:bg-red-600 transition text-sm" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
                             <button class="edit-event-btn px-3 py-1 bg-gray-500 text-white font-bold rounded hover:bg-gray-600 transition text-sm" data-id="${item.id}">Ändra</button>
@@ -751,20 +756,30 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
 
     document.querySelectorAll('.calendar-post').forEach(post => {
         post.addEventListener('click', (e) => {
-            // VIKTIG FIX: Fäll inte ihop kortet om man klickar på en länk (<a>), dela, ändra eller ta bort!
             if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn') || e.target.closest('.share-btn') || e.target.closest('a')) {
                 return;
             }
+            
             const isExpanded = post.getAttribute('data-expanded') === 'true';
             post.setAttribute('data-expanded', !isExpanded);
             const shortText = post.querySelector('.calendar-post-short');
             const expandedText = post.querySelector('.calendar-post-expanded');
+            
+            // FIX: Hämta pilen (chevron)
+            const chevron = post.querySelector('.collapse-icon');
+
             if (isExpanded) {
+                // Fäll ihop
                 shortText.classList.remove('hidden');
                 expandedText.classList.add('hidden');
+                // FIX: Rotera pilen tillbaka (pekar ner)
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
             } else {
+                // Expandera
                 shortText.classList.add('hidden');
                 expandedText.classList.remove('hidden');
+                // FIX: Rotera pilen (pekar upp)
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
             }
         });
     });
