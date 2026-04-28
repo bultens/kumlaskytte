@@ -921,6 +921,10 @@ if (addShooterForm) {
             addNewsForm.reset();
             newsContentEditor.innerHTML = '';
             editingNewsId = null;
+            const newsFileUrl = document.getElementById('news-file-url');
+            if(newsFileUrl) newsFileUrl.value = '';
+            const newsFileName = document.getElementById('news-file-name-display');
+            if(newsFileName) newsFileName.textContent = '';
             document.getElementById('news-form-title').textContent = 'Lägg till Nyhet';
             newsAddBtn.textContent = 'Lägg till';
             newsAddBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
@@ -1099,6 +1103,10 @@ if (addSponsorForm) {
             addEventForm.reset();
             eventDescriptionEditor.innerHTML = '';
             editingEventId = null;
+            const eventFileUrl = document.getElementById('event-file-url');
+            if(eventFileUrl) eventFileUrl.value = '';
+            const eventFileName = document.getElementById('event-file-name-display');
+            if(eventFileName) eventFileName.textContent = '';
             document.getElementById('is-recurring').checked = false;
             singleEventFields.classList.remove('hidden');
             recurringEventFields.classList.add('hidden');
