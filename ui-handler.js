@@ -2252,7 +2252,9 @@ export function renderHero(user, userData) {
                     </div>
                 </div>
             </div>`;
+        return; // <--- Detta 'return' saknades!
     }
+    
     // 4. BlivandeTävlingsSkytt (Kolla gruppen TävlingsRedo)
     const isRedyShooter = userData && userData.groups && userData.groups.includes('TävlingsRedo');
 
@@ -2262,27 +2264,25 @@ export function renderHero(user, userData) {
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <span class="bg-blue-900 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">Börja Tävla!</span>
-                        <h2 class="text-2xl font-bold mt-2 text-gray-900">Sugen att örja tävla?</h2>
+                        <h2 class="text-2xl font-bold mt-2 text-gray-900">Sugen att börja tävla?</h2>
                         <p class="text-gray-600 mt-1">För att kunna tävla behöver man gå en kurs och skaffa tävlingslicens, läs mer i vår guide.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <a href="#tavlingar" class="inline-block bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">Tävlingsrapporter</a>
+                        <a href="#guider" class="inline-block bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">Tävlingsguiden</a>
                         <a href="#kalender" class="inline-block bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-bold hover:bg-gray-200 transition">Kalender</a>
                     </div>
                 </div>
             </div>`;
-
-                   
-
-    } else {
-        // 4. Vanlig medlem
-        container.innerHTML = `
-            <div class="card bg-green-800 text-white p-8">
-                <h2 class="text-2xl font-bold">Registrera dina skott på sidan!</h2>
-                <p class="mt-2 text-green-100">Som medlem kan du registrera dina omgångar och se hur du utveckals här på sidan. Vi har en komplett guide som hjälper dig igång.</p>
-                <a href="#guider" class="inline-block mt-6 bg-white text-green-800 px-8 py-3 rounded-full font-bold hover:bg-green-50 transition">Visa guiden</a>
-            </div>`;
-    }
+        return; // <--- Lade till return här också för säkerhets skull!
+    } 
+    
+    // 5. Vanlig medlem
+    container.innerHTML = `
+        <div class="card bg-green-800 text-white p-8">
+            <h2 class="text-2xl font-bold">Registrera dina skott på sidan!</h2>
+            <p class="mt-2 text-green-100">Som medlem kan du registrera dina omgångar och se hur du utvecklas här på sidan. Vi har en komplett guide som hjälper dig igång.</p>
+            <a href="#guider" class="inline-block mt-6 bg-white text-green-800 px-8 py-3 rounded-full font-bold hover:bg-green-50 transition">Visa guiden</a>
+        </div>`;
 }
 
 export function renderDeviceChart(dailyLogDocs) {
