@@ -2256,6 +2256,8 @@ export function renderHero(user, userData) {
     }
     
     // 4. BlivandeTävlingsSkytt (Kolla gruppen TävlingsRedo)
+    console.log("Vilka grupper har denna användare?", userData.groups);
+
     const isRedyShooter = userData && userData.groups && userData.groups.includes('TävlingsRedo');
 
     if (isRedyShooter) {
