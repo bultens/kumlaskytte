@@ -2208,6 +2208,19 @@ export function renderGuides(data, isAdmin) {
 export function renderHero(user, userData) {
     const container = document.getElementById('hero-container');
     if (!container) return;
+    let userGroupNames = [];
+    if (userData && userData.groups) {
+        userGroupNames = userData.groups.map(groupId => {
+            const foundGroup = groupsData.find(g => g.id === groupId);
+            return foundGroup ? foundGroup.name : "Okänd grupp";
+        });
+    }
+
+    // Nu kan vi fråga efter namnen i klartext!
+    // (Jag la in en koll för både "TävlingRedo" och "TävlingsRedo" så vi är helgarderade mot stavfel)
+    const isCompShooter = userGroupNames.includes('TävlingsSkyttar');
+    const isRedyShooter = userGroupNames.includes('TävlingsRedo') ;
+    // -----------------------
 
     // 1. Oinloggad
     if (!user) {
@@ -2235,7 +2248,7 @@ export function renderHero(user, userData) {
     }
 
     // 3. Tävlingsskytt (Kolla gruppen TävlingsSkyttar)
-    const isCompShooter = userData && userData.groups && userData.groups.includes('TävlingsSkyttar');
+    is (isCompShooter);
 
     if (isCompShooter) {
         container.innerHTML = `
@@ -2256,9 +2269,8 @@ export function renderHero(user, userData) {
     }
     
     // 4. BlivandeTävlingsSkytt (Kolla gruppen TävlingsRedo)
-    console.log("Vilka grupper har denna användare?", userData.groups);
 
-    const isRedyShooter = userData && userData.groups && userData.groups.includes('TävlingsRedo');
+    is (isRedyShooter);
 
     if (isRedyShooter) {
         container.innerHTML = `
