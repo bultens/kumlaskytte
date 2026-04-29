@@ -2208,6 +2208,7 @@ export function renderGuides(data, isAdmin) {
 export function renderHero(user, userData) {
     const container = document.getElementById('hero-container');
     if (!container) return;
+    
     let userGroupNames = [];
     if (userData && userData.groups) {
         userGroupNames = userData.groups.map(groupId => {
@@ -2217,7 +2218,6 @@ export function renderHero(user, userData) {
     }
 
     // Nu kan vi fråga efter namnen i klartext!
-    // (Jag la in en koll för både "TävlingRedo" och "TävlingsRedo" så vi är helgarderade mot stavfel)
     const isCompShooter = userGroupNames.includes('TävlingsSkyttar');
     const isRedyShooter = userGroupNames.includes('TävlingsRedo') ;
     // -----------------------
@@ -2248,8 +2248,6 @@ export function renderHero(user, userData) {
     }
 
     // 3. Tävlingsskytt (Kolla gruppen TävlingsSkyttar)
-    is (isCompShooter);
-
     if (isCompShooter) {
         container.innerHTML = `
             <div class="card bg-white border-2 border-blue-900 p-8">
@@ -2265,13 +2263,10 @@ export function renderHero(user, userData) {
                     </div>
                 </div>
             </div>`;
-        return; // <--- Detta 'return' saknades!
+        return; 
     }
     
     // 4. BlivandeTävlingsSkytt (Kolla gruppen TävlingsRedo)
-
-    is (isRedyShooter);
-
     if (isRedyShooter) {
         container.innerHTML = `
             <div class="card bg-white border-2 border-blue-900 p-8">
@@ -2287,7 +2282,7 @@ export function renderHero(user, userData) {
                     </div>
                 </div>
             </div>`;
-        return; // <--- Lade till return här också för säkerhets skull!
+        return; 
     } 
     
     // 5. Vanlig medlem
