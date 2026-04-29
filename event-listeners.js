@@ -1523,10 +1523,13 @@ if (addSponsorForm) {
 
                 sortedImages.forEach(img => {
                     const div = document.createElement('div');
-                    div.className = 'gallery-selection-item';
+                    // Tvingar fram en snygg ruta med klick-känsla
+                    div.className = 'cursor-pointer border border-gray-200 rounded-lg p-2 hover:bg-blue-50 transition flex flex-col items-center bg-white shadow-sm';
                     div.innerHTML = `
-                        <img src="${img.url}" loading="lazy">
-                        <p>${img.title}</p>
+                        <div class="w-full aspect-square mb-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
+                            <img src="${img.url}" loading="lazy" class="w-full h-full object-cover">
+                        </div>
+                        <p class="text-xs text-gray-700 font-bold truncate w-full text-center">${img.title}</p>
                     `;
                     div.onclick = () => insertTheImage(img.url);
                     grid.appendChild(div);
