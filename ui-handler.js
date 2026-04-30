@@ -367,7 +367,7 @@ export function handleAdminUI(isAdmin, isMember) {
         
         // Vi kollar ifall listorna finns hämtade från databasen innan vi ritar om dem
         if (typeof newsData !== 'undefined' && newsData.length > 0) renderNews(newsData, true, uid);
-        if (typeof eventsData !== 'undefined' && eventsData.length > 0) renderEvents(eventsData, true);
+        if (typeof eventsData !== 'undefined' && eventsData.length > 0) renderEvents(eventsData, true, userData);
         if (typeof competitionsData !== 'undefined' && competitionsData.length > 0) renderCompetitions(competitionsData, true, uid);
         if (typeof linksData !== 'undefined' && linksData.length > 0) renderLinks(linksData, true);
         if (typeof guidesData !== 'undefined' && (guidesData.length > 0 || document.getElementById('guider'))) renderGuides(guidesData, true);
