@@ -33,6 +33,7 @@ onAuthStateChanged(auth, async (user) => {
             
             if (docSnap.exists()) {
                 userData = docSnap.data();
+                window.currentUserData = userData;
                 isAdmin = userData.isAdmin === true;
                 isMember = userData.isClubMember === true;
                 
@@ -47,6 +48,7 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Fel vid hämtning av användarprofil:", err);
         }
     } else {
+        window.currentUserData = null;
         if (typeof setCurrentUserId === 'function') {
             setCurrentUserId(null);
         }

@@ -71,10 +71,15 @@ export function initializeDataListeners() {
         renderNews(newsData, isAdminLoggedIn, uid);
     });
 
-    // Kalenderhändelser
+// Kalenderhändelser
     onSnapshot(collection(db, 'events'), (snapshot) => {
         eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEvents(eventsData, isAdminLoggedIn, userData);
+        
+        // Hämta isAdmin-status om den finns, annars false
+        const isAdmin = typeof isAdminLoggedIn !== 'undefined' ? isAdminLoggedIn : false;
+        
+        // Skicka med den globala användardatan (eller null om man är utloggad)
+        renderEvents(eventsData, isAdmin, window.currentUserData || null);
     });
 
     // Tävlingsinfo (Uppdaterad för att stödja gilla/dela)
