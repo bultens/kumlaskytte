@@ -2161,9 +2161,10 @@ export function renderGuides(data, isAdmin) {
         menuContainer.innerHTML = `<p class="text-sm text-gray-500 italic p-2 border-l-2 border-blue-200">Inga guider ännu.</p>`;
         contentContainer.innerHTML = `<p class="text-gray-500 bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">Skytteportalen är under uppbyggnad. Här kommer vi samla guider och instruktioner.</p>`;
     } else {
+        // FIX: Tog bort 'onclick' och lade till 'data-target' och klassen 'guide-nav-btn'
         menuContainer.innerHTML = sortedCategories.map(cat => `
-            <button onclick="document.getElementById('cat-${cat.replace(/\s+/g, '-')}').scrollIntoView({behavior:'smooth'})" 
-                    class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition mb-1">
+            <button data-target="cat-${cat.replace(/\s+/g, '-')}" 
+                    class="guide-nav-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition mb-1">
                 ${cat}
             </button>
         `).join('');
@@ -2192,6 +2193,18 @@ export function renderGuides(data, isAdmin) {
                 </div>
             </div>
         `).join('');
+
+        // FIX: Aktivera menyknapparna säkert med JavaScript
+        const navButtons = menuContainer.querySelectorAll('.guide-nav-btn');
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
     }
 
     // Fyll i dynamiska grupper i dropdownen
