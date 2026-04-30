@@ -11,8 +11,8 @@ import {
     doc, getDoc, setDoc, serverTimestamp, collection, 
     query, where, getDocs, writeBatch, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { initializeDataListeners, setCurrentUserId, guidesData } from "./data-service.js";
-import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal, renderHero, renderGuides } from "./ui-handler.js";
+import { initializeDataListeners, setCurrentUserId, guidesData, eventsData } from "./data-service.js";
+import { handleAdminUI, toggleProfileUI, renderProfileInfo, navigate, showModal, hideModal, showDeleteProfileModal, renderHero, renderGuides, renderEvents } from "./ui-handler.js";
 
 // Ver. 3.18 - Återställt alla navigationslänkar och kontohantering
 const profileWelcomeMessage = document.getElementById('profile-welcome-message');
@@ -62,6 +62,9 @@ onAuthStateChanged(auth, async (user) => {
     renderHero(user, userData);
     if (typeof guidesData !== 'undefined') {
         renderGuides(guidesData, isAdmin, userData);
+    }
+    if (typeof eventsData !== 'undefined') {
+        renderEvents(eventsData, isAdmin, userData);
     }
 });
 
