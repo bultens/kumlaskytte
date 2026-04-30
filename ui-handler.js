@@ -669,21 +669,41 @@ const createNewsCard = (item, isAdminLoggedIn, currentUserId, isStartPage = fals
         </div>`;
 };
 
-export function renderEvents(eventsData, isAdminLoggedIn) {
-    const events = eventsData;
+export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
     const calendarContainer = document.getElementById('calendar-container');
     const homeEventsContainer = document.getElementById('home-events-container');
+    const groupSelect = document.getElementById('event-target-group'); // NY: Hämtar dropdown
 
     if (!calendarContainer || !homeEventsContainer) return;
 
     calendarContainer.innerHTML = '';
     homeEventsContainer.innerHTML = '';
     
+    // --- NY TOLK-LOGIK FÖR GRUPPER (Samma som guider) ---
+    let userGroupNames = [];
+    if (userData && userData.groups && typeof groupsData !== 'undefined') {
+        userGroupNames = userData.groups.map(groupId => {
+            const foundGroup = groupsData.find(g => g.id === groupId);
+            return foundGroup ? foundGroup.name : "";
+        });
+    }
+
+    // --- FILTRERA PÅ DATUM OCH BEHÖRIGHET ---
     const today = new Date().toISOString().split('T')[0];
-    const upcomingEvents = events.filter(e => e.date >= today);
+    const upcomingEvents = eventsData.filter(item => {
+        // 1. Har datumet passerat?
+        if (item.date < today) return false;
+        
+        // 2. Har besökaren rättighet att se?
+        if (isAdminLoggedIn) return true;
+        if (!item.targetGroup || item.targetGroup === 'all') return true;
+        if (!auth.currentUser || !userData) return false;
+        return userGroupNames.includes(item.targetGroup);
+    });
     
     upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
+    // Rita ut till Startsidan (De 2 närmaste)
     upcomingEvents.slice(0, 2).forEach(item => {
         const eventDate = new Date(item.date);
         const day = eventDate.getDate();
@@ -704,6 +724,7 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         `;
     });
 
+    // Rita ut hela kalendern
     upcomingEvents.forEach(item => {
         const eventDate = new Date(item.date);
         const day = eventDate.getDate();
@@ -712,23 +733,20 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = item.description;
         
-        // --- NY LOGIK FÖR KORT TEXT (Fixar gamla inlägg) ---
         let shortText = tempDiv.innerHTML;
         let showChevron = true;
         
         if (tempDiv.firstElementChild && tempDiv.firstElementChild.tagName === 'P') {
             shortText = tempDiv.firstElementChild.outerHTML;
-            // Om texten har ett stycke men är jättekort och saknar fil -> Visa ingen pil
             if (tempDiv.children.length === 1 && tempDiv.textContent.length < 100 && !item.fileUrl) {
                 showChevron = false; 
             }
         } else {
-            // Om texten saknar P-taggar helt (gamla inlägg) klipp den rakt av vid 120 tecken
             const plain = tempDiv.textContent || tempDiv.innerText || "";
             if (plain.length > 120) {
                 shortText = '<p>' + plain.substring(0, 120) + '...</p>';
             } else if (!item.fileUrl) {
-                showChevron = false; // Kort text och ingen fil -> Visa ingen pil
+                showChevron = false; 
             }
         }
 
@@ -748,6 +766,10 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
                         ${showChevron ? `<span class="collapse-icon text-gray-400 text-lg transition-transform duration-200">▼</span>` : ''}
                     </h3>
                     <p class="text-sm text-gray-500 mb-2">${timeInfo}</p>
+                    
+                    <!-- NY: Visa Målgrupps-tagg om det inte är publikt -->
+                    ${item.targetGroup && item.targetGroup !== 'all' ? `<span class="inline-block mb-3 text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">Endast för: ${item.targetGroup}</span>` : ''}
+                    
                     <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
                     
                     <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">
@@ -774,13 +796,11 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
         `;
     });
 
+    // Klicklyssnare för att expandera inlägg (orörd)
     document.querySelectorAll('.calendar-post').forEach(post => {
         post.addEventListener('click', (e) => {
-            // Säkerhetsspärr: Gör inget om man klickar på startsidans lilla kort
             if (post.classList.contains('home-calendar-post')) return;
-            
             const chevron = post.querySelector('.collapse-icon');
-            // Om inlägget saknar pil (för kort) behöver det inte expanderas
             if (!chevron) return; 
 
             if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn') || e.target.closest('.share-btn') || e.target.closest('a')) {
@@ -803,6 +823,14 @@ export function renderEvents(eventsData, isAdminLoggedIn) {
             }
         });
     });
+
+    // NY: Fyll i dynamiska grupper i dropdownen i admin-formuläret
+    if (groupSelect && typeof groupsData !== 'undefined') {
+        const currentVal = groupSelect.value;
+        groupSelect.innerHTML = '<option value="all">Alla (Publik)</option>' + 
+            groupsData.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+        groupSelect.value = currentVal;
+    }
 }
 
 export function renderHistory(historyData, isAdminLoggedIn, currentUserId) {

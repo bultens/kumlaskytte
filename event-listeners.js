@@ -1046,7 +1046,7 @@ if (addSponsorForm) {
         });
     }
 
-    if (addEventForm) {
+   if (addEventForm) {
         addEventForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const isRecurring = isRecurringCheckbox.checked;
@@ -1058,7 +1058,9 @@ if (addSponsorForm) {
                 description: eventDescription,
                 createdAt: editingEventId ? eventsData.find(evt => evt.id === editingEventId).createdAt : serverTimestamp(),
                 updatedAt: editingEventId ? serverTimestamp() : null,
-                fileUrl: document.getElementById('event-file-url').value || null
+                fileUrl: document.getElementById('event-file-url').value || null,
+                // --- NYTT: Sparar målgruppen i databasen ---
+                targetGroup: document.getElementById('event-target-group') ? document.getElementById('event-target-group').value : 'all'
             };
 
             if (isRecurring) {
@@ -1107,6 +1109,12 @@ if (addSponsorForm) {
             if(eventFileUrl) eventFileUrl.value = '';
             const eventFileName = document.getElementById('event-file-name-display');
             if(eventFileName) eventFileName.textContent = '';
+            
+            // --- NYTT: Återställ dropdownen till "Alla" ---
+            const targetGroupSelect = document.getElementById('event-target-group');
+            if(targetGroupSelect) targetGroupSelect.value = 'all';
+            // ---------------------------------------------
+            
             document.getElementById('is-recurring').checked = false;
             singleEventFields.classList.remove('hidden');
             recurringEventFields.classList.add('hidden');
@@ -1316,15 +1324,23 @@ if (addSponsorForm) {
                 }, 100);
             }
         }
+
         const editEventBtn = e.target.closest('.edit-event-btn');
         if (editEventBtn) {
             const eventId = editEventBtn.getAttribute('data-id');
             const eventItem = eventsData.find(e => e.id === eventId);
+            
             if (eventItem) {
                 editingEventId = eventId;
                 document.getElementById('event-title').value = eventItem.title;
                 document.getElementById('event-description-editor').innerHTML = eventItem.description;
                 document.getElementById('event-date').value = eventItem.date;
+                
+                // --- NYTT: Fyll i rätt målgrupp från eventItem ---
+                const targetGroupSelect = document.getElementById('event-target-group');
+                if (targetGroupSelect) targetGroupSelect.value = eventItem.targetGroup || 'all';
+                // ------------------------------------------------
+
                 document.getElementById('is-recurring').checked = false;
                 document.getElementById('single-event-fields').classList.remove('hidden');
                 document.getElementById('recurring-event-fields').classList.add('hidden');
