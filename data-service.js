@@ -74,7 +74,7 @@ export function initializeDataListeners() {
     // Kalenderhändelser
     onSnapshot(collection(db, 'events'), (snapshot) => {
         eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEvents(eventsData, isAdminLoggedIn);
+        renderEvents(eventsData, isAdminLoggedIn, userData);
     });
 
     // Tävlingsinfo (Uppdaterad för att stödja gilla/dela)
