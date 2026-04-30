@@ -2112,8 +2112,8 @@ export function renderLinks(data, isAdmin) {
 
 // --- SKYTTEPORTALEN (GUIDER) ---
 
-export function renderGuides(data, isAdmin) {
-    // 1. DÖRRVAKTEN FÖRST! Visa/göm formuläret direkt, oavsett om datan är tom eller ej.
+export function renderGuides(data, isAdmin, userData = null) {
+    // 1. DÖRRVAKTEN FÖRST! Visa/göm formuläret direkt
     const adminSection = document.getElementById('admin-add-guide-section');
     if (adminSection) {
         if (isAdmin) {
@@ -2130,15 +2130,26 @@ export function renderGuides(data, isAdmin) {
     
     if (!menuContainer || !contentContainer) return;
 
-    // 2. SKOTTSÄKER DATA: Säkerställ att vi alltid har en array, även om databasen är tom
+    // 2. SKOTTSÄKER DATA
     const safeData = Array.isArray(data) ? data : [];
+
+    // --- NY TOLK-LOGIK FÖR GRUPPER (Samma som i Hero-korten) ---
+    let userGroupNames = [];
+    if (userData && userData.groups && typeof groupsData !== 'undefined') {
+        userGroupNames = userData.groups.map(groupId => {
+            const foundGroup = groupsData.find(g => g.id === groupId);
+            return foundGroup ? foundGroup.name : "";
+        });
+    }
 
     // 3. Filtrera data
     const filteredData = safeData.filter(guide => {
-        if (isAdmin) return true;
-        if (!guide.targetGroup || guide.targetGroup === 'all') return true;
-        if (!auth.currentUser) return false;
-        return true; 
+        if (isAdmin) return true; // Admin ser allt
+        if (!guide.targetGroup || guide.targetGroup === 'all') return true; // Alla ser publikt
+        if (!auth.currentUser || !userData) return false; // Oinloggad ser inget låst
+        
+        // HÄR ÄR DEN MAGISKA KONTROLLEN: Har användaren rätt grupp?
+        return userGroupNames.includes(guide.targetGroup);
     });
 
     // 4. Gruppera per kategori
@@ -2156,12 +2167,11 @@ export function renderGuides(data, isAdmin) {
         categoryList.innerHTML = allCats.map(cat => `<option value="${cat}">`).join('');
     }
 
-    // 5. RITA UT (Med fallback om det är tomt!)
+    // 5. RITA UT
     if (sortedCategories.length === 0) {
         menuContainer.innerHTML = `<p class="text-sm text-gray-500 italic p-2 border-l-2 border-blue-200">Inga guider ännu.</p>`;
         contentContainer.innerHTML = `<p class="text-gray-500 bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">Skytteportalen är under uppbyggnad. Här kommer vi samla guider och instruktioner.</p>`;
     } else {
-        // FIX: Tog bort 'onclick' och lade till 'data-target' och klassen 'guide-nav-btn'
         menuContainer.innerHTML = sortedCategories.map(cat => `
             <button data-target="cat-${cat.replace(/\s+/g, '-')}" 
                     class="guide-nav-btn w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition mb-1">
@@ -2194,7 +2204,7 @@ export function renderGuides(data, isAdmin) {
             </div>
         `).join('');
 
-        // FIX: Aktivera menyknapparna säkert med JavaScript
+        // Aktivera menyknapparna säkert med JavaScript
         const navButtons = menuContainer.querySelectorAll('.guide-nav-btn');
         navButtons.forEach(btn => {
             btn.addEventListener('click', () => {

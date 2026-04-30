@@ -59,7 +59,7 @@ onAuthStateChanged(auth, async (user) => {
     // Rita ut nya Hero-kortet och Skytteportalen
     renderHero(user, userData);
     if (typeof guidesData !== 'undefined') {
-        renderGuides(guidesData, isAdmin);
+        renderGuides(guidesData, isAdmin, userData);
     }
 });
 
