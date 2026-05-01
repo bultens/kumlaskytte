@@ -958,7 +958,20 @@ if (addShooterForm) {
     if (addImageForm) {
         addImageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            // 1. Kom ihåg värdena innan uppladdningen börjar
+            const imageYearInput = document.getElementById('image-year');
+            const imageMonthInput = document.getElementById('image-month');
+            
+            const savedYear = imageYearInput ? imageYearInput.value : '';
+            const savedMonth = imageMonthInput ? imageMonthInput.value : '';
+            
+            // 2. Kör uppladdningen (som sedan rensar formuläret)
             await handleImageUpload(e);
+            
+            // 3. Stoppa omedelbart tillbaka år och månad!
+            if (imageYearInput) imageYearInput.value = savedYear;
+            if (imageMonthInput) imageMonthInput.value = savedMonth;
         });
     }
 
