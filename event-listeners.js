@@ -1081,6 +1081,9 @@ if (addSponsorForm) {
             const isRecurring = isRecurringCheckbox.checked;
             const eventTitle = eventTitleInput.value;
             const eventDescription = eventDescriptionEditor.innerHTML;
+            // Fånga upp våra nya fält
+            const isCompetition = document.getElementById('event-is-competition') ? document.getElementById('event-is-competition').checked : false;
+            const lastRegistrationDate = document.getElementById('event-last-registration') ? document.getElementById('event-last-registration').value : null;
 
             const baseEventObject = {
                 title: eventTitle,
@@ -1088,8 +1091,13 @@ if (addSponsorForm) {
                 createdAt: editingEventId ? eventsData.find(evt => evt.id === editingEventId).createdAt : serverTimestamp(),
                 updatedAt: editingEventId ? serverTimestamp() : null,
                 fileUrl: document.getElementById('event-file-url').value || null,
-                // --- NYTT: Sparar målgruppen i databasen ---
-                targetGroup: document.getElementById('event-target-group') ? document.getElementById('event-target-group').value : 'all'
+                targetGroup: document.getElementById('event-target-group') ? document.getElementById('event-target-group').value : 'all',
+                
+                // --- NYA FÄLTEN FÖR TÄVLING ---
+                isCompetition: isCompetition,
+                lastRegistrationDate: isCompetition ? lastRegistrationDate : null,
+                // Om vi redigerar en befintlig post behåller vi listan på anmälda, annars skapar vi en tom lista
+                registeredShooters: editingEventId ? (eventsData.find(evt => evt.id === editingEventId).registeredShooters || []) : []
             };
 
             if (isRecurring) {
@@ -1138,6 +1146,12 @@ if (addSponsorForm) {
             if(eventFileUrl) eventFileUrl.value = '';
             const eventFileName = document.getElementById('event-file-name-display');
             if(eventFileName) eventFileName.textContent = '';
+            const isCompCheck = document.getElementById('event-is-competition');
+            if(isCompCheck) isCompCheck.checked = false;
+            const regDateContainer = document.getElementById('registration-deadline-container');
+            if(regDateContainer) regDateContainer.classList.add('hidden');
+            const regDateInput = document.getElementById('event-last-registration');
+            if(regDateInput) regDateInput.value = '';
             
             // --- NYTT: Återställ dropdownen till "Alla" ---
             const targetGroupSelect = document.getElementById('event-target-group');
@@ -1368,7 +1382,21 @@ if (addSponsorForm) {
                 // --- NYTT: Fyll i rätt målgrupp från eventItem ---
                 const targetGroupSelect = document.getElementById('event-target-group');
                 if (targetGroupSelect) targetGroupSelect.value = eventItem.targetGroup || 'all';
-                // ------------------------------------------------
+                
+                // --- Fyll i tävlingsinformationen ---
+                const isCompCheck = document.getElementById('event-is-competition');
+                const regDateContainer = document.getElementById('registration-deadline-container');
+                const regDateInput = document.getElementById('event-last-registration');
+
+                if (isCompCheck) isCompCheck.checked = eventItem.isCompetition || false;
+                if (regDateInput) regDateInput.value = eventItem.lastRegistrationDate || '';
+                
+                if (eventItem.isCompetition && regDateContainer) {
+                    regDateContainer.classList.remove('hidden');
+                } else if (regDateContainer) {
+                    regDateContainer.classList.add('hidden');
+                }
+                // -------------------------------------
 
                 document.getElementById('is-recurring').checked = false;
                 document.getElementById('single-event-fields').classList.remove('hidden');

@@ -688,13 +688,33 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
         });
     }
 
-    // --- FILTRERA PÅ DATUM OCH BEHÖRIGHET ---
+// --- FILTRERA PÅ DATUM OCH BEHÖRIGHET ---
     const today = new Date().toISOString().split('T')[0];
-    const upcomingEvents = eventsData.filter(item => {
-        // 1. Har datumet passerat?
+    
+    // 1. Skapa virtuella påminnelser för tävlingar!
+    const processedEvents = [];
+    eventsData.forEach(item => {
+        processedEvents.push(item); // Lägg in originalet
+        
+        // Om det är en tävling med ett sista anmälningsdatum, skapa en kopia!
+        if (item.isCompetition && item.lastRegistrationDate) {
+            processedEvents.push({
+                ...item,
+                id: 'reminder-' + item.id, // Sätt ett fejk-ID så den inte krockar
+                title: '⚠️ Sista anmälan: ' + item.title,
+                date: item.lastRegistrationDate,
+                isReminder: true, // Berätta för koden att detta är en kopia
+                originalId: item.id // Spara var originalet bor
+            });
+        }
+    });
+
+    // 2. Filtrera den nya, expanderade listan
+    const upcomingEvents = processedEvents.filter(item => {
+        // Har datumet passerat? (Vi döljer inte gamla events om man är admin, men annars försvinner de)
         if (item.date < today) return false;
         
-        // 2. Har besökaren rättighet att se?
+        // Har besökaren rättighet att se?
         if (isAdminLoggedIn) return true;
         if (!item.targetGroup || item.targetGroup === 'all') return true;
         if (!auth.currentUser || !userData) return false;
@@ -753,7 +773,50 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
         const createdAt = item.createdAt?.toDate() || new Date();
         const updatedAt = item.updatedAt?.toDate() || createdAt;
         const timeInfo = `Upplagt: ${createdAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${createdAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}. Senast redigerad: ${updatedAt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' })} ${updatedAt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`;
+        // --- NYTT: Bygg HTML för Tävlingsanmälan ---
+        let competitionHtml = '';
+        if (item.isReminder) {
+            // Detta är den autogenererade påminnelsen
+            competitionHtml = `
+                <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-800 font-bold mb-1">Idag stänger anmälan!</p>
+                    <a href="#kalender#event-${item.originalId}" class="text-sm text-red-600 hover:underline inline-flex items-center">
+                        Gå till originalinlägget för att anmäla dig <span class="ml-1">➡️</span>
+                    </a>
+                </div>
+            `;
+        } else if (item.isCompetition) {
+            // Detta är originaltävlingen
+            const regCount = item.registeredShooters ? item.registeredShooters.length : 0;
+            const deadlinePassed = item.lastRegistrationDate && item.lastRegistrationDate < today;
+            const deadlineText = item.lastRegistrationDate ? `Sista anmälan: ${item.lastRegistrationDate}` : 'Ingen sista anmälningsdag';
 
+            if (deadlinePassed) {
+                competitionHtml = `
+                    <div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p class="text-sm font-bold text-gray-500 mb-1">Anmälan stängd (${deadlineText})</p>
+                        <button class="view-registered-btn text-sm text-blue-600 font-bold hover:underline" data-id="${item.id}">
+                            👥 ${regCount} st från klubben är anmälda
+                        </button>
+                    </div>
+                `;
+            } else {
+                competitionHtml = `
+                    <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm font-bold text-blue-800 mb-2">${deadlineText}</p>
+                        <div class="flex items-center space-x-4">
+                            <button class="manage-registration-btn px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-sm" data-id="${item.id}">
+                                🎯 Hantera anmälan
+                            </button>
+                            <button class="view-registered-btn text-sm text-blue-600 font-bold hover:underline" data-id="${item.id}">
+                                👥 ${regCount} st anmälda
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        // -------------------------------------------
         calendarContainer.innerHTML += `
             <div class="card flex items-start calendar-post cursor-pointer" data-expanded="false" data-id="${item.id}" id="event-${item.id}">
                 <div class="flex-shrink-0 bg-blue-500 text-white font-bold p-4 rounded-lg text-center mr-4">
@@ -771,7 +834,7 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
                     ${item.targetGroup && item.targetGroup !== 'all' ? `<span class="inline-block mb-3 text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">Endast för: ${item.targetGroup}</span>` : ''}
                     
                     <div class="text-gray-700 markdown-content calendar-post-short">${shortText}</div>
-                    
+                    ${competitionHtml}
                     <div class="text-gray-700 markdown-content hidden calendar-post-expanded mt-2">
                         ${item.description}
                         
