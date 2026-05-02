@@ -1669,7 +1669,7 @@ if (addSponsorForm) {
         checkSponsorForm();
     });
 
-   document.addEventListener('click', (e) => {
+   document.addEventListener('click', asynk (e) => {
         const editorToolbarBtn = e.target.closest('.editor-toolbar button');
         if (editorToolbarBtn) {
             e.preventDefault();
