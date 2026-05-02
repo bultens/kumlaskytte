@@ -1,7 +1,7 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { auth, db } from "./firebase-config.js";
-import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses, linksData, guidesData } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists, showDeleteUserModal,newsState, compState, renderNews, renderCompetitions } from "./ui-handler.js";
@@ -1529,7 +1529,132 @@ if (addSponsorForm) {
             showShareModal(title, url);
         }
     });
+    // --- HANTERA KLICK PÅ "JAG SKA MED" (ANMÄLAN) ---
+        const manageRegBtn = e.target.closest('.manage-registration-btn');
+        if (manageRegBtn) {
+            const eventId = manageRegBtn.getAttribute('data-id');
+            const eventItem = eventsData.find(evt => evt.id === eventId);
+            if (!eventItem || !auth.currentUser) return;
 
+            const modal = document.getElementById('manageRegistrationModal');
+            const contentDiv = document.getElementById('manage-reg-content');
+            
+            contentDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Laddar dina skyttar...</p>';
+            modal.classList.remove('hidden');
+
+            try {
+                // Hämta inloggade användarens skyttar
+                const myShooters = await getMyShooters(auth.currentUser.uid);
+                const currentRegs = eventItem.registeredShooters || [];
+
+                if (myShooters.length > 0) {
+                    // SCENARIO A: Användaren har skyttar
+                    let html = `<p class="mb-4 text-sm text-gray-600">Kryssa i vilka skyttar som ska med på <strong>${eventItem.title}</strong>:</p>`;
+                    html += `<div class="space-y-2 mb-6">`;
+                    
+                    myShooters.forEach(shooter => {
+                        const isChecked = currentRegs.includes(shooter.id) ? 'checked' : '';
+                        html += `
+                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                <input type="checkbox" class="shooter-reg-checkbox form-checkbox h-5 w-5 text-blue-600 rounded" value="${shooter.id}" ${isChecked}>
+                                <span class="ml-3 font-bold text-gray-800">${shooter.name}</span>
+                            </label>
+                        `;
+                    });
+                    html += `</div>`;
+                    html += `<button id="save-reg-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Spara anmälan</button>`;
+                    
+                    contentDiv.innerHTML = html;
+
+                    // Spara-knappen
+                    document.getElementById('save-reg-btn').addEventListener('click', async () => {
+                        const checkboxes = document.querySelectorAll('.shooter-reg-checkbox');
+                        const selectedIds = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+                        
+                        // Smart merge: Behåll alla andras anmälningar, men skriv över just denna användarens
+                        const otherUsersRegs = currentRegs.filter(id => !myShooters.map(s => s.id).includes(id));
+                        const newRegs = [...otherUsersRegs, ...selectedIds];
+
+                        const eventRef = doc(db, 'events', eventId);
+                        await updateDoc(eventRef, { registeredShooters: newRegs });
+                        
+                        modal.classList.add('hidden');
+                        showModal('confirmationModal', "Din anmälan har uppdaterats!");
+                    });
+
+                } else {
+                    // SCENARIO B: Användaren har inga skyttar (Seamless Onboarding!)
+                    contentDiv.innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4 text-sm text-blue-800">
+                            <strong>Välkommen!</strong> Det verkar som att du inte har lagt till någon skytt på din profil ännu. 
+                            Skapa din (eller ditt barns) profil nedan för att kunna anmäla er!
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Skyttens för- och efternamn</label>
+                            <input type="text" id="quick-shooter-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" placeholder="T.ex. Kalle Karlsson">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Födelseår</label>
+                            <input type="number" id="quick-shooter-year" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" placeholder="ÅÅÅÅ">
+                        </div>
+                        <button id="quick-create-reg-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition shadow-sm">
+                            Skapa profil & Anmäl till tävling
+                        </button>
+                    `;
+
+                    document.getElementById('quick-create-reg-btn').addEventListener('click', async () => {
+                        const name = document.getElementById('quick-shooter-name').value;
+                        const year = document.getElementById('quick-shooter-year').value;
+                        
+                        if (!name || !year) {
+                            alert("Fyll i både namn och födelseår.");
+                            return;
+                        }
+
+                        // 1. Skapa skytten
+                        const newShooterId = await createShooterProfile(auth.currentUser.uid, name, year);
+                        
+                        // 2. Lägg till det nya ID:t i tävlingens anmälningslista
+                        const newRegs = [...currentRegs, newShooterId];
+                        const eventRef = doc(db, 'events', eventId);
+                        await updateDoc(eventRef, { registeredShooters: newRegs });
+                        
+                        modal.classList.add('hidden');
+                        showModal('confirmationModal', `Snyggt! <strong>${name}</strong> är nu skapad och anmäld till tävlingen. 🎉`);
+                    });
+                }
+            } catch (err) {
+                console.error("Fel vid hantering av anmälan:", err);
+                contentDiv.innerHTML = '<p class="text-red-500 py-4">Ett fel uppstod. Försök igen.</p>';
+            }
+        }
+
+        // --- HANTERA KLICK PÅ "VISA ANMÄLDA" ---
+        const viewRegBtn = e.target.closest('.view-registered-btn');
+        if (viewRegBtn) {
+            const eventId = viewRegBtn.getAttribute('data-id');
+            const eventItem = eventsData.find(evt => evt.id === eventId);
+            if (!eventItem) return;
+
+            const modal = document.getElementById('viewRegisteredModal');
+            const listEl = document.getElementById('registered-shooters-list');
+            const currentRegs = eventItem.registeredShooters || [];
+
+            listEl.innerHTML = '';
+            
+            if (currentRegs.length === 0) {
+                listEl.innerHTML = '<li class="py-4 text-gray-500 italic text-center">Ingen från klubben har anmält sig ännu. Bli den första!</li>';
+            } else {
+                // Loopa igenom ID:n och hämta namn från allShootersData
+                currentRegs.forEach(shooterId => {
+                    const shooter = allShootersData.find(s => s.id === shooterId);
+                    const name = shooter ? shooter.name : 'Okänd skytt';
+                    listEl.innerHTML += `<li class="py-3 px-2 flex items-center"><span class="mr-3 text-lg">👤</span> <span class="font-bold text-gray-700">${name}</span></li>`;
+                });
+            }
+
+            modal.classList.remove('hidden');
+        }
     if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
         imageUploadInput.value = '';
         fileNameDisplay.textContent = 'Ingen fil vald';
@@ -1930,7 +2055,13 @@ if (addSponsorForm) {
             }
         });
     }
-
+    document.getElementById('close-manage-reg-modal')?.addEventListener('click', () => {
+        document.getElementById('manageRegistrationModal').classList.add('hidden');
+    });
+    
+    document.getElementById('close-view-reg-modal')?.addEventListener('click', () => {
+        document.getElementById('viewRegisteredModal').classList.add('hidden');
+    });
     // Lyssnare för att öppna modalen
     if (adminShootersList) {
         adminShootersList.addEventListener('click', (e) => {

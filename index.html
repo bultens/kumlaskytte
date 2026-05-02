@@ -1472,6 +1472,32 @@
             </div>
         </div>
     </main>
+    <!-- MODAL: Hantera Anmälan -->
+    <div id="manageRegistrationModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-gray-800" id="manage-reg-title">Tävlingsanmälan</h3>
+                <button id="close-manage-reg-modal" class="text-gray-400 hover:text-gray-600 font-bold text-2xl leading-none">&times;</button>
+            </div>
+            <div id="manage-reg-content">
+                <!-- Fylls dynamiskt av JS -->
+            </div>
+        </div>
+    </div>
 
+    <!-- MODAL: Visa Anmälda -->
+    <div id="viewRegisteredModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-gray-800">Klubbkompisar som ska med</h3>
+                <button id="close-view-reg-modal" class="text-gray-400 hover:text-gray-600 font-bold text-2xl leading-none">&times;</button>
+            </div>
+            <div class="max-h-60 overflow-y-auto">
+                <ul id="registered-shooters-list" class="divide-y divide-gray-100">
+                    <!-- Fylls dynamiskt av JS -->
+                </ul>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
