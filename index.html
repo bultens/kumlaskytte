@@ -377,6 +377,22 @@
                         </select>
                     </div>
 
+                    <Tävlings- och Anmälningssektion -->
+                    <div class="mt-4 p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                        <label class="flex items-center space-x-3 cursor-pointer mb-2">
+                            <input type="checkbox" id="event-is-competition" class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+                            <span class="text-gray-800 font-bold text-sm">Detta är en tävling (aktivera "Jag ska åka"-knappen)</span>
+                        </label>
+                        
+                        <div id="registration-deadline-container" class="hidden mt-3 pt-3 border-t border-blue-200">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="event-last-registration">
+                                Sista anmälningsdag (Valfritt)
+                            </label>
+                            <p class="text-xs text-gray-500 mb-2">Om du fyller i detta försvinner anmälningsknappen efter detta datum. Det skapas även automatiskt en påminnelsepost i kalendern.</p>
+                            <input type="date" id="event-last-registration" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                    </div>
+
                     <label for="event-description" class="block mb-2 font-semibold text-sm sm:text-base">Beskrivning</label>
                     <div class="editor-toolbar" data-editor-target="event-description-editor">
                         <button type="button" data-command="bold" class="px-2 sm:px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 font-bold text-sm">B</button>

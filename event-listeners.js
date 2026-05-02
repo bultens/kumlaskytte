@@ -833,6 +833,22 @@ if (addShooterForm) {
         });
     }
 
+    // Hämta de nya tävlingsfälten
+    const isCompetitionCheckbox = document.getElementById('event-is-competition');
+    const deadlineContainer = document.getElementById('registration-deadline-container');
+
+    // Toggla fram datumfältet om admin kryssar i rutan
+    if (isCompetitionCheckbox && deadlineContainer) {
+        isCompetitionCheckbox.addEventListener('change', () => {
+            if (isCompetitionCheckbox.checked) {
+                deadlineContainer.classList.remove('hidden');
+            } else {
+                deadlineContainer.classList.add('hidden');
+                document.getElementById('event-last-registration').value = ''; // Rensa om man ångrar sig
+            }
+        });
+    }
+
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             signOut();
