@@ -1529,7 +1529,13 @@ if (addSponsorForm) {
             showShareModal(title, url);
         }
     });
-    // --- HANTERA KLICK PÅ "JAG SKA MED" (ANMÄLAN) ---
+
+    // ========================================================
+    // --- TÄVLINGSANMÄLAN OCH LISTOR (EGEN ASYNC-LYSSNARE) ---
+    // ========================================================
+    document.addEventListener('click', async (e) => {
+        
+        // --- HANTERA KLICK PÅ "JAG SKA MED" (ANMÄLAN) ---
         const manageRegBtn = e.target.closest('.manage-registration-btn');
         if (manageRegBtn) {
             const eventId = manageRegBtn.getAttribute('data-id');
@@ -1620,7 +1626,7 @@ if (addSponsorForm) {
                         await updateDoc(eventRef, { registeredShooters: newRegs });
                         
                         modal.classList.add('hidden');
-                        showModal('confirmationModal', `Snyggt! <strong>${name}</strong> är nu skapad och anmäld till tävlingen. 🎉`);
+                        showModal('confirmationModal', \`Snyggt! <strong>\${name}</strong> är nu skapad och anmäld till tävlingen. 🎉\`);
                     });
                 }
             } catch (err) {
@@ -1649,12 +1655,14 @@ if (addSponsorForm) {
                 currentRegs.forEach(shooterId => {
                     const shooter = allShootersData.find(s => s.id === shooterId);
                     const name = shooter ? shooter.name : 'Okänd skytt';
-                    listEl.innerHTML += `<li class="py-3 px-2 flex items-center"><span class="mr-3 text-lg">👤</span> <span class="font-bold text-gray-700">${name}</span></li>`;
+                    listEl.innerHTML += \`<li class="py-3 px-2 flex items-center"><span class="mr-3 text-lg">👤</span> <span class="font-bold text-gray-700">\${name}</span></li>\`;
                 });
             }
 
             modal.classList.remove('hidden');
         }
+    }); // <-- Stänger vår nya klicklyssnare
+        
     if (clearImageUpload) clearImageUpload.addEventListener('click', () => {
         imageUploadInput.value = '';
         fileNameDisplay.textContent = 'Ingen fil vald';
@@ -1669,7 +1677,7 @@ if (addSponsorForm) {
         checkSponsorForm();
     });
 
-   document.addEventListener('click', asynk (e) => {
+   document.addEventListener('click', (e) => {
         const editorToolbarBtn = e.target.closest('.editor-toolbar button');
         if (editorToolbarBtn) {
             e.preventDefault();
