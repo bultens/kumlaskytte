@@ -160,16 +160,32 @@ function downloadICS(eventItem) {
 document.addEventListener('click', (e) => {
     const icsBtn = e.target.closest('.ics-btn');
     if (icsBtn) {
-        e.preventDefault(); // Stoppar sidan från att hoppa upp till toppen
-        e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation(); // Stoppar klicket från att bubbla vidare
         
-        // Hämta ID från knappen
         const eventId = icsBtn.getAttribute('data-id');
+        let eventItem = null;
+
+        // Kolla om det är en virtuell påminnelse
+        if (eventId.startsWith('reminder-')) {
+            const originalId = eventId.replace('reminder-', '');
+            const originalEvent = eventsData.find(evt => evt.id === originalId);
+            
+            if (originalEvent) {
+                // Bygg ihop ett tillfälligt objekt för kalenderfilen
+                eventItem = {
+                    ...originalEvent,
+                    id: eventId,
+                    title: 'Sista anmälan: ' + originalEvent.title,
+                    date: originalEvent.lastRegistrationDate // Använd anmälningsdatumet!
+                };
+            }
+        } else {
+            // Det är en vanlig post, hämta som vanligt
+            eventItem = eventsData.find(evt => evt.id === eventId);
+        }
         
-        // Leta upp rätt händelse i databasen
-        const eventItem = eventsData.find(evt => evt.id === eventId);
-        
-        // Om den finns, ladda ner!
+        // Om vi lyckades bygga/hämta informationen, ladda ner!
         if (eventItem) {
             downloadICS(eventItem);
         }
