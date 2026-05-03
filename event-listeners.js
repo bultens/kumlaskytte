@@ -1555,7 +1555,7 @@ if (addSponsorForm) {
 
                 if (myShooters.length > 0) {
                     // SCENARIO A: Användaren har skyttar
-                    let html = `<p class="mb-4 text-sm text-gray-600">Kryssa i vilka skyttar som ska med på <strong>${eventItem.title}</strong>:</p>`;
+                    let html = `<p class="mb-4 text-sm text-gray-600">Kryssa i vilka skyttar som anmält sig <strong>${eventItem.title}</strong>:</p>`;
                     html += `<div class="space-y-2 mb-6">`;
                     
                     myShooters.forEach(shooter => {
@@ -1568,7 +1568,7 @@ if (addSponsorForm) {
                         `;
                     });
                     html += `</div>`;
-                    html += `<button id="save-reg-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Spara anmälan</button>`;
+                    html += `<button id="save-reg-btn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Spara</button>`;
                     
                     contentDiv.innerHTML = html;
 

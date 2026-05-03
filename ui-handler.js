@@ -781,7 +781,7 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
                 <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p class="text-sm text-red-800 font-bold mb-1">Idag stänger anmälan!</p>
                     <a href="#kalender#event-${item.originalId}" class="text-sm text-red-600 hover:underline inline-flex items-center">
-                        Gå till originalinlägget för att anmäla dig <span class="ml-1">➡️</span>
+                        Gå till originalinlägget för att visa du anmält dig <span class="ml-1">➡️</span>
                     </a>
                 </div>
             `;
@@ -791,16 +791,6 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
             const deadlinePassed = item.lastRegistrationDate && item.lastRegistrationDate < today;
             const deadlineText = item.lastRegistrationDate ? `Sista anmälan: ${item.lastRegistrationDate}` : 'Ingen sista anmälningsdag';
 
-            if (deadlinePassed) {
-                competitionHtml = `
-                    <div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <p class="text-sm font-bold text-gray-500 mb-1">Anmälan stängd (${deadlineText})</p>
-                        <button class="view-registered-btn text-sm text-blue-600 font-bold hover:underline" data-id="${item.id}">
-                            👥 ${regCount} st från klubben är anmälda
-                        </button>
-                    </div>
-                `;
-            } else {
                 competitionHtml = `
                     <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p class="text-sm font-bold text-blue-800 mb-2">${deadlineText}</p>
@@ -814,7 +804,7 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
                         </div>
                     </div>
                 `;
-            }
+            
         }
         // -------------------------------------------
         calendarContainer.innerHTML += `
