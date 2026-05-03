@@ -80,3 +80,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupModalClose('close-share-modal', 'shareModal');
     setupModalClose('close-user-info-modal', 'userInfoModal');
 });
+
+// ==========================================
+// --- REGISTRERA SERVICE WORKER (PWA) ---
+// ==========================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('Service Worker registrerad framgångsrikt! 🎉', reg.scope))
+            .catch(err => console.warn('Service Worker registrering misslyckades', err));
+    });
+}

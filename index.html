@@ -1501,15 +1501,5 @@
             </div>
         </div>
     </div>
-    <!-- Registrera Service Worker för PWA -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(reg => console.log('Service Worker registrerad framgångsrikt! 🎉', reg.scope))
-                    .catch(err => console.warn('Service Worker registrering misslyckades', err));
-            });
-        }
-    </script>
 </body>
 </html>
