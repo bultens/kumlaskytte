@@ -161,6 +161,7 @@ document.addEventListener('click', (e) => {
     const icsBtn = e.target.closest('.ics-btn');
     if (icsBtn) {
         e.preventDefault(); // Stoppar sidan från att hoppa upp till toppen
+        e.stopPropagation();
         
         // Hämta ID från knappen
         const eventId = icsBtn.getAttribute('data-id');

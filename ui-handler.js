@@ -860,8 +860,8 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
             const chevron = post.querySelector('.collapse-icon');
             if (!chevron) return; 
 
-            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn') || e.target.closest('.share-btn') || e.target.closest('a')) {
-                return;
+            if (e.target.closest('.delete-btn') || e.target.closest('.edit-event-btn') || e.target.closest('.share-btn') || e.target.closest('.ics-btn') || e.target.closest('a')) {
+            return;
             }
             
             const isExpanded = post.getAttribute('data-expanded') === 'true';
