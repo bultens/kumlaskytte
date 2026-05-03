@@ -118,6 +118,63 @@ export function setupEventListeners() {
         });
     }
 
+
+// --- HJÄLPFUNKTION: Skapa och ladda ner en .ics-fil ---
+function downloadICS(eventItem) {
+    // 1. Formatera datumet från "YYYY-MM-DD" till "YYYYMMDD" (som .ics kräver)
+    const dateStr = eventItem.date.replace(/-/g, '');
+    
+    // 2. Tvätta beskrivningen från HTML-taggar så det blir ren text i kalendern
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = eventItem.description || "";
+    const plainDesc = tempDiv.textContent || tempDiv.innerText || "";
+
+    // 3. Bygg själva kalender-koden
+    const icsContent = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Skytteportalen//SV",
+        "BEGIN:VEVENT",
+        `UID:${eventItem.id}@skytteportalen.se`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+        `DTSTART;VALUE=DATE:${dateStr}`,
+        `SUMMARY:${eventItem.title}`,
+        `DESCRIPTION:${plainDesc.substring(0, 300)}...`, // Klipper texten om den är väldigt lång
+        "END:VEVENT",
+        "END:VCALENDAR"
+    ].join('\r\n'); // Kalenderfiler kräver "Carriage Return + Line Feed"
+
+    // 4. Skapa en virtuell fil och klicka på den för nedladdning
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `${eventItem.title.replace(/[^a-z0-9åäö]/gi, '_').toLowerCase()}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ==========================================
+// --- ICS / KALENDER-NEDLADDNING ---
+// ==========================================
+document.addEventListener('click', (e) => {
+    const icsBtn = e.target.closest('.ics-btn');
+    if (icsBtn) {
+        e.preventDefault(); // Stoppar sidan från att hoppa upp till toppen
+        
+        // Hämta ID från knappen
+        const eventId = icsBtn.getAttribute('data-id');
+        
+        // Leta upp rätt händelse i databasen
+        const eventItem = eventsData.find(evt => evt.id === eventId);
+        
+        // Om den finns, ladda ner!
+        if (eventItem) {
+            downloadICS(eventItem);
+        }
+    }
+});
+
     // --- STÄNG "SKAPA NY SKYTT"-MODALEN ---
 
         // 1. Krysset uppe i högra hörnet

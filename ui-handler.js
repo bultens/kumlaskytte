@@ -842,6 +842,7 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
 
                     <div class="flex items-center space-x-2 mt-4">
                         <button class="share-btn px-3 py-1 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 transition text-sm" data-id="${item.id}" data-type="events" data-title="${item.title}">🔗 Dela</button>
+                        <button class="ics-btn px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-100 transition text-sm" data-id="${item.id}">📅 Spara i kalender</button>
                         ${isAdminLoggedIn ? `
                             <button class="delete-btn px-3 py-1 bg-red-500 text-white font-bold rounded hover:bg-red-600 transition text-sm" data-id="${item.id}" data-type="events" data-series-id="${item.seriesId || ''}">Ta bort</button>
                             <button class="edit-event-btn px-3 py-1 bg-gray-500 text-white font-bold rounded hover:bg-gray-600 transition text-sm" data-id="${item.id}">Ändra</button>
