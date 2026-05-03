@@ -751,7 +751,7 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
         const month = eventDate.toLocaleString('sv-SE', { month: 'short' });
         
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = item.description;
+        tempDiv.innerHTML = item.description || ""; // Säkerställ att det inte kraschar
         
         let shortText = tempDiv.innerHTML;
         let showChevron = true;
@@ -765,8 +765,11 @@ export function renderEvents(eventsData, isAdminLoggedIn, userData = null) {
             const plain = tempDiv.textContent || tempDiv.innerText || "";
             if (plain.length > 120) {
                 shortText = '<p>' + plain.substring(0, 120) + '...</p>';
-            } else if (!item.fileUrl) {
+            } else if (!item.fileUrl && plain.length > 0) {
                 showChevron = false; 
+            } else if (!item.fileUrl) {
+                // Om det varken finns text eller fil, visa ingen pil
+                showChevron = false;
             }
         }
 
