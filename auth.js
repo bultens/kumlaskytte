@@ -70,9 +70,6 @@ onAuthStateChanged(auth, async (user) => {
     if (typeof eventsData !== 'undefined') {
         renderEvents(eventsData, isAdmin, userData);
     }
-    // Ritar om bilderna när en admin loggar in
-    console.log("Försöker rita om bilder. Är Admin:", isAdmin);
-    console.log("Finns bilderna sparade?", window.globalImageData);
 
     if (window.globalImageData) {
         renderImages(window.globalImageData, isAdmin); 
