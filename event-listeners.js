@@ -1862,24 +1862,32 @@ if (addSponsorForm) {
                 };
 
                 grid.innerHTML = '';
-                const sortedImages = [...imageData].sort((a, b) => {
+                
+                // NYTT: Hämta bilderna från vår globala bro!
+                const imagesToUse = window.globalImageData || [];
+                
+                const sortedImages = [...imagesToUse].sort((a, b) => {
                     if (b.year !== a.year) return b.year - a.year;
                     return b.month - a.month;
                 });
 
-                sortedImages.forEach(img => {
-                    const div = document.createElement('div');
-                    // Tvingar fram en snygg ruta med klick-känsla
-                    div.className = 'cursor-pointer border border-gray-200 rounded-lg p-2 hover:bg-blue-50 transition flex flex-col items-center bg-white shadow-sm';
-                    div.innerHTML = `
-                        <div class="w-full aspect-square mb-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
-                            <img src="${img.url}" loading="lazy" class="w-full h-full object-cover">
-                        </div>
-                        <p class="text-xs text-gray-700 font-bold truncate w-full text-center">${img.title}</p>
-                    `;
-                    div.onclick = () => insertTheImage(img.url);
-                    grid.appendChild(div);
-                });
+                if (sortedImages.length > 0) {
+                    sortedImages.forEach(img => {
+                        const div = document.createElement('div');
+                        // Tvingar fram en snygg ruta med klick-känsla
+                        div.className = 'cursor-pointer border border-gray-200 rounded-lg p-2 hover:bg-blue-50 transition flex flex-col items-center bg-white shadow-sm';
+                        div.innerHTML = `
+                            <div class="w-full aspect-square mb-2 overflow-hidden rounded bg-gray-100 flex-shrink-0">
+                                <img src="${img.url}" loading="lazy" class="w-full h-full object-cover">
+                            </div>
+                            <p class="text-xs text-gray-700 font-bold truncate w-full text-center">${img.title}</p>
+                        `;
+                        div.onclick = () => insertTheImage(img.url);
+                        grid.appendChild(div);
+                    });
+                } else {
+                    grid.innerHTML = '<p class="col-span-full text-sm text-gray-500 text-center py-4">Inga bilder hittades. Ladda upp i galleriet först.</p>';
+                }
 
                 const newManualBtn = manualBtn.cloneNode(true);
                 manualBtn.parentNode.replaceChild(newManualBtn, manualBtn);
