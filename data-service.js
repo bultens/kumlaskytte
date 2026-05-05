@@ -98,8 +98,18 @@ export function initializeDataListeners() {
 
     // Bildgalleri
     onSnapshot(collection(db, 'images'), (snapshot) => {
-        imageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderImages(imageData, isAdminLoggedIn);
+        // NYTT: Vi sparar bilderna i fönstret så andra filer kan se dem!
+        window.globalImageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Ett extra säkerhetsnät för att kolla admin-status:
+        let currentIsAdmin = false;
+        if (window.currentUserData && window.currentUserData.isAdmin) {
+            currentIsAdmin = true;
+        } else if (typeof isAdminLoggedIn !== 'undefined') {
+            currentIsAdmin = isAdminLoggedIn;
+        }
+
+        renderImages(window.globalImageData, currentIsAdmin);
     });
 
     // Länkar

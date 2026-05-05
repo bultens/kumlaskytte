@@ -70,8 +70,9 @@ onAuthStateChanged(auth, async (user) => {
     if (typeof eventsData !== 'undefined') {
         renderEvents(eventsData, isAdmin, userData);
     }
-    if (typeof imageData !== 'undefined') {
-        renderImages(imageData, isAdmin); // OBS: Använd variabeln 'isAdmin' här, eftersom den heter så i inloggningskoden
+    // Ritar om bilderna när en admin loggar in
+    if (window.globalImageData && typeof renderImages === 'function') {
+        renderImages(window.globalImageData, isAdmin); 
     }
 });
 
