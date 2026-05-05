@@ -882,13 +882,16 @@
         <section id="profil" class="page">
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Min Profil</h1>
             <div id="profile-panel" class="card max-w-md mx-auto">
-                <div id="profile-info-container" class="mb-4 sm:mb-6"></div> 
+                
                 <p id="profile-welcome-message" class="mb-3 sm:mb-4 text-gray-700 text-sm sm:text-base"></p>
                 
                 <h2 class="text-xl sm:text-2xl font-bold mt-4 sm:mt-6 mb-3 sm:mb-4">Din information</h2>
                 <form id="profile-form">
                     <label for="profile-name-input" class="block mb-2 font-semibold text-sm sm:text-base">Namn</label>
                     <input type="text" id="profile-name-input" class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
+
+                    <label for="profile-email-input" class="block mb-2 font-semibold text-sm sm:text-base">E-post</label>
+                    <input type="email" id="profile-email-input" class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed mb-3 sm:mb-4 text-sm sm:text-base" readonly title="E-postadressen är kopplad till din inloggning och kan inte ändras här">
                     
                     <label for="profile-address-input" class="block mb-2 font-semibold text-sm sm:text-base">Adress</label>
                     <input type="text" id="profile-address-input" class="w-full p-2.5 sm:p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 sm:mb-4 text-sm sm:text-base">
