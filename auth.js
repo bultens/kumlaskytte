@@ -44,6 +44,10 @@ onAuthStateChanged(auth, async (user) => {
             }
             // Rendera profilinfon (viktigt för profilsidan)
             await renderProfileInfo(user);
+            const emailInput = document.getElementById('profile-email-input');
+            if (emailInput) {
+                emailInput.value = user.email;
+            }
         } catch (err) {
             console.error("Fel vid hämtning av användarprofil:", err);
         }
@@ -65,6 +69,9 @@ onAuthStateChanged(auth, async (user) => {
     }
     if (typeof eventsData !== 'undefined') {
         renderEvents(eventsData, isAdmin, userData);
+    }
+    if (typeof imageData !== 'undefined') {
+        renderImages(imageData, isAdmin); // OBS: Använd variabeln 'isAdmin' här, eftersom den heter så i inloggningskoden
     }
 });
 
