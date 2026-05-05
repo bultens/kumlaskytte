@@ -1377,7 +1377,7 @@ if (addSponsorForm) {
         const editImageBtn = e.target.closest('.edit-image-btn');
         if (editImageBtn) {
             const imageId = editImageBtn.getAttribute('data-id');
-            const imageItem = imageData.find(i => i.id === imageId);
+            const imageItem = window.globalImageData.find(i => i.id === imageId);
             if (imageItem) {
                 // Sätt ID för redigering i upload-handler
                 setEditingImageId(imageId);
@@ -1416,6 +1416,7 @@ if (addSponsorForm) {
                 }, 100);
             }
         }
+
         const editSponsorBtn = e.target.closest('.edit-sponsor-btn');
         if (editSponsorBtn) {
             const sponsorId = editSponsorBtn.getAttribute('data-id');
