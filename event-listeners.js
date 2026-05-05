@@ -1,7 +1,7 @@
 // event-listeners.js
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 import { auth, db } from "./firebase-config.js";
-import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, collection, query, where, getDocs, writeBatch, serverTimestamp, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { addOrUpdateDocument, deleteDocument, updateProfile, updateSiteSettings, addAdminFromUser, deleteAdmin, updateProfileByAdmin, newsData, eventsData, historyData, imageData, usersData, sponsorsData, competitionsData, toggleLike, createShooterProfile, getMyShooters, saveResult, getShooterResults, updateUserResult, calculateShooterStats, updateShooterProfile, linkUserToShooter, latestResultsCache, allShootersData, unlinkUserFromShooter, competitionClasses, linksData, guidesData } from "./data-service.js";
 import { setupResultFormListeners, calculateTotal, getMedalForScore } from "./result-handler.js";
 import { navigate, showModal, hideModal, showUserInfoModal, showEditUserModal, applyEditorCommand, isAdminLoggedIn, showShareModal, renderPublicShooterStats, renderTopLists, showDeleteUserModal,newsState, compState, renderNews, renderCompetitions } from "./ui-handler.js";
@@ -996,7 +996,7 @@ if (addShooterForm) {
         });
     }
 
-    if (addNewsForm) {
+if (addNewsForm) {
         addNewsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newsObject = {
@@ -1007,8 +1007,73 @@ if (addShooterForm) {
                 updatedAt: editingNewsId ? serverTimestamp() : null,
                 fileUrl: document.getElementById('news-file-url').value || null
             };
+            
+            // 1. Spara nyheten till databasen
             await addOrUpdateDocument('news', editingNewsId, newsObject, "Nyhet har lagts till!", "Ett fel uppstod.");
+
+            // ==========================================
+            // 2. NY KOD: E-POSTUTSKICK! 🚀
+            // ==========================================
+            const sendEmailCheckbox = document.getElementById('send-email-checkbox');
+            
+            // Kolla om rutan är ikryssad och om det är en NY nyhet (vi vill inte spamma vid små redigeringar)
+            if (sendEmailCheckbox && sendEmailCheckbox.checked && !editingNewsId) {
+                try {
+                    // Hämta alla användare där mailingList är true
+                    const q = query(collection(db, 'users'), where('mailingList', '==', true));
+                    const querySnapshot = await getDocs(q);
+                    
+                    const emailList = [];
+                    querySnapshot.forEach((doc) => {
+                        const userData = doc.data();
+                        // OBS: Detta förutsätter att du sparar e-posten (email) i användarens dokument i databasen!
+                        if (userData.email) {
+                            emailList.push(userData.email);
+                        }
+                    });
+
+                    if (emailList.length > 0) {
+                        // Skapa mailet i databasen
+                        await addDoc(collection(db, 'mail'), {
+                            bcc: emailList, // Viktigt: BCC döljer adresserna för varandra (GDPR)
+                            message: {
+                                subject: `Nyhet från Kumla Skytteförening: ${newsObject.title}`,
+                                html: `
+                                    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+                                        <h2 style="color: #1e3a8a;">${newsObject.title}</h2>
+                                        <div style="margin-bottom: 30px;">
+                                            ${newsObject.content}
+                                        </div>
+                                        
+                                        <a href="https://kumlaskytteforening.se/" style="display: inline-block; padding: 10px 20px; background-color: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; margin-bottom: 20px;">Besök hemsidan</a>
+                                        
+                                        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+                                        
+                                        <p style="font-size: 11px; color: #888;">
+                                            Detta är ett automatiskt nyhetsutskick från <a href="https://kumlaskytteforening.se/" style="color: #888;">Kumla Skytteförening</a>. Du får detta mail för att du har valt att prenumerera på utskick via din profilsida.<br><br>
+                                            Vill du inte längre få dessa mail? <br>
+                                            <a href="https://kumlaskytteforening.se/#profil" style="color: #1e3a8a; text-decoration: underline;">Logga in och ändra dina e-postinställningar här</a>.
+                                        </p>
+                                    </div>
+                                `
+                            }
+                        });
+                        console.log(`✅ E-postmeddelande skapat för ${emailList.length} mottagare!`);
+                    } else {
+                        console.log("ℹ️ Inga mottagare med e-post hittades på maillistan.");
+                    }
+                } catch (error) {
+                    console.error("❌ Fel vid skapande av e-postutskick:", error);
+                }
+            }
+            // ==========================================
+            // SLUT PÅ E-POSTUTSKICK
+            // ==========================================
+
+            // 3. Återställ formuläret (din vanliga kod)
             addNewsForm.reset();
+            if (sendEmailCheckbox) sendEmailCheckbox.checked = false; // Nollställ checkboxen
+            
             newsContentEditor.innerHTML = '';
             editingNewsId = null;
             const newsFileUrl = document.getElementById('news-file-url');
