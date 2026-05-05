@@ -485,7 +485,7 @@ export function toggleProfileUI(user, isAdmin) {
     
     // Mobil-länkar (Oförändrade)
     const mobileResultsLink = document.getElementById('mobile-results-nav-link');
-    const mobileProfileLink = document.getElementById('mobile-profile-nav-link');
+    const mobileProfileLink = document.getElementById('mobile-profile-panel');
     const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
 
     if (user) {
@@ -499,6 +499,7 @@ export function toggleProfileUI(user, isAdmin) {
         // Mobil
         if (mobileResultsLink) mobileResultsLink.classList.remove('hidden');
         if (mobileProfileLink) mobileProfileLink.classList.remove('hidden');
+        document.getElementById('mobile-profile-panel')?.classList.remove('hidden');
         if (mobileLogoutBtn) mobileLogoutBtn.classList.remove('hidden');
         
         // Admin-badge
@@ -2363,7 +2364,7 @@ export function renderHero(user, userData) {
                     <div>
                         <span class="bg-blue-900 text-white text-[10px] px-2 py-1 rounded font-bold uppercase">Aktiv Tävlande</span>
                         <h2 class="text-2xl font-bold mt-2 text-gray-900">Dags för nästa tävling?</h2>
-                        <p class="text-gray-600 mt-1">Kolla in senaste Tävlingsrapporten för resultat och sedan Kalendern var/när nästa tävling är och lägg in om du anmält dig.</p>
+                        <p class="text-gray-600 mt-1">Kolla in senaste Tävlingsrapporter för resultat och i Kalender var/när nästa tävling är och lägg in om du anmält dig.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="#tavlingar" class="inline-block bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">Tävlingsrapporter</a>
